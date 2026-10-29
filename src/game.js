@@ -5,6 +5,7 @@ import {createCharacters} from './characters.js';
 import {createEquipment} from './equipment.js';
 import {createDoors} from './doors.js';
 import {moveWithCollisions,isBlocked} from './collision.mjs';
+import {cartonTexture} from './textures.js';
 import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
@@ -22,8 +23,18 @@ let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),a
 let doorInteractionHeld=false;
 let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],cartMesh=null,ladderMesh=null,ladder=null;
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
+let receiptTimeout=0,payrollTransactions=0;
 const NOTE='Easy shelves: 1¢ · ladder: 2¢ · upgraded ladder: 3¢ · deliveries at the BACK';
 function notify(msg){$('toast').textContent=msg;$('toast').style.opacity='1';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.opacity='0',2700);}
+function showPayReceipt(amount){
+ const receipt=$('payReceipt');
+ $('receiptAmount').textContent=centsText(amount);
+ $('receiptNumber').textContent='#'+String(++payrollTransactions).padStart(4,'0');
+ receipt.setAttribute('aria-hidden','false');
+ receipt.classList.add('active');
+ clearTimeout(receiptTimeout);
+ receiptTimeout=setTimeout(()=>{receipt.classList.remove('active');receipt.setAttribute('aria-hidden','true');},4100);
+}
 function save(){try{localStorage.setItem(SAVE_KEY,serialize(s));}catch(err){notify('Could not save: browser storage might be full or unavailable.');}}
 setInterval(save,5000);addEventListener('beforeunload',save);
 function uiUpdate(){
@@ -131,7 +142,7 @@ function act(){
   return;
  }
  if(nearby(1.5,-7,4.0)){openShop();return;}
- if(nearby(10,-3,4.0)){const paid=payOut(s);notify(paid?'Collected '+centsText(paid)+' in wages.':'No outstanding wages. Stock products first!');save();return;}
+ if(nearby(10,-3,4.0)){const paid=payOut(s);if(paid)showPayReceipt(paid);else notify('Your payroll balance is currently $0.00. Stock more products to earn wages.');save();return;}
  if(nearby(23,-9,4.4)){openElevator();return;}
  if(nearby(DOCK.x,DOCK.z,4.4)&&V.carry<capacity(s)){V.carry++;return;}
  if(manualStock())return;
@@ -211,6 +222,9 @@ function updatePrompt(){
    else msg='Look toward a nearby shelf · B build conveyor · L deploy ladder';
  }
  if(msg){$('prompt').hidden=false;$('prompt').textContent=msg;}else $('prompt').hidden=true;
+ const pickup=$('pickupStatus');
+ pickup.hidden=!!modal||!nearby(DOCK.x,DOCK.z,4.4);
+ if(!pickup.hidden)pickup.textContent='RECEIVING / STOCK READY  •  CARRIED '+V.carry+' / '+capacity(s)+'  •  HOLD E TO LOAD';
 }
 function createEndingBodies(){
  const sun=new THREE.Mesh(new THREE.SphereGeometry(12,24,18),new THREE.MeshBasicMaterial({color:'#ffe178',fog:false}));
@@ -265,7 +279,12 @@ function syncRobots(){
   }else if(robotModels.has(r.id)){const obj=robotModels.get(r.id);obj.visible=false;robotModels.delete(r.id);}
  }
 }
-const hand=round(.55,.46,.5,'#db9f68',camera);hand.position.set(.55,-.52,-1);hand.visible=false;
+// The player visibly carries a labeled warehouse package, not a skin-colored cube.
+const hand=new THREE.Group();camera.add(hand);hand.position.set(.51,-.47,-1.01);
+const carried=round(.42,.39,.34,new THREE.MeshStandardMaterial({map:cartonTexture(),roughness:.88}),hand);
+carried.rotation.set(-.12,-.28,.14);
+const strap=round(.45,.045,.37,'#a7895d',hand);strap.position.y=.1;
+hand.visible=false;
 function animate(now){
  requestAnimationFrame(animate);const elapsed=Math.max(0,(now-last)/1000),dt=Math.min(.06,elapsed);last=now;
  if(running&&!ending){
