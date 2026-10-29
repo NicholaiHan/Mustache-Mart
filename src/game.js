@@ -10,7 +10,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,botStep
+ floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -257,18 +257,8 @@ function endingTick(dt){
  sunlight.intensity=.3+1.7*dawn;
 }
 function tickCart(dt){
- if(!s.levels.cart||remaining(s)<=0)return;
- const c=s.cart;
- c.z+=dt*(.28+s.levels.cartSpeed*.14);
- if(c.z>bayZ(BAYS-1)+1.4){c.z=bayZ(0);c.aisle=(c.aisle+1)%AISLES;if(c.aisle===0)c.floor=(c.floor+1)%FLOORS;}
- c.acc+=dt*(.15+s.levels.cartSpeed*.09);
- if(c.acc>=1){
-  c.acc-=1;const bay=Math.max(0,Math.min(BAYS-1,Math.round((c.z-13)/2.65)));
-  for(const tier of [2,1,0])for(const side of [0,1]){
-   const id=cellId(c.floor,c.aisle,side,bay,tier);
-   if(s.fill[id]<SLOTS){const prev=s.fill[id];place(s,id,true);if(c.floor===s.floor)drawProduct(id,prev);return;}
-  }
- }
+ const id=cartStep(s,dt);
+ if(id>=0&&decode(id).floor===s.floor)drawProduct(id,s.fill[id]-1);
 }
 function syncRobots(){
  for(const r of s.robots){
