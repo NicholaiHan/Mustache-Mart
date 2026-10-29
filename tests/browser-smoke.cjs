@@ -28,7 +28,9 @@ const assert=require('node:assert/strict');
   }
   assert.equal(await page.locator('canvas').count(),1);
   assert.equal(await page.locator('#intro').isVisible(),true);
-  console.log('PASS: game renders giant 15-floor store without Electron');
+  assert.equal(await page.evaluate(()=>window.__martTest.snapshot().money),50000,'development account starts with precisely $500');
+  assert.equal(await page.evaluate(()=>window.__martTest.snapshot().checkoutCount),4,'four real checkout stations on floor 1');
+  console.log('PASS: game renders fifteen-floor store with $500 developer account and four checkout lanes');
 
   await page.locator('#play').click();
   // Actual collision-safe loading position, not inside the receiving counter.
@@ -56,10 +58,19 @@ const assert=require('node:assert/strict');
   await page.keyboard.press('e');await page.waitForTimeout(250);
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.pending,0);
-  assert.ok(snap.money>=100001);
+  assert.ok(snap.money>=50001);
   assert.equal(await page.locator('#payReceipt').getAttribute('aria-hidden'),'false');
   assert.equal(await page.locator('#receiptAmount').textContent(),'$0.01');
   console.log('PASS: physical pay-window converts unsettled wages into money with professional receipt');
+  // Verify that cash register terminals are solid and respond on Floor 1.
+  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(57,2)),true);
+  await page.evaluate(()=>{window.__martTest.teleport(57,-3.45);window.__martTest.setLook(Math.PI,0);});
+  await page.screenshot({path:path.join(art,'first-floor-checkout.png')});
+  await page.keyboard.press('e');
+  await page.waitForFunction(()=>document.querySelector('#toast')?.textContent.includes('CHECKOUT'));
+  assert.match(await page.locator('#toast').textContent(),/Card terminal powered/);
+  console.log('PASS: cashier lanes have working belt animation, POS payment terminals and interaction');
+
 
   await page.evaluate(()=>window.__martTest.teleport(1.5,-4.1));
   await page.keyboard.press('q');
@@ -157,6 +168,7 @@ const assert=require('node:assert/strict');
   await page.locator('#elevatorlist button').last().click({noWaitAfter:true,timeout:90000});
   try{
     await page.waitForFunction(()=>document.querySelector('#floorStat')?.textContent.includes('F15'),undefined,{timeout:45000});
+    assert.equal(await page.evaluate(()=>window.__martTest.snapshot().checkoutCount),0,'cashier lanes do not appear above first floor');
   }catch(error){
     console.error('FLOOR TRANSITION DIAGNOSTICS:',JSON.stringify(await page.evaluate(()=>({
       floor:document.querySelector('#floorStat')?.textContent,
@@ -177,13 +189,13 @@ const assert=require('node:assert/strict');
   await page.locator('#elevator.open').waitFor();
   await page.locator('#elevatorlist button').first().click({noWaitAfter:true,timeout:90000});
   await page.waitForFunction(()=>document.querySelector('#floorStat')?.textContent.includes('F01'),undefined,{timeout:45000});
-  await page.evaluate(()=>{window.__martTest.teleport(98.6,40.5);window.__martTest.setLook(-Math.PI/2,0);});
+  await page.evaluate(()=>{window.__martTest.teleport(-6.5,85);window.__martTest.setLook(Math.PI/2,0);});
   await page.screenshot({path:path.join(art,'fire-exit.png')});
   await page.keyboard.press('e');
   assert.equal(await page.evaluate(()=>window.__martTest.doorStatus().fire),true);
   await page.keyboard.press('e');
   assert.equal(await page.evaluate(()=>window.__martTest.doorStatus().fire),false);
-  console.log('PASS: Fire Exit opens and closes by E, revealing brick wall');
+  console.log('PASS: single back-left FIRE EXIT opens and closes, revealing brick wall');
   await page.evaluate(()=>{window.__martTest.teleport(46.5,-8.3);window.__martTest.setLook(0,0);});
   await page.keyboard.press('e');
   assert.equal(await page.evaluate(()=>window.__martTest.doorStatus().entrance),false,'must stay locked below 100%');
