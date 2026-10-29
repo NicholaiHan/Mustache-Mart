@@ -210,29 +210,57 @@ function buildService(){
 }
 function buildShelves(){
  const per=AISLES*2*BAYS;
- const boardGeo=roundedGeo(1.45,.13,2.46),backGeo=roundedGeo(.13,3.35,2.48),lipGeo=roundedGeo(.11,.15,2.46);
- const material=new THREE.MeshStandardMaterial({color:'#fffdf6',roughness:.43,metalness:.08});
- const boards=add(new THREE.InstancedMesh(boardGeo,material,per*TIERS));
- const backs=add(new THREE.InstancedMesh(backGeo,material,per));
- const lips=add(new THREE.InstancedMesh(lipGeo,material,per*TIERS));
- boards.frustumCulled=backs.frustumCulled=lips.frustumCulled=false;
- let bi=0,ri=0;
+ // Reusable instancing gives the taller racks a convincing metal framework
+ // without building tens of thousands of individual draw calls.
+ const boardGeo=roundedGeo(1.55,.11,2.46,.035);
+ const backGeo=roundedGeo(.11,RACK_HEIGHT,2.48,.024);
+ const postGeo=roundedGeo(.13,RACK_HEIGHT,.16,.029);
+ const lipGeo=roundedGeo(.09,.18,2.46,.026);
+ const kickGeo=roundedGeo(.13,.31,2.46,.03);
+ const metal=new THREE.MeshStandardMaterial({color:'#d8dbd9',metalness:.36,roughness:.42});
+ const darkMetal=new THREE.MeshStandardMaterial({color:'#9fa8a6',metalness:.5,roughness:.4});
+ const boards=add(new THREE.InstancedMesh(boardGeo,metal,per*TIERS));
+ const backs=add(new THREE.InstancedMesh(backGeo,darkMetal,per));
+ const posts=add(new THREE.InstancedMesh(postGeo,darkMetal,per*2));
+ const lips=add(new THREE.InstancedMesh(lipGeo,metal,per*TIERS));
+ const kicks=add(new THREE.InstancedMesh(kickGeo,darkMetal,per));
+ for(const inst of [boards,backs,posts,lips,kicks])inst.frustumCulled=false;
+ let bi=0,ri=0,pi=0,ki=0;
  for(let a=0;a<AISLES;a++){
-  const tag=textLabel('AISLE '+(a+1)+' · '+goods[a%goods.length],5,.82,pastel[a%5],'#302945',38);
-  tag.position.set(aisleX(a),4.55,9.6);add(tag);
+  const aisleLabel=textLabel('AISLE '+String(a+1).padStart(2,'0')+'  |  '+goods[a%goods.length],5.6,.7,'#465f55','#ffffff',39);
+  aisleLabel.position.set(aisleX(a),4.35,9.1);add(aisleLabel);
+  const highTag=textLabel(goods[a%goods.length]+'  •  '+(a+1),5.6,.78,'#d7dbd5','#384441',47);
+  highTag.position.set(aisleX(a),14.55,9.3);add(highTag);
   for(let side=0;side<2;side++)for(let bay=0;bay<BAYS;bay++){
    const sg=side===0?-1:1,x=aisleX(a)+sg*3.4,z=bayZ(bay);
-   dummy.position.set(x+sg*.45,1.76,z);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();backs.setMatrixAt(ri,dummy.matrix);
-   backs.setColorAt(ri,color.set(pastel[a%5]));ri++;
+   dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);
+   dummy.position.set(x+sg*.46,RACK_HEIGHT/2,z);dummy.updateMatrix();
+   backs.setMatrixAt(ri,dummy.matrix);
+   backs.setColorAt(ri,color.set('#b2b7b3'));ri++;
+   for(const offs of [-1.15,1.15]){
+    dummy.position.set(x+sg*.1,RACK_HEIGHT/2,z+offs);dummy.updateMatrix();
+    posts.setMatrixAt(pi,dummy.matrix);posts.setColorAt(pi++,color.set('#737d80'));
+   }
+   dummy.position.set(x-sg*.55,.22,z);dummy.updateMatrix();
+   kicks.setMatrixAt(ki,dummy.matrix);kicks.setColorAt(ki++,color.set('#727d79'));
    for(let tier=0;tier<TIERS;tier++){
-     dummy.position.set(x,TIER_Y[tier]-.06,z);dummy.updateMatrix();boards.setMatrixAt(bi,dummy.matrix);
-     boards.setColorAt(bi,color.set('#ffffff'));
-     dummy.position.set(x-sg*.7,TIER_Y[tier]+.035,z);dummy.updateMatrix();lips.setMatrixAt(bi,dummy.matrix);
-     lips.setColorAt(bi,color.set(pastel[a%5]));bi++;
+    dummy.position.set(x,TIER_Y[tier]-.07,z);dummy.updateMatrix();boards.setMatrixAt(bi,dummy.matrix);
+    boards.setColorAt(bi,color.set('#d7dad7'));
+    dummy.position.set(x-sg*.72,TIER_Y[tier]+.025,z);dummy.updateMatrix();lips.setMatrixAt(bi,dummy.matrix);
+    lips.setColorAt(bi,color.set(tier===3?'#b09973':tier===2?'#8c9a8f':'#c6c9c2'));bi++;
    }
   }
  }
- for(const m of [boards,backs,lips]){m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;}
+ for(const m of [boards,backs,posts,lips,kicks]){
+  m.instanceMatrix.needsUpdate=true;
+  if(m.instanceColor)m.instanceColor.needsUpdate=true;
+ }
+ // Price-band notices: 1¢ low, 2¢ step ladder, 3¢ telescopic extension.
+ for(let a=0;a<AISLES;a++)for(let side of [0,1]){
+  const label=textLabel('1c  /  1c  /  2c  /  3c',2.65,.34,'#f4f2e8','#445651',34);
+  label.position.set(aisleX(a)+(side===0?-2.3:2.3),3.38,12.15);
+  label.rotation.y=0;add(label);
+ }
  const maxForType=Math.ceil(AISLES/5)*2*BAYS*TIERS*SLOTS;
  meshes=Array.from({length:5},(_,i)=>{
    const m=add(new THREE.InstancedMesh(itemGeometry(i),toon('#ffffff'),maxForType));
@@ -249,7 +277,7 @@ function drawProduct(id,slot){
  dummy.position.set(aisleX(aisle)+sg*2.93,TIER_Y[tier]+.07,bayZ(bay)+(slot-1.5)*.53);
  dummy.rotation.set(0,(slot+id)*1.14%6.28,0);dummy.scale.set(1,1,1);dummy.updateMatrix();
  m.setMatrixAt(idx,dummy.matrix);
- const palettes=[['#ff657f','#ffa956','#fff176'],['#6ebcfa','#87e1df','#e7f9ff'],['#8a3d68','#3f7a63','#56375d'],['#ffa453','#eadd63','#e67b80'],['#8abef8','#ff8e8e','#93d9a2']];
+ const palettes=[['#9f5948','#b56b51','#b47d54'],['#72909c','#91a5aa','#b6c8c8'],['#805654','#5e745d','#68617a'],['#bd9f6d','#b59e75','#9d866b'],['#8b9c86','#a26d60','#79919b']];
  m.setColorAt(idx,color.set(palettes[aisle%5][slot%3]));
  m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;
 }
@@ -266,8 +294,8 @@ function makeBelt(f,a,segment){
 }
 function botAppearance(r){
  const b=new THREE.Group();world.add(b);
- const body=round(.78,.82,.6,'#79dcc8',b);body.position.y=.7;
- const head=round(.66,.46,.55,'#b4fff0',b);head.position.y=1.33;
+ const body=round(.78,.82,.6,'#7a8c84',b);body.position.y=.7;
+ const head=round(.66,.46,.55,'#bfc9c2',b);head.position.y=1.33;
  for(let j of [-1,1]){
  const eye=new THREE.Mesh(new THREE.SphereGeometry(.073,12,10),toon('#252539'));eye.position.set(j*.18,1.41,-.29);b.add(eye);
  const moustache=new THREE.Mesh(new THREE.SphereGeometry(.19,12,10),toon('#49314b'));moustache.scale.set(1,.42,.55);moustache.position.set(j*.15,1.2,-.33);moustache.rotation.z=j*.28;b.add(moustache);
@@ -279,9 +307,9 @@ function botAppearance(r){
 function makeCart(){
  if(!s.levels.cart)return;
  cartMesh=new THREE.Group();world.add(cartMesh);
- const base=round(1.2,.33,1.5,'#f7c357',cartMesh);base.position.y=.38;
- const mast=round(.13,1.5,.16,'#80becd',cartMesh);mast.position.set(.35,1.25,.45);
- const shelf=round(.8,.12,.9,'#ffffff',cartMesh);shelf.position.set(.15,2,.2);
+ const base=round(1.2,.33,1.5,'#ad9a72',cartMesh);base.position.y=.38;
+ const mast=round(.17,9.2,.21,'#778786',cartMesh);mast.position.set(.35,4.9,.45);
+ const shelf=round(.8,.12,.9,'#d8ded8',cartMesh);shelf.position.set(.15,9.45,.2);
  for(let side of [-1,1])for(let z of [-.5,.5]){
  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.16,16),toon('#393344'));wheel.rotation.z=Math.PI/2;wheel.position.set(side*.57,.22,z);cartMesh.add(wheel);
  }
