@@ -309,17 +309,40 @@ addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouseDow
 addEventListener('mousedown', () => { if (locked) { mouseDown = true; P.act = 1; } });
 addEventListener('mouseup', () => { mouseDown = false; });
 addEventListener('mousemove', e => {
-  if (!locked) return;
+  if (!locked || (document.pointerLockElement !== renderer.domElement && !mouseDown)) return;
   P.yaw -= e.movementX * 0.0022; P.pitch = Math.max(-1.4, Math.min(1.4, P.pitch - e.movementY * 0.0022));
 });
-$('start').addEventListener('click', () => { $('start').style.display = 'none'; renderer.domElement.requestPointerLock(); });
+function requestPointerLockSafe() {
+  // Browsers may reject pointer lock (notably under remote desktop, browser
+  // automation, accessibility configurations or certain Safari permissions).
+  // Gameplay still works with WASD and the arrow keys; no security overrides.
+  locked = true;
+  if (typeof renderer.domElement.requestPointerLock !== 'function') {
+    $('help').textContent = 'WASD move · Arrow keys look · Hold E to stock · Q shop · Mouse capture unavailable';
+    return;
+  }
+  try {
+    const result = renderer.domElement.requestPointerLock();
+    if (result && typeof result.catch === 'function') result.catch(() => {
+      $('help').textContent = 'WASD move · Arrow keys look · Drag mouse to look · E stock · Q shop';
+      locked = true;
+    });
+  } catch (_error) {
+    $('help').textContent = 'WASD move · Arrow keys look · Drag mouse to look · E stock · Q shop';
+    locked = true;
+  }
+}
+$('start').addEventListener('click', () => {
+  $('start').style.display = 'none';
+  requestPointerLockSafe();
+});
 document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === renderer.domElement;
   if (!locked && !shopOpen && !ending) { $('start').style.display = 'flex'; $('start').querySelector('b').textContent = 'Click to resume'; }
 });
 function toggleShop() {
   shopOpen = !shopOpen; $('shop').style.display = shopOpen ? 'flex' : 'none';
-  if (shopOpen) { document.exitPointerLock(); renderShop(); } else { renderer.domElement.requestPointerLock(); $('start').style.display = 'none'; }
+  if (shopOpen) { locked = false; document.exitPointerLock?.(); renderShop(); } else { $('start').style.display = 'none'; requestPointerLockSafe(); }
 }
 $('shopClose').addEventListener('click', toggleShop);
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
@@ -357,7 +380,7 @@ let endT = 0, endRunning = false, endDone = false;
 const TEST_ENDING = location.hash === '#ending-test';
 const dayLen = i => FIRST_DAY_SECONDS * (TEST_ENDING ? 0.035 : 1) * DAY_SPEEDUP ** i;
 function startEnding() {
-  if (ending) return; save(); ending = true; shopOpen = false; $('shop').style.display = 'none'; document.exitPointerLock(); $('start').style.display = 'none';
+  if (ending) return; save(); ending = true; shopOpen = false; $('shop').style.display = 'none'; document.exitPointerLock?.(); $('start').style.display = 'none';
   $('fade').style.opacity = 1;
   setTimeout(() => {
     $('hud').style.display = 'none'; hand.visible = false; robots.forEach(r => (r.mesh.visible = false));
@@ -402,7 +425,11 @@ function frame(now) {
   }
   stations.forEach(s => s.g.userData.crates.forEach((c, i) => { c.position.set(0, 0.75, ((tBelt * 0.8 + i * 1.07) % 3) - 1.5); }));
 
-  if (!ending && locked) {
+  if (!ending && locked && !shopOpen) {
+    // Keyboard look works even where browser pointer lock is disallowed.
+    P.yaw += ((keys.ArrowLeft ? 1 : 0) - (keys.ArrowRight ? 1 : 0)) * dt * 1.8;
+    P.pitch = Math.max(-1.4, Math.min(1.4, P.pitch
+      + ((keys.ArrowUp ? 1 : 0) - (keys.ArrowDown ? 1 : 0)) * dt * 1.25));
     const f = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0), s = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
     if (f || s) {
       const sp = stat.speed * (keys.ShiftLeft ? 1.5 : 1) * dt / Math.hypot(f, s);
