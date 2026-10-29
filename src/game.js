@@ -1,4 +1,9 @@
 import * as THREE from 'three';
+import {createRendering} from './rendering.js';
+import {createEnvironment} from './environment.js';
+import {createCharacters} from './characters.js';
+import {createEquipment} from './equipment.js';
+import {createDoors} from './doors.js';
 import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
@@ -13,7 +18,7 @@ if(location.hash==='#rich')s.money=100000;
 const TEST_ENDING=location.hash==='#ending-test', PREVIEW_ENDING=location.hash==='#ending'||TEST_ENDING;
 const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
 let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0,shopCategory='tools';
-let currentFloor=-1,world=null,meshes=[],robotModels=new Map(),beltCrates=[],cartMesh=null,ladderMesh=null,ladder=null;
+let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],cartMesh=null,ladderMesh=null,ladder=null;
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
 const NOTE='Easy shelves: 1¢ · ladder: 2¢ · upgraded ladder: 3¢ · deliveries at the BACK';
 function notify(msg){$('toast').textContent=msg;$('toast').style.opacity='1';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.opacity='0',2700);}
@@ -53,330 +58,26 @@ const FLOOR_W=113,FLOOR_D=114,FRONT=-13,BACK=101;
 const RACK_HEIGHT=13.5,CEILING_Y=16.2;
 const TIER_Y=[.65,2.65,6.9,11.8],CHEST_REACH=1.8;
 const dummy=new THREE.Object3D(),color=new THREE.Color();
-function add(mesh,parent=world){parent.add(mesh);return mesh;}
-function cube(w,h,d,c,parent=world){return add(new THREE.Mesh(new THREE.BoxGeometry(w,h,d),typeof c==='string'||typeof c==='number'?toon(c):c),parent);}
-function roundedGeo(w,h,d,r=.09){
- const shape=new THREE.Shape(),rad=Math.min(r,w/2,h/2);
- shape.moveTo(-w/2+rad,-h/2);
- shape.lineTo(w/2-rad,-h/2);shape.quadraticCurveTo(w/2,-h/2,w/2,-h/2+rad);
- shape.lineTo(w/2,h/2-rad);shape.quadraticCurveTo(w/2,h/2,w/2-rad,h/2);
- shape.lineTo(-w/2+rad,h/2);shape.quadraticCurveTo(-w/2,h/2,-w/2,h/2-rad);
- shape.lineTo(-w/2,-h/2+rad);shape.quadraticCurveTo(-w/2,-h/2,-w/2+rad,-h/2);
- const g=new THREE.ExtrudeGeometry(shape,{depth:d,bevelEnabled:true,bevelThickness:.025,bevelSize:.025,bevelSegments:2,curveSegments:4});
- g.translate(0,0,-d/2);return g;
-}
-function round(w,h,d,mat,parent=world){return add(new THREE.Mesh(roundedGeo(w,h,d),typeof mat==='string'||typeof mat==='number'?toon(mat):mat),parent);}
-function textLabel(text,w=3,h=.75,bg='#f7f6ef',fg='#303a3b',font=44,face='entrance'){
- const canvas=document.createElement('canvas');canvas.width=512;canvas.height=Math.round(512*h/w);
- const ctx=canvas.getContext('2d');ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
- ctx.strokeStyle='#49524e';ctx.lineWidth=12;ctx.strokeRect(0,0,canvas.width,canvas.height);
- ctx.fillStyle=fg;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 '+font+'px system-ui';ctx.fillText(text,256,canvas.height/2,480);
- const sign=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(canvas),transparent:false,side:THREE.FrontSide}));
- // Every lettered sign faces the entrance (-Z); its reverse is never mirrored.
- sign.rotation.y=face==='entrance'?Math.PI:0;
- return sign;
-}
-function clearWorld(){
- if(!world)return;
- scene.remove(world);
- const gg=new Set(),mm=new Set(),tt=new Set();
- world.traverse(o=>{if(o.geometry)gg.add(o.geometry);if(o.material)for(const m of(Array.isArray(o.material)?o.material:[o.material])){mm.add(m);if(m.map)tt.add(m.map);}});
- for(const g of gg)g.dispose();for(const m of mm)m.dispose();for(const t of tt)t.dispose();
-}
-function itemGeometry(type){
- const shapes=[
- [[0,0],[.13,0],[.15,.03],[.15,.38],[.13,.4],[0,.4]],
- [[0,0],[.12,0],[.12,.28],[.07,.34],[.07,.42],[.09,.45],[0,.45]],
- [[0,0],[.13,0],[.13,.26],[.05,.33],[.05,.48],[.07,.52],[0,.52]],
- [[0,0],[.13,0],[.17,.07],[.14,.43],[.1,.47],[0,.47]],
- [[0,0],[.13,0],[.13,.43],[.11,.45],[0,.45]]
- ];
- return new THREE.LatheGeometry(shapes[type].map(([r,y])=>new THREE.Vector2(r,y)),16);
-}
-function buildShell(){
- const theme=pastel[s.floor%pastel.length];
- scene.background.set('#d8ddda');scene.fog.color.set('#d8ddda');
- // Fine pale ceramic tiles with subtle grout and material variation.
- const fc=document.createElement('canvas');fc.width=fc.height=256;
- const ctx=fc.getContext('2d');
- ctx.fillStyle='#d6d4cd';ctx.fillRect(0,0,256,256);
- for(let row=0;row<4;row++)for(let col=0;col<4;col++){
-  const shade=(row*7+col*3)%3;
-  ctx.fillStyle=['#e6e6e0','#e9e9e3','#e2e4e0'][shade];
-  ctx.fillRect(col*64+2,row*64+2,60,60);
- }
- ctx.strokeStyle='#c6c8c4';ctx.lineWidth=1;
- for(let p=0;p<=256;p+=64){ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,256);ctx.stroke();}
- const tiles=new THREE.CanvasTexture(fc);tiles.wrapS=tiles.wrapT=THREE.RepeatWrapping;
- tiles.repeat.set(FLOOR_W/6,FLOOR_D/6);
- const ground=add(new THREE.Mesh(new THREE.PlaneGeometry(FLOOR_W,FLOOR_D),new THREE.MeshStandardMaterial({map:tiles,roughness:.9})));
- ground.rotation.x=-Math.PI/2;ground.position.set(46.5,0,44);
- const ceiling=cube(FLOOR_W,.28,FLOOR_D,'#e8e8e4');ceiling.position.set(46.5,CEILING_Y,44);
- // Plastered walls, powder-coated trim, high-bay beams and cold-white lights.
- for(const [x,z,w,d] of [[-10,44,.5,114],[103,44,.5,114],[46.5,100.7,113,.5],[46.5,-12.7,113,.5]]){
-  const wall=cube(w,CEILING_Y,d,'#e1e4e1');wall.position.set(x,CEILING_Y/2,z);
-  const skirting=cube(w,.5,d+.02,'#85928e');skirting.position.set(x,.3,z);
-  const cornice=cube(w,.28,d+.1,'#aeb8b4');cornice.position.set(x,CEILING_Y-.2,z);
- }
- for(let z=-4;z<100;z+=18){
-  const beam=cube(110,.35,.55,'#9aa4a3');beam.position.set(46.5,CEILING_Y-.58,z);
-  for(let x=-3;x<102;x+=10){
-   const fixture=round(4.1,.12,.52,new THREE.MeshBasicMaterial({color:'#fdfdf6'}));
-   fixture.position.set(x,CEILING_Y-.85,z+1.7);
-   const mount=cube(4.35,.1,.64,'#aab1ac');mount.position.set(x,CEILING_Y-.68,z+1.7);
-  }
- }
- for(let z=6;z<98;z+=20){
-  for(const x of [-7,101]){
-   const column=new THREE.Mesh(new THREE.CylinderGeometry(.3,.34,CEILING_Y-.4,16),toon('#a5aeab'));
-   column.position.set(x,(CEILING_Y-.4)/2,z);add(column);
-   const base=round(.83,.66,.83,'#687872');base.position.set(x,.33,z);
-  }
- }
- // Visible ceiling ducts and sprinkler runs reinforce the industrial scale.
- for(const x of [1,48,96]){
-  const vent=cube(1.3,.66,109,'#b4c0c0');vent.position.set(x,CEILING_Y-1.15,44);
-  for(let z=0;z<95;z+=12){
-   const collar=cube(1.5,.75,.12,'#889695');collar.position.set(x,CEILING_Y-1.15,z);
-  }
- }
- // Wall-size wayfinding signs, mounted facing into the store, never mirrored.
- const name=textLabel('MUSTACHE MART  /  '+floorLabel(s.floor),10.8,1.05,'#38524a','#ffffff',53,'interior');
- name.position.set(47,14.2,-12.36);add(name);
- const direction=textLabel('RECEIVING WAREHOUSE  →  BACK OF STORE',10.8,.7,'#d8e1d8','#32453e',35,'interior');
- direction.position.set(47,12.9,-12.32);add(direction);
- // Back room visual staging: pallets, cartons, rolling shutter and safety striping.
- const shutter=round(11,8,.18,'#98a4a5');shutter.position.set(17,5,100.24);
- for(let y=1.2;y<8.2;y+=.7){
-  const seam=cube(10.5,.055,.1,'#657577');seam.position.set(17,y,100.07);
- }
- for(let j=0;j<8;j++){
-  const x=30+(j%4)*3.5,z=95+Math.floor(j/4)*3.0;
-  const pallet=round(2.7,.22,2.4,'#9d8264');pallet.position.set(x,.14,z);
-  for(let a=0;a<2;a++)for(let b=0;b<2;b++)for(let level=0;level<2;level++){
-   const box=round(1.1,.75,.95,['#b39d7c','#b7a98b','#afa38d'][(j+a+b)%3]);
-   box.position.set(x+(a-.5)*1.15,.64+level*.78,z+(b-.5)*1.07);
-   const tape=cube(.09,.77,.99,'#e1d9c4');tape.position.copy(box.position);tape.position.y+=.02;
-  }
- }
- for(let z=91;z<98;z+=2.2){
-  const stripe=cube(4,.02,.22,'#d9be6d');stripe.position.set(1.5,.035,z);
- }
- const receiver=textLabel('GOODS RECEIVING  •  LOAD HERE',7,.9,'#d8c088','#303a3a',43);
- receiver.position.set(DOCK.x,4.4,94.4);add(receiver);
-}
-function addKiosk(x,z,name,accent,facing='interior'){
- const platform=round(4,1.1,2.3,'#ffffff');platform.position.set(x,.55,z);
- const top=round(4.5,.18,2.6,accent);top.position.set(x,1.18,z);
- const stripe=round(4.1,.22,.2,'#322947');stripe.position.set(x,.85,z-1.18);
- const sign=textLabel(name,4.6,.82,accent,'#303b3c',44,facing);sign.position.set(x,2.8,z-1);add(sign);
-}
-function makeMike(x,z){
- const guy=new THREE.Group();add(guy);
- // Mike is facing the shopper: two clearly visible black dot eyes,
- // a waxed mustache, tidy green apron and a small brass nameplate.
- const torso=round(.98,1.3,.65,'#667f72',guy);torso.position.set(0,1.08,0);
- const apron=round(.73,.92,.08,'#c5cec7',guy);apron.position.set(0,1,.39);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.45,24,18),toon('#d9ad88'));
- head.position.set(0,2.04,0);guy.add(head);
- const cap=new THREE.Mesh(new THREE.SphereGeometry(.46,22,10,0,Math.PI*2,0,Math.PI*.48),toon('#46564b'));
- cap.position.set(0,2.18,0);guy.add(cap);
- const brim=round(.8,.085,.27,'#46564b',guy);brim.position.set(0,2.31,.28);
- for(const sign of [-1,1]){
-  const eye=new THREE.Mesh(new THREE.SphereGeometry(.069,12,10),toon('#202b2c'));
-  eye.position.set(sign*.16,2.12,.445);guy.add(eye);
-  const moustache=new THREE.Mesh(new THREE.SphereGeometry(.18,14,10),toon('#33302e'));
-  moustache.scale.set(1,.47,.62);moustache.position.set(sign*.14,1.89,.435);
-  moustache.rotation.z=sign*.2;guy.add(moustache);
- }
- const badge=round(.34,.15,.045,'#d5b472',guy);badge.position.set(.23,1.35,.447);
- guy.position.set(x,0,z);
-}
-function buildService(){
- addKiosk(DOCK.x,DOCK.z,'WAREHOUSE PICKUP','#c9b080','entrance');
- addKiosk(10,-3,'PAY WINDOW','#c6d5c8','interior');
- addKiosk(1.5,-9,'MUSTACHE MIKE','#c8c2b6','interior');
- makeMike(1.5,-7.1);
- const elevator=round(5.1,6.5,.6,'#71888c');elevator.position.set(23,3.25,-11.4);
- const seam=round(.09,6.1,.12,'#3b484e');seam.position.set(23,3.25,-11.03);
- const upper=round(5.6,.35,.7,'#404c50');upper.position.set(23,6.48,-11.34);
- const esign=textLabel('ELEVATOR  /  F01–F15',5.6,.75,'#e0e4db','#344541',39,'interior');
- esign.position.set(23,7.2,-11.02);add(esign);
- const entranceSign=textLabel('CUSTOMER SERVICE   |   PAYROLL',8.2,.76,'#e5e5db','#475752',39,'interior');
- entranceSign.position.set(9,4.65,-11.7);add(entranceSign);
- // Follow-through markers guide the player toward distant stock.
- const rearArrow=textLabel('STOCKROOM / RECEIVING  ↑  100 m',8.0,.68,'#46594e','#ffffff',36);
- rearArrow.position.set(1.6,4.6,8.8);add(rearArrow);
-}
-function buildShelves(){
- const per=AISLES*2*BAYS;
- // Reusable instancing gives the taller racks a convincing metal framework
- // without building tens of thousands of individual draw calls.
- const boardGeo=roundedGeo(1.55,.11,2.46,.035);
- const backGeo=roundedGeo(.11,RACK_HEIGHT,2.48,.024);
- const postGeo=roundedGeo(.13,RACK_HEIGHT,.16,.029);
- const lipGeo=roundedGeo(.09,.18,2.46,.026);
- const kickGeo=roundedGeo(.13,.31,2.46,.03);
- const metal=new THREE.MeshStandardMaterial({color:'#d8dbd9',metalness:.36,roughness:.42});
- const darkMetal=new THREE.MeshStandardMaterial({color:'#9fa8a6',metalness:.5,roughness:.4});
- const boards=add(new THREE.InstancedMesh(boardGeo,metal,per*TIERS));
- const backs=add(new THREE.InstancedMesh(backGeo,darkMetal,per));
- const posts=add(new THREE.InstancedMesh(postGeo,darkMetal,per*2));
- const lips=add(new THREE.InstancedMesh(lipGeo,metal,per*TIERS));
- const kicks=add(new THREE.InstancedMesh(kickGeo,darkMetal,per));
- for(const inst of [boards,backs,posts,lips,kicks])inst.frustumCulled=false;
- let bi=0,ri=0,pi=0,ki=0;
- for(let a=0;a<AISLES;a++){
-  const aisleLabel=textLabel('AISLE '+String(a+1).padStart(2,'0')+'  |  '+goods[a%goods.length],5.6,.7,'#465f55','#ffffff',39);
-  aisleLabel.position.set(aisleX(a),4.35,9.1);add(aisleLabel);
-  const highTag=textLabel(goods[a%goods.length]+'  •  '+(a+1),5.6,.78,'#d7dbd5','#384441',47);
-  highTag.position.set(aisleX(a),14.55,9.3);add(highTag);
-  for(let side=0;side<2;side++)for(let bay=0;bay<BAYS;bay++){
-   const sg=side===0?-1:1,x=aisleX(a)+sg*3.4,z=bayZ(bay);
-   dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);
-   dummy.position.set(x+sg*.46,RACK_HEIGHT/2,z);dummy.updateMatrix();
-   backs.setMatrixAt(ri,dummy.matrix);
-   backs.setColorAt(ri,color.set('#b2b7b3'));ri++;
-   for(const offs of [-1.15,1.15]){
-    dummy.position.set(x+sg*.1,RACK_HEIGHT/2,z+offs);dummy.updateMatrix();
-    posts.setMatrixAt(pi,dummy.matrix);posts.setColorAt(pi++,color.set('#737d80'));
-   }
-   dummy.position.set(x-sg*.55,.22,z);dummy.updateMatrix();
-   kicks.setMatrixAt(ki,dummy.matrix);kicks.setColorAt(ki++,color.set('#727d79'));
-   for(let tier=0;tier<TIERS;tier++){
-    dummy.position.set(x,TIER_Y[tier]-.07,z);dummy.updateMatrix();boards.setMatrixAt(bi,dummy.matrix);
-    boards.setColorAt(bi,color.set('#d7dad7'));
-    dummy.position.set(x-sg*.72,TIER_Y[tier]+.025,z);dummy.updateMatrix();lips.setMatrixAt(bi,dummy.matrix);
-    lips.setColorAt(bi,color.set(tier===3?'#b09973':tier===2?'#8c9a8f':'#c6c9c2'));bi++;
-   }
-  }
- }
- for(const m of [boards,backs,posts,lips,kicks]){
-  m.instanceMatrix.needsUpdate=true;
-  if(m.instanceColor)m.instanceColor.needsUpdate=true;
- }
- // Price-band notices: 1¢ low, 2¢ step ladder, 3¢ telescopic extension.
- for(let a=0;a<AISLES;a++)for(let side of [0,1]){
-  const label=textLabel('1c  /  1c  /  2c  /  3c',2.65,.34,'#f4f2e8','#445651',34);
-  label.position.set(aisleX(a)+(side===0?-2.3:2.3),3.38,12.15);
-  label.rotation.y=0;add(label);
- }
- const maxForType=Math.ceil(AISLES/5)*2*BAYS*TIERS*SLOTS;
- meshes=Array.from({length:5},(_,i)=>{
-   const m=add(new THREE.InstancedMesh(itemGeometry(i),toon('#ffffff'),maxForType));
-   m.count=0;m.frustumCulled=false;return m;
- });
- for(let i=s.floor*CELLS_PER_FLOOR;i<(s.floor+1)*CELLS_PER_FLOOR;i++){
-   for(let k=0;k<s.fill[i];k++)drawProduct(i,k);
- }
-}
-function drawProduct(id,slot){
- const {floor,aisle,side,bay,tier}=decode(id);if(floor!==s.floor||!meshes.length)return;
- const m=meshes[aisle%5],idx=m.count++;if(idx>=m.instanceMatrix.count)return;
- const sg=side===0?-1:1;
- dummy.position.set(aisleX(aisle)+sg*2.93,TIER_Y[tier]+.07,bayZ(bay)+(slot-1.5)*.53);
- dummy.rotation.set(0,(slot+id)*1.14%6.28,0);dummy.scale.set(1,1,1);dummy.updateMatrix();
- m.setMatrixAt(idx,dummy.matrix);
- const palettes=[['#9f5948','#b56b51','#b47d54'],['#72909c','#91a5aa','#b6c8c8'],['#805654','#5e745d','#68617a'],['#bd9f6d','#b59e75','#9d866b'],['#8b9c86','#a26d60','#79919b']];
- m.setColorAt(idx,color.set(palettes[aisle%5][slot%3]));
- m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;
-}
 
-function equipmentMaterial(hex, metalness=.12, roughness=.48){
- return new THREE.MeshStandardMaterial({color:hex,metalness,roughness});
-}
-function cylinder(radius,depth,material,parent,x,y,z,rotation=0){
- const part=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,depth,20),material);
- part.rotation.z=rotation;part.position.set(x,y,z);parent.add(part);return part;
-}
-function industrialWheel(parent,x,y,z,r=.26){
- const rubber=equipmentMaterial('#292f32',.08,.85),rim=equipmentMaterial('#8d999a',.55,.3);
- cylinder(r,.17,rubber,parent,x,y,z,Math.PI/2);
- cylinder(r*.55,.18,rim,parent,x,y,z,Math.PI/2);
- cylinder(r*.16,.19,equipmentMaterial('#c77a34',.25,.4),parent,x,y,z,Math.PI/2);
-}
-function makeBelt(f,a,segment){
- const group=new THREE.Group();world.add(group);
- group.position.set(aisleX(a)+1.4,0,bayZ(BAYS-1-segment));
- const steel=equipmentMaterial('#a2adae',.62,.36);
- const belt=equipmentMaterial('#384447',.08,.85);
- const orange=equipmentMaterial('#ba743c',.2,.45);
- const frame=round(1.08,.2,2.55,steel,group);frame.position.y=.44;
- const surface=round(.86,.065,2.4,belt,group);surface.position.y=.56;
- for(const side of [-1,1]){
-   const rail=round(.07,.22,2.55,steel,group);rail.position.set(side*.5,.65,0);
-   for(const z of [-.91,.91]) {
-    const foot=round(.1,.45,.14,steel,group);foot.position.set(side*.45,.23,z);
-   }
- }
- for(let i=0;i<6;i++)cylinder(.07,.91,steel,group,0,.6,(i-2.5)*.4,Math.PI/2);
- const guard=round(.06,.16,.44,orange,group);guard.position.set(.54,.67,-.83);
- const crate=round(.59,.37,.48,equipmentMaterial('#bca582',0,.9),group);
- crate.position.set(0,.84,0);
- beltCrates.push({crate,segment});
-}
-function botAppearance(r){
- const b=new THREE.Group();world.add(b);
- const shell=equipmentMaterial('#e0e1db',.16,.37);
- const trim=equipmentMaterial('#677476',.35,.38);
- const black=equipmentMaterial('#252c31',.05,.45);
- const orange=equipmentMaterial('#c57d3c',.18,.4);
- const frame=round(.95,.36,.98,black,b);frame.position.y=.43;
- const body=round(.86,.75,.88,shell,b);body.position.y=.88;
- const shoulder=round(.79,.15,.78,trim,b);shoulder.position.y=1.27;
- const head=round(.69,.51,.65,shell,b);head.position.y=1.57;
- const visor=round(.59,.29,.07,black,b);visor.position.set(0,1.59,-.34);
- for(const side of [-1,1]){
-  const eye=new THREE.Mesh(new THREE.SphereGeometry(.073,16,12),new THREE.MeshBasicMaterial({color:'#a3d8d5'}));
-  eye.position.set(side*.16,1.64,-.388);b.add(eye);
-  const stache=new THREE.Mesh(new THREE.SphereGeometry(.155,16,12),black);
-  stache.scale.set(1,.33,.5);stache.position.set(side*.13,1.46,-.39);
-  stache.rotation.z=side*.22;b.add(stache);
-  industrialWheel(b,side*.48,.27,-.3,.22);
-  industrialWheel(b,side*.48,.27,.32,.22);
-  const arm=round(.16,.48,.18,trim,b);arm.position.set(side*.54,1.01,-.06);
- }
- const light=round(.26,.08,.12,orange,b);light.position.set(0,1.84,-.07);
- const hatch=round(.55,.07,.44,trim,b);hatch.position.set(0,1.31,.13);
- const crate=round(.45,.33,.39,equipmentMaterial('#b89e79',0,.75),b);
- crate.position.set(0,1.55,-.16);crate.name='crate';
- b.position.set(r.x,0,r.z);return b;
-}
-function makeCart(){
- if(!s.levels.cart)return;
- cartMesh=new THREE.Group();world.add(cartMesh);
- const shell=equipmentMaterial('#e4e2da',.15,.42);
- const steel=equipmentMaterial('#88999a',.6,.35);
- const dark=equipmentMaterial('#2d3439',.08,.62);
- const orange=equipmentMaterial('#c17e44',.18,.48);
- const body=round(1.38,.65,1.83,shell,cartMesh);body.position.y=.67;
- const bumper=round(1.46,.19,.17,dark,cartMesh);bumper.position.set(0,.42,-.92);
- const grille=round(.72,.31,.045,dark,cartMesh);grille.position.set(0,.78,-.93);
- for(const side of [-1,1]){
-  industrialWheel(cartMesh,side*.69,.28,-.52,.27);
-  industrialWheel(cartMesh,side*.69,.28,.57,.27);
-  const light=round(.18,.12,.04,orange,cartMesh);light.position.set(side*.49,.94,-.938);
-  const railing=round(.07,8.7,.08,steel,cartMesh);railing.position.set(side*.5,5.2,.62);
- }
- const mast=round(.19,9.6,.23,steel,cartMesh);mast.position.set(0,5.1,.49);
- const runner=round(.79,.14,.96,steel,cartMesh);runner.position.set(0,9.72,.23);
- const lift=round(.94,.08,.52,shell,cartMesh);lift.position.set(0,9.9,-.2);
- const stripe=round(.69,.08,.045,orange,cartMesh);stripe.position.set(0,1.04,-.925);
- const panel=round(.38,.23,.07,dark,cartMesh);panel.position.set(0,1.02,-.92);
-}
-function makeLadder(){
- if(!ladder||s.levels.cart||ladder.floor!==s.floor)return;
- ladderMesh=new THREE.Group();world.add(ladderMesh);
- for(const x of [-.4,.4]){const h=s.levels.ladderPlus?10.6:6.2;const post=round(.13,h,.13,'#d5a844',ladderMesh);post.position.set(x,h/2+.1,0);}
- for(let n=0;n<(s.levels.ladderPlus?18:10);n++){const rung=round(.82,.12,.3,'#b5bec3',ladderMesh);rung.position.set(0,.42+n*.55,0);}
- ladderMesh.position.set(ladder.x,0,ladder.z);
-}
+const {add,cube,roundedGeo,round,textLabel,clearWorld}=createRendering({getWorld:()=>world,scene,toon});
+const {makeMike,botAppearance}=createCharacters({add,round,toon,getWorld:()=>world});
+const {buildShell,buildService,buildShelves,drawProduct}=createEnvironment({
+ s,scene,add,cube,round,roundedGeo,textLabel,toon,dummy,color,goods,pastel,
+ FLOOR_W,FLOOR_D,CEILING_Y,RACK_HEIGHT,TIER_Y,makeMike
+});
+const {makeBelt,makeCart,makeLadder}=createEquipment({
+ s,round,getWorld:()=>world,getLadder:()=>ladder,getBeltCrates:()=>beltCrates
+});
+const doors=createDoors({getWorld:()=>world,getFloor:()=>s.floor,round,cube,textLabel});
 function buildWorld(){
- clearWorld();world=new THREE.Group();scene.add(world);currentFloor=s.floor;meshes=[];beltCrates=[];cartMesh=null;ladderMesh=null;robotModels=new Map();
- buildShell();buildService();buildShelves();
- for(let a=0;a<AISLES;a++)for(let seg=0;seg<s.belts[s.floor][a];seg++)makeBelt(s.floor,a,seg);
- for(const r of s.robots)if(r.floor===s.floor)robotModels.set(r.id,botAppearance(r));
- makeCart();makeLadder();
+ clearWorld(world);
+ world=new THREE.Group();scene.add(world);
+ currentFloor=s.floor;beltCrates=[];cartMesh=null;ladderMesh=null;robotModels=new Map();
+ buildShell();buildService();buildShelves();doors.build();
+ for(let a=0;a<AISLES;a++)for(let segment=0;segment<s.belts[s.floor][a];segment++)makeBelt(s.floor,a,segment);
+ for(const robot of s.robots)if(robot.floor===s.floor)robotModels.set(robot.id,botAppearance(robot));
+ cartMesh=makeCart();
+ ladderMesh=makeLadder();
  uiUpdate();
 }
 function isBlocked(x,z){
@@ -413,11 +114,23 @@ function manualStock(){
  const old=s.fill[id],c=place(s,id,false);
  if(!c){notify('That shelf is full. Look for another empty spot.');return false;}
  V.carry--;drawProduct(id,old);
- if(s.stocked>=TOTAL_ITEMS)beginEnding();
+ // Shelves becoming full unlocks the entrance; the player decides when to open it.
  return true;
 }
 function act(){
  if(modal||ending)return;
+ if(doors.nearFire(V.x,V.z)){
+  notify(doors.toggleFire()?'The FIRE EXIT opens... but a brick wall blocks the way.':'The fire exit is closed.');
+  return;
+ }
+ if(doors.nearEntrance(V.x,V.z)){
+  if(s.stocked<TOTAL_ITEMS){notify('You have to stock the entire building before opening.');return;}
+  if(doors.openEntrance()){
+    notify('The building is fully stocked. Opening for the grand opening!');
+    setTimeout(()=>beginEnding(),1350);
+  }
+  return;
+ }
  if(nearby(1.5,-7,4.0)){openShop();return;}
  if(nearby(10,-3,4.0)){const paid=payOut(s);notify(paid?'Collected '+centsText(paid)+' in wages.':'No outstanding wages. Stock products first!');save();return;}
  if(nearby(23,-9,4.4)){openElevator();return;}
@@ -486,7 +199,10 @@ function buildNextBelt(){
 }
 function updatePrompt(){
  let msg='';
- if(nearby(DOCK.x,DOCK.z,4.4))msg=V.carry<capacity(s)?'Hold E · Load product from REAR RECEIVING (one per action)':'Carry capacity reached — return to an aisle';
+ if(doors.nearFire(V.x,V.z))msg='E · '+(doors.isFireOpen()?'Close':'Open')+' FIRE EXIT (brick wall behind)';
+ else if(doors.nearEntrance(V.x,V.z))
+   msg=s.stocked>=TOTAL_ITEMS?'E · Unlock the grand opening and slide open the doors':'E · You have to stock the building before opening';
+ else if(nearby(DOCK.x,DOCK.z,4.4))msg=V.carry<capacity(s)?'Hold E · Load product from REAR RECEIVING (one per action)':'Carry capacity reached — return to an aisle';
  else if(nearby(1.5,-7,4.0))msg='E or Q · Talk to Mustache Mike for upgrades';
  else if(nearby(10,-3,4.0))msg='E · Collect '+centsText(s.pending)+' in wages';
  else if(nearby(23,-9,4.4))msg='E or R · Ride elevator to floors 1–15';
@@ -583,8 +299,9 @@ function animate(now){
   if(s.levels.cart&&cartMesh){cartMesh.visible=s.cart.floor===s.floor;if(cartMesh.visible)cartMesh.position.set(aisleX(s.cart.aisle),0,s.cart.z);}
   syncRobots();
   for(const b of beltCrates)b.crate.position.z=((now*.00065+b.segment*.27)%2.0)-1;
-  if(s.stocked>=TOTAL_ITEMS)beginEnding();
+  // Completion alone does NOT trigger the ending. Open the front doors with E.
  }
+ doors.update(dt);
  if(ending)endingTick(elapsed);
  if(!modal){updatePrompt();}
  if(now-savingAt>260){uiUpdate();savingAt=now;}
@@ -637,6 +354,8 @@ if(location.hash==='#rich'){
   setLook(yaw,pitch){V.yaw=yaw;V.pitch=pitch;},
   setCarry(count){V.carry=Math.min(capacity(s),Math.max(0,count));},
   setUpgrade(id,level){if(id in s.levels)s.levels[id]=level;},
+  setCompletion(value){s.fill.fill(value?SLOTS:0);s.stocked=value?TOTAL_ITEMS:0;},
+  doorStatus(){return {fire:doors.isFireOpen(),entrance:doors.isEntranceOpen()};},
   snapshot(){return {floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
  };
 }
