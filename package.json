@@ -6,13 +6,14 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder",
-    "check": "node --check main.js && node --check src/game.js"
+    "check": "node --check main.js && node --check src/game.js",
+    "web": "node server.cjs"
   },
   "dependencies": {
     "three": "0.160.0"
   },
   "devDependencies": {
-    "electron": "31.7.7",
+    "electron": "45.1.0",
     "electron-builder": "24.13.3"
   },
   "build": {
@@ -22,7 +23,8 @@
       "main.js",
       "index.html",
       "src/**/*",
-      "node_modules/three/build/three.module.js"
+      "node_modules/three/build/three.module.js",
+      "server.cjs"
     ],
     "win": {
       "target": "dir"
@@ -36,8 +38,5 @@
     "directories": {
       "output": "dist"
     }
-  },
-  "allowScripts": {
-    "electron@31.7.7": true
   }
 }
