@@ -361,7 +361,21 @@ function renderShop() {
     row.appendChild(btn); list.appendChild(row);
   });
 }
-setInterval(() => { if (shopOpen) renderShop(); }, 400);
+// Never replace live buttons while the player is trying to click them.
+// Repainting the entire shop every 400ms made purchases unreliable on slower Macs.
+setInterval(() => {
+  if (!shopOpen) return;
+  $('shopCoins').textContent = Math.floor(S.coins).toLocaleString();
+  const rows = $('shopList').children;
+  UPGRADES.forEach((up, i) => {
+    const button = rows[i]?.querySelector('button');
+    if (!button) return;
+    const level = S.lv[up.id], maxed = level >= up.max, cost = up.cost(level);
+    button.disabled = maxed || S.coins < cost;
+    const label = maxed ? 'MAX' : `🪙 ${cost.toLocaleString()}`;
+    if (button.textContent !== label) button.textContent = label;
+  });
+}, 400);
 
 /* ================= SAVE ================= */
 function save() { if (ending) return; try { localStorage.setItem(SAVE_KEY, JSON.stringify({ coins: S.coins, lv: S.lv, fill: Array.from(S.fill) })); } catch (e) {} }
