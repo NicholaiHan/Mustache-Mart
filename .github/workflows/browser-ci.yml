@@ -31,9 +31,10 @@ jobs:
           node --check main.js
           node --check server.cjs
           node --check src/game.js
+          node --check src/rules.mjs
           node --check vendor/three.module.js
       - name: Test offline asset loading and local-only security
-        run: node --test tests/smoke.test.cjs
+        run: node --test tests/*.test.cjs
 
   browser:
     strategy:
