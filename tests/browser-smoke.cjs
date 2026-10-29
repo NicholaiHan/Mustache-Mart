@@ -15,7 +15,7 @@ const assert=require('node:assert/strict');
   page.on('requestfailed',req=>console.error('BROWSER REQUEST FAILED:',req.url(),req.failure()?.errorText));
   await page.goto(root+'/#rich',{waitUntil:'load'});
   try{
-    await page.waitForFunction(()=>document.querySelector('#loading')?.hidden&&document.querySelector('#progressText')?.textContent.includes('108,000'),undefined,{timeout:25000});
+    await page.waitForFunction(()=>document.querySelector('#loading')?.hidden&&document.querySelector('#progressText')?.textContent.includes('144,000'),undefined,{timeout:25000});
   }catch(error){
     console.error('BROWSER DIAGNOSTICS:',JSON.stringify(await page.evaluate(()=>({
       loading:document.querySelector('#loading')?.hidden,
@@ -31,26 +31,26 @@ const assert=require('node:assert/strict');
   console.log('PASS: game renders giant 15-floor store without Electron');
 
   await page.locator('#play').click();
-  await page.evaluate(()=>window.__martTest.teleport(-5,-3));
+  await page.evaluate(()=>window.__martTest.teleport(1.5,96));
   await page.keyboard.press('e');
   await page.waitForTimeout(250);
   let snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.carry,1,'initial carrying cap is one');
 
-  await page.evaluate(()=>{window.__martTest.teleport(8,13);window.__martTest.setLook(-Math.PI/2,0);});
+  await page.evaluate(()=>{window.__martTest.teleport(8,13);window.__martTest.setLook(-Math.PI/2,-.5);});
   await page.keyboard.press('e');
   await page.waitForTimeout(250);
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.stocked,1);
-  assert.equal(snap.pending,2);
+  assert.equal(snap.pending,1);
   assert.equal(snap.carry,0);
-  console.log('PASS: single-item pickup and manual middle-shelf 2-cent payout');
+  console.log('PASS: rear warehouse pickup and reachable lower-rack 1-cent payout');
 
   await page.evaluate(()=>window.__martTest.teleport(10,-3));
   await page.keyboard.press('e');await page.waitForTimeout(250);
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.pending,0);
-  assert.ok(snap.money>=100002);
+  assert.ok(snap.money>=100001);
   console.log('PASS: physical pay-window converts unsettled wages into money');
 
   await page.evaluate(()=>window.__martTest.teleport(1.5,-7));
@@ -59,14 +59,23 @@ const assert=require('node:assert/strict');
   await page.locator('#shopitems .upgrade').first().locator('button').click();
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.levels.capacity,1);
-  await page.locator('#shopClose').click();
-  console.log('PASS: shopkeeper sells multi-item carrying upgrade');
+  await page.locator('#tab-economy').click();
+  await page.locator('#shopitems .upgrade').first().locator('button').click();
+  snap=await page.evaluate(()=>window.__martTest.snapshot());
+  assert.equal(snap.levels.soupTriple,1,'the $50 can contract should be purchasable');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(()=>!document.querySelector('#shop').classList.contains('open'));
+  console.log('PASS: Mike buys carrying upgrade + $50 canned-goods 3x contract; Escape closes dialogue');
+  await page.keyboard.press('q');
+  await page.locator('#shop.open').waitFor();
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(()=>!document.querySelector('#shop').classList.contains('open'));
 
-  await page.evaluate(()=>window.__martTest.teleport(8,13));
+  await page.evaluate(()=>window.__martTest.teleport(8,89.85));
   await page.keyboard.press('b');await page.waitForTimeout(250);
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.belts[0],1);
-  console.log('PASS: player places connected conveyor segment in aisle');
+  console.log('PASS: player connects the first rear-fed conveyor in an aisle');
 
   await page.evaluate(()=>window.__martTest.teleport(23,-9));
   await page.keyboard.press('r');
@@ -75,6 +84,8 @@ const assert=require('node:assert/strict');
   await page.waitForFunction(()=>document.querySelector('#floorStat')?.textContent.includes('F15'),undefined,{timeout:12000});
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.floor,14);
+  assert.equal(snap.stocked,1);
+  assert.equal(await page.evaluate(()=>document.querySelector('#intro').classList.contains('open')),false);
   const dir=path.join(__dirname,'..','test-artifacts');fs.mkdirSync(dir,{recursive:true});
   await page.screenshot({path:path.join(dir,'floor15.png')});
   console.log('PASS: floor elevator reaches F15 and rebuilds the 3D store');
