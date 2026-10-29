@@ -31,7 +31,7 @@ button:focus-visible{outline:4px solid #a944e0;outline-offset:2px}
 .panel h1{font-size:clamp(40px,7vw,76px);font-weight:1000;line-height:.95;color:#f77a99;text-shadow:3px 4px 0 var(--ink);margin:0 0 16px}
 .panel h2{font-size:30px;margin:0 0 12px}
 .panel p{line-height:1.5}
-#intro{display:flex;background:radial-gradient(circle at 50% 40%,#c3fff1 0%,#a6e4ed 75%)}
+#intro{background:radial-gradient(circle at 50% 40%,#c3fff1 0%,#a6e4ed 75%)}
 #intro .panel{text-align:center;max-width:660px}
 .hint{font-size:13px;color:#635e6b}
 #shopitems{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:10px;margin:14px 0}
@@ -68,7 +68,7 @@ button:focus-visible{outline:4px solid #a944e0;outline-offset:2px}
   <div id="progress"><span id="progressText">0 / 108,000 stocked</span><div id="progress-track"><div id="progress-bar"></div></div></div>
   <div class="pill" id="help">WASD move · Mouse / Arrows look · Shift sprint · E interact · Space jump · L ladder · B build belt · Esc pause</div>
 </div>
-<div class="dialog" id="intro">
+<div class="dialog open" id="intro">
   <div class="panel">
     <h1>MUSTACHE<br>MART 🥸</h1>
     <p><strong>15 floors. 108,000 items. One grand opening.</strong><br>Carry a SINGLE can at the start. Earn 1¢ for a bottom-shelf item, 2¢ for the middle shelf, and 3¢ for the very top. Collect your wages at the PAY WINDOW, then visit the mustached shopkeeper to buy upgrades. Eventually let conveyor belts and robots do all the work.</p>
