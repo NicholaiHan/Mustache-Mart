@@ -2,9 +2,10 @@
 **October 29, 2026 · Modular browser edition**
 
 ## Delivered fixes
+- **Camera controls** ignore pointer-lock recenter jumps and clamp sudden mouse deltas, fixing unexpected views pointed at the ceiling during interaction. Screenshot tests now reset the camera to an eye-level viewing direction.
 - **Collision** is now a pure `src/collision.mjs` module, with player radius, axis sliding, swept substeps, and static blockers for walls, steel shelving, counters, receiving terminals, pallets and columns.
 - **Dynamic collisions** stop players walking through active conveyor segments, autonomous working robots and the mobile lift cart. If a moving bot overlaps the player, movement out of the overlap remains possible.
-- **Robot routes** use the rear crosswalk rather than cutting diagonally through shelving and pallet stacks.
+- **Robot routes** use the rear crosswalk rather than cutting diagonally through shelving and pallet stacks, and older saved bots inside the former pickup desk are relocated safely.
 - **Automated lift cart** now stocks the top fourth shelf band for the correct 3¢ base payout; previously it stopped at tier 3 of 4.
 - **Mustache Mike** is now a unique fixed concierge service robot, with a ceramic body, metal arms, lit dot eyes, a mustache, a name badge and subtle head movement. The small wheeled stockers remain visually different.
 - **Shop interaction** has new concierge branding, cleaner card layout, tab styling and approachable purchase controls.
