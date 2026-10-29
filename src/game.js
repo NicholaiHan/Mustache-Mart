@@ -1,483 +1,468 @@
 import * as THREE from 'three';
+import {
+ FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
+ aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
+ capacity,walkSpeed,price,purchase,payOut,place,buildBelt,beltCost,incomplete,
+ floorStocked,itemsPerFloor,remaining,botStep
+} from './rules.mjs';
 
-/* ================= TUNING (change these to make the game shorter/longer) ================= */
-const AISLES = 24, UNITS = 100;          // aisles, shelf units per side of each aisle
-const SPACING = 5.4, ULEN = 1.6, Z0 = 6; // aisle spacing, shelf unit length, first shelf z
-const TIERS = 3, COLS = 4, PER = TIERS * COLS; // 12 items per shelf unit
-const UNIT_COUNT = AISLES * 2 * UNITS;
-const TOTAL = UNIT_COUNT * PER;          // 57,600 items to stock
-const X_MIN = -16, X_MAX = 145, Z_MIN = -8, Z_MAX = 180, DOOR_X = 28, DOOR_W = 10, DOOR_H = 5.4, WALL_H = 7;
-const DAYS = 20, FIRST_DAY_SECONDS = 10, DAY_SPEEDUP = 0.85; // ending sequence
-const SAVE_KEY = 'mustacheMartSave';
-
-const cx = a => 4 + a * SPACING;
-const ZEND = Z0 + (UNITS - 1) * ULEN;
-const TIER_Y = [0.4, 1.3, 2.2];
-const TYPE_NAMES = ['Soup Cans', 'Water Bottles', 'Fancy Wine'];
-
-/* ================= STATE ================= */
-const S = { coins: 0, lv: { speed: 0, bag: 0, hands: 0, price: 0, belt: 0, robot: 0, caf: 0 }, fill: new Uint8Array(UNIT_COUNT), stocked: 0 };
-try {
-  const raw = localStorage.getItem(SAVE_KEY);
-  if (raw) {
-    const d = JSON.parse(raw);
-    S.coins = Number.isFinite(d.coins) ? Math.max(0, d.coins) : 0;
-    const limits = { speed:25, bag:40, hands:30, price:30, belt:72, robot:200, caf:20 };
-    for (const key of Object.keys(limits)) {
-      const level = Number(d.lv?.[key]);
-      if (Number.isFinite(level)) S.lv[key] = Math.max(0, Math.min(limits[key], Math.floor(level)));
-    }
-    if (Array.isArray(d.fill)) d.fill.slice(0, UNIT_COUNT).forEach((v,i) => {
-      S.fill[i] = Math.max(0, Math.min(PER, Math.floor(Number(v) || 0)));
-    });
-  }
-} catch (e) {}
-S.stocked = S.fill.reduce((a, b) => a + b, 0);
-if (location.hash === '#rich') S.coins = 10_000_000;
-
-const stat = {};
-function recompute() {
-  stat.speed = 4.2 + 0.55 * S.lv.speed;
-  stat.cap = 8 + 4 * S.lv.bag;
-  stat.rate = 2 + 0.9 * S.lv.hands;
-  stat.value = 1 + 0.25 * S.lv.price;
-  stat.botRate = 0.4 * (1 + 0.25 * S.lv.caf);
+const $=id=>document.getElementById(id);
+let s=loadState(localStorage.getItem(SAVE_KEY));
+if(location.hash==='#rich')s.money=100000;
+const TEST_ENDING=location.hash==='#ending-test', PREVIEW_ENDING=location.hash==='#ending'||TEST_ENDING;
+const V={x:-5,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
+let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0;
+let currentFloor=-1,world=null,meshes=[],robotModels=new Map(),beltCrates=[],cartMesh=null,ladderMesh=null,ladder=null;
+let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
+const NOTE='Earn 1¢ bottom · 2¢ middle · 3¢ top · collect at PAY WINDOW · visit MUSTACHE MIKE';
+function notify(msg){$('toast').textContent=msg;$('toast').style.opacity='1';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.opacity='0',2700);}
+function save(){try{localStorage.setItem(SAVE_KEY,serialize(s));}catch(err){notify('Could not save: browser storage might be full or unavailable.');}}
+setInterval(save,5000);addEventListener('beforeunload',save);
+function uiUpdate(){
+ $('floorStat').textContent=floorLabel(s.floor)+' / F15';
+ $('money').textContent=centsText(s.money);
+ $('pending').textContent=centsText(s.pending);
+ $('carry').textContent=V.carry+' / '+capacity(s);
+ $('robots').textContent=s.robots.length;
+ $('progressText').textContent=s.stocked.toLocaleString()+' / '+TOTAL_ITEMS.toLocaleString()+' items · '+floorLabel(s.floor)+': '+Math.round(floorStocked(s,s.floor)/itemsPerFloor*100)+'%';
+ $('progress-bar').style.width=(s.stocked/TOTAL_ITEMS*100)+'%';
+ $('objective').textContent=(V.carry===0?'Find the glowing DELIVERY DOCK and hold E to grab products.':
+   'Look at a shelf and hold E to stock. Look up for top shelf (jump, ladder or cart required).')+' '+NOTE;
 }
-recompute();
-
-const UPGRADES = [
-  { id: 'speed', name: '👟 Zoomy Sneakers', desc: '+0.55 walk speed', max: 25, cost: l => Math.round(25 * 1.55 ** l) },
-  { id: 'bag', name: '🎒 Bigger Bag', desc: '+4 carrying capacity', max: 40, cost: l => Math.round(20 * 1.45 ** l) },
-  { id: 'hands', name: '🖐️ Fast Hands', desc: '+0.9 items stocked per second', max: 30, cost: l => Math.round(40 * 1.5 ** l) },
-  { id: 'price', name: '🏷️ Golden Price Tags', desc: '+25% coins per item', max: 30, cost: l => Math.round(60 * 1.6 ** l) },
-  { id: 'belt', name: '🛞 Conveyor Belt', desc: 'Adds a supply belt inside the aisles (grab stock closer to the shelves)', max: 72, cost: l => Math.round(150 * 1.3 ** l) },
-  { id: 'robot', name: '🤖 Mustache Bot', desc: 'A robot that stocks shelves on its own', max: 200, cost: l => Math.round(300 * 1.22 ** l) },
-  { id: 'caf', name: '☕ Bot Espresso', desc: '+25% robot stocking speed', max: 20, cost: l => Math.round(500 * 1.7 ** l) }
-];
-
-/* ================= THREE SETUP ================= */
-let renderer;
-try {
-  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'default' });
-} catch (err) {
-  const message = document.createElement('div');
-  message.setAttribute('role', 'alert');
-  message.style.cssText = 'position:fixed;inset:10%;z-index:99;background:white;border:5px solid #2b1b3d;border-radius:20px;padding:30px;font:700 20px system-ui;overflow:auto';
-  message.textContent = 'Mustache Mart could not start its 3D renderer. Please update Safari or Chrome and enable hardware acceleration. Your save is still stored in this browser. Details: ' + String(err.message || err);
-  document.body.appendChild(message);
-  throw err;
-}
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-renderer.setSize(innerWidth, innerHeight);
+const renderer=(()=>{try{return new THREE.WebGLRenderer({antialias:true,powerPreference:'default'});}catch(e){
+ $('loading').innerHTML='<div>3D graphics unavailable. Update your browser or try Chrome with hardware acceleration enabled. The game has not loaded.</div>';throw e;
+}})();
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.4));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.4;
 document.body.prepend(renderer.domElement);
-
-const scene = new THREE.Scene();
-const SKY_DAY = new THREE.Color(0x87d7ff), SKY_NIGHT = new THREE.Color(0x0b1030), SKY_DAWN = new THREE.Color(0xff9a5a);
-scene.background = SKY_DAY.clone();
-scene.fog = new THREE.Fog(0x87d7ff, 60, 320);
-const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1700);
-camera.rotation.order = 'YXZ';
+const scene=new THREE.Scene();scene.background=new THREE.Color('#a6e4ed');scene.fog=new THREE.Fog('#a6e4ed',75,220);
+const camera=new THREE.PerspectiveCamera(76,innerWidth/innerHeight,.1,1100);camera.rotation.order='YXZ';
 scene.add(camera);
-
-const hemi = new THREE.HemisphereLight(0xffffff, 0xffd9b0, 1.0); scene.add(hemi);
-const sunLight = new THREE.DirectionalLight(0xfff2cc, 0.9); sunLight.position.set(30, 60, 20); scene.add(sunLight);
-
-const toon = (c, extra = {}) => new THREE.MeshToonMaterial({ color: c, ...extra });
-const box = (w, h, d, c) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), toon(c));
-
-function labelPlane(text, w, h, bg, fg, px = 64) {
-  const c = document.createElement('canvas'); c.width = 512; c.height = Math.round(512 * h / w);
-  const g = c.getContext('2d'); g.fillStyle = bg; g.fillRect(0, 0, c.width, c.height);
-  g.strokeStyle = '#2b1b3d'; g.lineWidth = 14; g.strokeRect(0, 0, c.width, c.height);
-  g.fillStyle = fg; g.font = `900 ${px}px "Comic Sans MS", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText(text, c.width / 2, c.height / 2);
-  const t = new THREE.CanvasTexture(c);
-  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide }));
+const skyLight=new THREE.HemisphereLight('#ffffff','#d3aaa1',2.0);scene.add(skyLight);
+const sunlight=new THREE.DirectionalLight('#fff1da',2.0);sunlight.position.set(-30,75,35);scene.add(sunlight);
+const toon=(c,extra={})=>new THREE.MeshToonMaterial({color:c,...extra});
+const baseMat=new THREE.MeshStandardMaterial({color:'#fffded',roughness:.5,metalness:.06});
+const pastel=['#ffa1be','#9fe1dc','#ffe096','#b8b7ff','#aeeda9'];
+const goods=['SOUP','WATER','WINE','CEREAL','SODA'];
+const FLOOR_W=113,FLOOR_D=114,FRONT=-13,BACK=101;
+const TIER_Y=[.55,1.52,2.52],CHEST_REACH=1.8;
+const dummy=new THREE.Object3D(),color=new THREE.Color();
+function add(mesh,parent=world){parent.add(mesh);return mesh;}
+function cube(w,h,d,c,parent=world){return add(new THREE.Mesh(new THREE.BoxGeometry(w,h,d),typeof c==='string'||typeof c==='number'?toon(c):c),parent);}
+function roundedGeo(w,h,d,r=.09){
+ const shape=new THREE.Shape(),rad=Math.min(r,w/2,h/2);
+ shape.moveTo(-w/2+rad,-h/2);
+ shape.lineTo(w/2-rad,-h/2);shape.quadraticCurveTo(w/2,-h/2,w/2,-h/2+rad);
+ shape.lineTo(w/2,h/2-rad);shape.quadraticCurveTo(w/2,h/2,w/2-rad,h/2);
+ shape.lineTo(-w/2+rad,h/2);shape.quadraticCurveTo(-w/2,h/2,-w/2,h/2-rad);
+ shape.lineTo(-w/2,-h/2+rad);shape.quadraticCurveTo(-w/2,-h/2,-w/2+rad,-h/2);
+ const g=new THREE.ExtrudeGeometry(shape,{depth:d,bevelEnabled:true,bevelThickness:.025,bevelSize:.025,bevelSegments:2,curveSegments:4});
+ g.translate(0,0,-d/2);return g;
 }
-
-/* ---------- Store shell ---------- */
-{
-  const ct = document.createElement('canvas'); ct.width = ct.height = 128;
-  const g = ct.getContext('2d'); g.fillStyle = '#fff6dc'; g.fillRect(0, 0, 128, 128);
-  g.fillStyle = '#ffd6e4'; g.fillRect(0, 0, 64, 64); g.fillRect(64, 64, 64, 64);
-  const tex = new THREE.CanvasTexture(ct); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set((X_MAX - X_MIN) / 4, (Z_MAX - Z_MIN) / 4);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(X_MAX - X_MIN, Z_MAX - Z_MIN), new THREE.MeshBasicMaterial({ map: tex }));
-  floor.rotation.x = -Math.PI / 2; floor.position.set((X_MIN + X_MAX) / 2, 0, (Z_MIN + Z_MAX) / 2); scene.add(floor);
-
-  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(X_MAX - X_MIN, Z_MAX - Z_MIN), new THREE.MeshBasicMaterial({ color: 0xfff1cf, side: THREE.DoubleSide }));
-  ceil.rotation.x = Math.PI / 2; ceil.position.set((X_MIN + X_MAX) / 2, WALL_H, (Z_MIN + Z_MAX) / 2); scene.add(ceil);
-
-  const wall = (x, y, z, w, h, d, c = 0xffb3c8) => { const m = box(w, h, d, c); m.position.set(x, y, z); scene.add(m); };
-  const dl = DOOR_X - DOOR_W / 2, dr = DOOR_X + DOOR_W / 2;
-  wall((X_MIN + dl) / 2, WALL_H / 2, Z_MIN, dl - X_MIN, WALL_H, 0.6);
-  wall((dr + X_MAX) / 2, WALL_H / 2, Z_MIN, X_MAX - dr, WALL_H, 0.6);
-  wall(DOOR_X, (DOOR_H + WALL_H) / 2, Z_MIN, DOOR_W, WALL_H - DOOR_H, 0.6, 0xffd23f);
-  wall((X_MIN + X_MAX) / 2, WALL_H / 2, Z_MAX, X_MAX - X_MIN, WALL_H, 0.6);
-  wall(X_MIN, WALL_H / 2, (Z_MIN + Z_MAX) / 2, 0.6, WALL_H, Z_MAX - Z_MIN, 0xb8e6ff);
-  wall(X_MAX, WALL_H / 2, (Z_MIN + Z_MAX) / 2, 0.6, WALL_H, Z_MAX - Z_MIN, 0xb8e6ff);
-
-  const gopen = labelPlane('★ GRAND OPENING ★', 9, 1.1, '#ff3b5c', '#ffffff', 70);
-  gopen.position.set(DOOR_X, 6.35, Z_MIN + 0.4); scene.add(gopen);
-  [-1, 1].forEach(s => [0, 1, 2].forEach(i => {
-    const col = [0xff6b9a, 0xffd23f, 0x3ec9c0][i];
-    const b = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 12), toon(col)); b.position.set(DOOR_X + s * (DOOR_W / 2 + 0.2 + i * 0.1), 3.4 + i * 0.7, Z_MIN + 1);
-    const st = box(0.03, 3.4 + i * 0.7, 0.03, 0xffffff); st.position.set(b.position.x, (3.4 + i * 0.7) / 2, b.position.z); scene.add(b, st);
-  }));
-
-  // Outside world
-  const grass = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.MeshBasicMaterial({ color: 0x7ed957 }));
-  grass.rotation.x = -Math.PI / 2; grass.position.set(28, -0.05, -200); scene.add(grass);
-  const lot = new THREE.Mesh(new THREE.PlaneGeometry(70, 60), new THREE.MeshBasicMaterial({ color: 0x555b66 }));
-  lot.rotation.x = -Math.PI / 2; lot.position.set(DOOR_X, 0.01, -40); scene.add(lot);
-  for (let i = -6; i <= 6; i++) { const l = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 7), new THREE.MeshBasicMaterial({ color: 0xffffff })); l.rotation.x = -Math.PI / 2; l.position.set(DOOR_X + i * 5, 0.02, -28); scene.add(l); }
-  const road = new THREE.Mesh(new THREE.PlaneGeometry(1200, 16), new THREE.MeshBasicMaterial({ color: 0x3a3f4a }));
-  road.rotation.x = -Math.PI / 2; road.position.set(28, 0.01, -90); scene.add(road);
-  for (let i = 0; i < 26; i++) {
-    const x = (i % 2 ? 1 : -1) * (50 + (i * 37) % 160) + 28, z = -30 - (i * 53) % 160;
-    const tr = box(0.8, 3, 0.8, 0x8a5a2b); tr.position.set(x, 1.5, z);
-    const top = new THREE.Mesh(new THREE.SphereGeometry(2.6, 14, 10), toon(0x3fbf5a)); top.position.set(x, 4.6, z); scene.add(tr, top);
+function round(w,h,d,mat,parent=world){return add(new THREE.Mesh(roundedGeo(w,h,d),typeof mat==='string'||typeof mat==='number'?toon(mat):mat),parent);}
+function textLabel(text,w=3,h=.75,bg='#fffaf0',fg='#302945',font=44){
+ const canvas=document.createElement('canvas');canvas.width=512;canvas.height=Math.round(512*h/w);
+ const ctx=canvas.getContext('2d');ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
+ ctx.strokeStyle='#302945';ctx.lineWidth=12;ctx.strokeRect(0,0,canvas.width,canvas.height);
+ ctx.fillStyle=fg;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 '+font+'px system-ui';ctx.fillText(text,256,canvas.height/2,480);
+ return new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(canvas),transparent:false,side:THREE.DoubleSide}));
+}
+function clearWorld(){
+ if(!world)return;
+ scene.remove(world);
+ const gg=new Set(),mm=new Set(),tt=new Set();
+ world.traverse(o=>{if(o.geometry)gg.add(o.geometry);if(o.material)for(const m of(Array.isArray(o.material)?o.material:[o.material])){mm.add(m);if(m.map)tt.add(m.map);}});
+ for(const g of gg)g.dispose();for(const m of mm)m.dispose();for(const t of tt)t.dispose();
+}
+function itemGeometry(type){
+ const shapes=[
+ [[0,0],[.13,0],[.15,.03],[.15,.38],[.13,.4],[0,.4]],
+ [[0,0],[.12,0],[.12,.28],[.07,.34],[.07,.42],[.09,.45],[0,.45]],
+ [[0,0],[.13,0],[.13,.26],[.05,.33],[.05,.48],[.07,.52],[0,.52]],
+ [[0,0],[.13,0],[.17,.07],[.14,.43],[.1,.47],[0,.47]],
+ [[0,0],[.13,0],[.13,.43],[.11,.45],[0,.45]]
+ ];
+ return new THREE.LatheGeometry(shapes[type].map(([r,y])=>new THREE.Vector2(r,y)),16);
+}
+function buildShell(){
+ const theme=pastel[s.floor%pastel.length];
+ scene.background.set(theme);scene.fog.color.set(theme);
+ const floorCanvas=document.createElement('canvas');floorCanvas.width=floorCanvas.height=128;
+ const ctx=floorCanvas.getContext('2d');ctx.fillStyle='#fff6e5';ctx.fillRect(0,0,128,128);
+ ctx.fillStyle='#f4e7e5';ctx.fillRect(0,0,64,64);ctx.fillRect(64,64,64,64);
+ ctx.strokeStyle='#e9d9d1';ctx.lineWidth=3;for(let p=0;p<=128;p+=64){ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,128);ctx.stroke();ctx.beginPath();ctx.moveTo(0,p);ctx.lineTo(128,p);ctx.stroke();}
+ const tex=new THREE.CanvasTexture(floorCanvas);tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(FLOOR_W/4,FLOOR_D/4);
+ const tiles=add(new THREE.Mesh(new THREE.PlaneGeometry(FLOOR_W,FLOOR_D),new THREE.MeshStandardMaterial({map:tex,roughness:.85})));
+ tiles.rotation.x=-Math.PI/2;tiles.position.set(46.5,0,44);
+ const ceiling=cube(FLOOR_W,.3,FLOOR_D,'#fffbe9');ceiling.position.set(46.5,6.3,44);
+ for(const [x,z,w,d] of [[-10,44,.5,114],[103,44,.5,114],[46.5,100.7,113,.5],[46.5,-12.7,113,.5]]){
+ const wall=cube(w,6.25,d,theme);wall.position.set(x,3.1,z);
+ }
+ for(let x=-1;x<100;x+=10)for(let z=0;z<100;z+=18){
+   const lamp=round(3.4,.09,.35,new THREE.MeshBasicMaterial({color:'#fffef0'}));lamp.position.set(x,6.09,z);
+ }
+ // Colored pillars and tall glass display panels avoid the empty-box feel.
+ for(let z=8;z<96;z+=20){
+   const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.26,.3,6.1,16),toon('#ffcf7b'));pillar.position.set(101.8,3.05,z);add(pillar);
+   const glass=cube(.05,2.8,12,new THREE.MeshStandardMaterial({color:'#c3eeff',metalness:.18,roughness:.12,transparent:true,opacity:.65}));
+   glass.position.set(102.2,3.2,z);
+ }
+ const sign=textLabel('MUSTACHE MART · '+floorLabel(s.floor),11,1.2,'#ff9db6','#322947',54);sign.position.set(45,5.3,-11.95);add(sign);
+ const mapSign=textLabel('15 FLOORS · 108,000 PRODUCTS',9.4,.75,'#f5fff4','#343249',37);mapSign.position.set(45,4.2,-11.8);add(mapSign);
+}
+function addKiosk(x,z,name,accent){
+ const platform=round(4,1.1,2.3,'#ffffff');platform.position.set(x,.55,z);
+ const top=round(4.5,.18,2.6,accent);top.position.set(x,1.18,z);
+ const stripe=round(4.1,.22,.2,'#322947');stripe.position.set(x,.85,z-1.18);
+ const sign=textLabel(name,4.5,.85,accent,'#322947',48);sign.position.set(x,2.8,z-1);add(sign);
+}
+function makeMike(x,z){
+ const guy=new THREE.Group();add(guy);
+ const body=round(1.1,1.25,.7,'#5cbfd1',guy);body.position.set(0,1.1,0);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.42,20,16),toon('#ffc997'));head.position.set(0,2.05,0);guy.add(head);
+ for(const sign of [-1,1]){
+ const eye=new THREE.Mesh(new THREE.SphereGeometry(.066,10,8),toon('#26233b'));eye.position.set(sign*.15,2.12,-.35);guy.add(eye);
+ const moustache=new THREE.Mesh(new THREE.SphereGeometry(.19,10,8),toon('#332237'));moustache.scale.set(1,.45,.6);moustache.position.set(sign*.14,1.88,-.39);moustache.rotation.z=sign*.25;guy.add(moustache);
+ }
+ guy.position.set(x,0,z);
+}
+function buildService(){
+ addKiosk(-5,-3,'DELIVERY DOCK','#ffdf70');addKiosk(10,-3,'PAY WINDOW','#95e7cb');
+ addKiosk(1.5,-9,'MUSTACHE MIKE','#ffb2d0');makeMike(1.5,-7.1);
+ const elevator=round(5,4.8,.6,'#8d9bc4');elevator.position.set(23,2.4,-11.4);
+ const seam=round(.09,4.3,.12,'#373747');seam.position.set(23,2.4,-11.03);
+ const esign=textLabel('ELEVATOR · 1–15',5.5,.75,'#c9f7ff','#322947',43);esign.position.set(23,5.4,-11.0);add(esign);
+}
+function buildShelves(){
+ const per=AISLES*2*BAYS;
+ const boardGeo=roundedGeo(1.45,.13,2.46),backGeo=roundedGeo(.13,3.35,2.48),lipGeo=roundedGeo(.11,.15,2.46);
+ const material=new THREE.MeshStandardMaterial({color:'#fffdf6',roughness:.43,metalness:.08});
+ const boards=add(new THREE.InstancedMesh(boardGeo,material,per*TIERS));
+ const backs=add(new THREE.InstancedMesh(backGeo,material,per));
+ const lips=add(new THREE.InstancedMesh(lipGeo,material,per*TIERS));
+ boards.frustumCulled=backs.frustumCulled=lips.frustumCulled=false;
+ let bi=0,ri=0;
+ for(let a=0;a<AISLES;a++){
+  const tag=textLabel('AISLE '+(a+1)+' · '+goods[a%goods.length],5,.82,pastel[a%5],'#302945',38);
+  tag.position.set(aisleX(a),4.55,9.6);add(tag);
+  for(let side=0;side<2;side++)for(let bay=0;bay<BAYS;bay++){
+   const sg=side===0?-1:1,x=aisleX(a)+sg*3.4,z=bayZ(bay);
+   dummy.position.set(x+sg*.45,1.76,z);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);dummy.updateMatrix();backs.setMatrixAt(ri,dummy.matrix);
+   backs.setColorAt(ri,color.set(pastel[a%5]));ri++;
+   for(let tier=0;tier<TIERS;tier++){
+     dummy.position.set(x,TIER_Y[tier]-.06,z);dummy.updateMatrix();boards.setMatrixAt(bi,dummy.matrix);
+     boards.setColorAt(bi,color.set('#ffffff'));
+     dummy.position.set(x-sg*.7,TIER_Y[tier]+.035,z);dummy.updateMatrix();lips.setMatrixAt(bi,dummy.matrix);
+     lips.setColorAt(bi,color.set(pastel[a%5]));bi++;
+   }
   }
+ }
+ for(const m of [boards,backs,lips]){m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;}
+ const maxForType=Math.ceil(AISLES/5)*2*BAYS*TIERS*SLOTS;
+ meshes=Array.from({length:5},(_,i)=>{
+   const m=add(new THREE.InstancedMesh(itemGeometry(i),toon('#ffffff'),maxForType));
+   m.count=0;m.frustumCulled=false;return m;
+ });
+ for(let i=s.floor*CELLS_PER_FLOOR;i<(s.floor+1)*CELLS_PER_FLOOR;i++){
+   for(let k=0;k<s.fill[i];k++)drawProduct(i,k);
+ }
 }
-
-/* ---------- Shelves (instanced = fast even with thousands) ---------- */
-{
-  const boards = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.08, ULEN - 0.05), toon(0xffffff), UNIT_COUNT * TIERS);
-  const backs = new THREE.InstancedMesh(new THREE.BoxGeometry(0.1, 2.8, ULEN - 0.05), toon(0xffffff), UNIT_COUNT);
-  const m = new THREE.Matrix4(), col = new THREE.Color(); let bi = 0, ki = 0;
-  for (let u = 0; u < UNIT_COUNT; u++) {
-    const { a, side, z, x } = unitInfo(u);
-    col.setHSL((a * 0.083) % 1, 0.75, 0.68);
-    for (let t = 0; t < TIERS; t++) { m.makeTranslation(x + side * 2.2, TIER_Y[t], z); boards.setMatrixAt(bi, m); boards.setColorAt(bi++, col); }
-    m.makeTranslation(x + side * 2.65, 1.4, z); backs.setMatrixAt(ki, m); backs.setColorAt(ki++, col);
-  }
-  boards.frustumCulled = backs.frustumCulled = false; scene.add(boards, backs);
-  for (let a = 0; a < AISLES; a++) {
-    const s = labelPlane(`Aisle ${a + 1}: ${TYPE_NAMES[a % 3]}`, 3.4, 0.7, '#ffffff', '#2b1b3d', 46);
-    s.position.set(cx(a), 4.2, Z0 - 2); scene.add(s);
-  }
+function drawProduct(id,slot){
+ const {floor,aisle,side,bay,tier}=decode(id);if(floor!==s.floor||!meshes.length)return;
+ const m=meshes[aisle%5],idx=m.count++;if(idx>=m.instanceMatrix.count)return;
+ const sg=side===0?-1:1;
+ dummy.position.set(aisleX(aisle)+sg*2.93,TIER_Y[tier]+.07,bayZ(bay)+(slot-1.5)*.53);
+ dummy.rotation.set(0,(slot+id)*1.14%6.28,0);dummy.scale.set(1,1,1);dummy.updateMatrix();
+ m.setMatrixAt(idx,dummy.matrix);
+ const palettes=[['#ff657f','#ffa956','#fff176'],['#6ebcfa','#87e1df','#e7f9ff'],['#8a3d68','#3f7a63','#56375d'],['#ffa453','#eadd63','#e67b80'],['#8abef8','#ff8e8e','#93d9a2']];
+ m.setColorAt(idx,color.set(palettes[aisle%5][slot%3]));
+ m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;
 }
-
-function unitInfo(u) {
-  const a = Math.floor(u / (2 * UNITS)), r = u % (2 * UNITS), si = Math.floor(r / UNITS), k = r % UNITS;
-  return { a, side: si ? 1 : -1, k, x: cx(a), z: Z0 + k * ULEN };
+function makeBelt(f,a,segment){
+ const group=new THREE.Group();world.add(group);const z=bayZ(segment);
+ group.position.set(aisleX(a)+1.4,0,z);
+ const base=round(.98,.28,2.55,'#667682',group);base.position.y=.25;
+ for(let k=0;k<5;k++){
+ const roller=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,.93,12),toon('#38485a'));
+ roller.rotation.z=Math.PI/2;roller.position.set(0,.41,(k-2)*.55);group.add(roller);
+ }
+ const crate=round(.55,.42,.52,'#d89b5b',group);crate.position.set(0,.75,0);
+ beltCrates.push({crate,segment});
 }
-
-/* ---------- Items ---------- */
-const lathe = pts => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 10);
-const ITEM_GEO = [
-  lathe([[0, 0], [0.13, 0], [0.14, 0.02], [0.14, 0.28], [0.12, 0.3], [0, 0.3]]),
-  lathe([[0, 0], [0.11, 0], [0.12, 0.02], [0.12, 0.28], [0.06, 0.36], [0.06, 0.4], [0.07, 0.42], [0, 0.42]]),
-  lathe([[0, 0], [0.1, 0], [0.11, 0.02], [0.11, 0.28], [0.04, 0.38], [0.04, 0.5], [0.05, 0.52], [0, 0.52]])
-];
-const ITEM_COLORS = [[0xff4d4d, 0x4d8bff, 0xffd23f, 0x3fd07a, 0xff9a3f], [0x7fd8ff, 0xaee9ff, 0x5fc2f0], [0x7a1f3d, 0x2f6b3a, 0x4a1d6b]];
-const CAP_PER_TYPE = (AISLES / 3) * 2 * UNITS * PER;
-const itemMeshes = ITEM_GEO.map(g => {
-  const im = new THREE.InstancedMesh(g, toon(0xffffff), CAP_PER_TYPE); im.count = 0; im.frustumCulled = false; scene.add(im); return im;
-});
-const dummy = new THREE.Object3D(), tmpCol = new THREE.Color();
-function placeItem(u, f) {
-  const { a, side, z, x } = unitInfo(u), type = a % 3, im = itemMeshes[type];
-  const tier = Math.floor(f / COLS), col = f % COLS;
-  dummy.position.set(x + side * 2.1, TIER_Y[tier] + 0.04, z + (col - 1.5) * 0.38);
-  dummy.rotation.y = Math.random() * 6.28; dummy.updateMatrix();
-  const i = im.count++; im.setMatrixAt(i, dummy.matrix);
-  const pal = ITEM_COLORS[type]; im.setColorAt(i, tmpCol.set(pal[(Math.random() * pal.length) | 0]));
-  im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true;
+function botAppearance(r){
+ const b=new THREE.Group();world.add(b);
+ const body=round(.78,.82,.6,'#79dcc8',b);body.position.y=.7;
+ const head=round(.66,.46,.55,'#b4fff0',b);head.position.y=1.33;
+ for(let j of [-1,1]){
+ const eye=new THREE.Mesh(new THREE.SphereGeometry(.073,12,10),toon('#252539'));eye.position.set(j*.18,1.41,-.29);b.add(eye);
+ const moustache=new THREE.Mesh(new THREE.SphereGeometry(.19,12,10),toon('#49314b'));moustache.scale.set(1,.42,.55);moustache.position.set(j*.15,1.2,-.33);moustache.rotation.z=j*.28;b.add(moustache);
+ }
+ for(let j of [-1,1]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.2,14),toon('#424251'));wheel.rotation.z=Math.PI/2;wheel.position.set(j*.42,.26,0);b.add(wheel);}
+ const crate=round(.37,.3,.35,'#d8a05f',b);crate.position.set(0,1,-.38);crate.name='crate';
+ b.position.set(r.x,0,r.z);return b;
 }
-for (let u = 0; u < UNIT_COUNT; u++) for (let f = 0; f < S.fill[u]; f++) placeItem(u, f);
-
-function stockUnit(u) {
-  const f = S.fill[u]; if (f >= PER) return false;
-  placeItem(u, f); S.fill[u]++; S.stocked++; S.coins += stat.value;
-  if (S.stocked % 100 === 0) save();
-  if (S.stocked >= TOTAL) startEnding();
-  return true;
+function makeCart(){
+ if(!s.levels.cart)return;
+ cartMesh=new THREE.Group();world.add(cartMesh);
+ const base=round(1.2,.33,1.5,'#f7c357',cartMesh);base.position.y=.38;
+ const mast=round(.13,1.5,.16,'#80becd',cartMesh);mast.position.set(.35,1.25,.45);
+ const shelf=round(.8,.12,.9,'#ffffff',cartMesh);shelf.position.set(.15,2,.2);
+ for(let side of [-1,1])for(let z of [-.5,.5]){
+ const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.16,16),toon('#393344'));wheel.rotation.z=Math.PI/2;wheel.position.set(side*.57,.22,z);cartMesh.add(wheel);
+ }
 }
-
-/* ---------- Supply belts / dock ---------- */
-const stations = [];
-function makeStation(x, z, dock) {
-  const g = new THREE.Group(); const sc = dock ? 1.8 : 1;
-  const body = box(1.1, 0.5, 3.2, 0x4a505c); body.position.y = 0.25; g.add(body);
-  for (let i = -7; i <= 7; i++) { const s = box(1.12, 0.52, 0.08, 0x2b2f38); s.position.set(0, 0.255, i * 0.2); g.add(s); }
-  const crates = [];
-  for (let i = 0; i < 3; i++) { const c = box(0.6, 0.5, 0.6, [0xc98a4b, 0xe0a85f, 0xb87333][i]); g.add(c); crates.push(c); }
-  g.userData.crates = crates; g.scale.setScalar(sc); g.position.set(x, 0, z); scene.add(g);
-  if (dock) {
-    const s = labelPlane('DELIVERY DOCK', 3.4, 0.8, '#ffd23f', '#2b1b3d', 52); s.position.set(x, 3.2, z); scene.add(s);
-  }
-  stations.push({ x, z, g });
+function makeLadder(){
+ if(!ladder||s.levels.cart||ladder.floor!==s.floor)return;
+ ladderMesh=new THREE.Group();world.add(ladderMesh);
+ for(const x of [-.4,.4]){const post=round(.13,2.3,.13,'#f5ba52',ladderMesh);post.position.set(x,1.2,0);}
+ for(let n=0;n<5;n++){const rung=round(.82,.12,.3,'#fff1cf',ladderMesh);rung.position.set(0,.4+n*.39,0);}
+ ladderMesh.position.set(ladder.x,0,ladder.z);
 }
-makeStation(-6, 3, true);
-function beltPos(n) { return { x: cx(Math.floor(n / 6)), z: Z0 - 1 + (n % 6) * 26 }; }
-function syncBelts() { while (stations.length - 1 < S.lv.belt) { const p = beltPos(stations.length - 1); makeStation(p.x, p.z, false); } }
-syncBelts();
-
-/* ---------- Mustache robots ---------- */
-const robots = [];
-function makeBotMesh() {
-  const g = new THREE.Group();
-  const body = box(0.7, 0.8, 0.5, 0x3ec9c0); body.position.y = 0.7; g.add(body);
-  const head = box(0.6, 0.45, 0.5, 0x7be3dc); head.position.y = 1.35; g.add(head);
-  [-0.14, 0.14].forEach(x => {
-    const e = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), toon(0xffffff)); e.position.set(x, 1.42, 0.24);
-    const p = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), toon(0x111111)); p.position.set(x, 1.42, 0.32); g.add(e, p);
+function buildWorld(){
+ clearWorld();world=new THREE.Group();scene.add(world);currentFloor=s.floor;meshes=[];beltCrates=[];cartMesh=null;ladderMesh=null;robotModels=new Map();
+ buildShell();buildService();buildShelves();
+ for(let a=0;a<AISLES;a++)for(let seg=0;seg<s.belts[s.floor][a];seg++)makeBelt(s.floor,a,seg);
+ for(const r of s.robots)if(r.floor===s.floor)robotModels.set(r.id,botAppearance(r));
+ makeCart();makeLadder();
+ uiUpdate();
+}
+function isBlocked(x,z){
+ if(x<-9.2||x>100.8||z<-11.2||z>99)return true;
+ if(z>11.2&&z<93.2)for(let a=0;a<AISLES;a++){
+ const rel=Math.abs(x-aisleX(a));if(rel>2.57&&rel<4.2)return true;
+ }
+ return false;
+}
+function nearestAisle(){let a=Math.round((V.x-8)/10);return Math.max(0,Math.min(AISLES-1,a));}
+function nearestBay(){return Math.max(0,Math.min(BAYS-1,Math.round((V.z-13)/2.65)));}
+function nearby(x,z,d){return Math.hypot(V.x-x,V.z-z)<d;}
+function cellToStock(){
+ const a=nearestAisle(),bay=nearestBay();
+ if(Math.abs(V.x-aisleX(a))>2.7||Math.abs(V.z-bayZ(bay))>1.75)return -1;
+ const faceX=-Math.sin(V.yaw),side=faceX>=0?1:0;
+ const tier=V.pitch>.25?2:V.pitch<-.31?0:1;
+ return cellId(s.floor,a,side,bay,tier);
+}
+function upperReach(){return V.y>.56||(ladder&&ladder.floor===s.floor&&nearby(ladder.x,ladder.z,2.8))||(s.levels.cart&&s.cart.floor===s.floor&&nearby(aisleX(s.cart.aisle),s.cart.z,3.6));}
+function manualStock(){
+ if(!V.carry)return false;
+ const id=cellToStock();
+ if(id<0)return false;
+ const t=id%TIERS;
+ if(t===2&&!upperReach()){notify('TOP SHELF: earn 3¢, but first get jumping shoes, a ladder, or a cart!');return false;}
+ const old=s.fill[id],c=place(s,id,false);
+ if(!c){notify('That shelf is full. Look for another empty spot.');return false;}
+ V.carry--;drawProduct(id,old);
+ if(s.stocked>=TOTAL_ITEMS)beginEnding();
+ return true;
+}
+function act(){
+ if(modal||ending)return;
+ if(nearby(1.5,-7,4.0)){openShop();return;}
+ if(nearby(10,-3,4.0)){const paid=payOut(s);notify(paid?'Collected '+centsText(paid)+' in wages.':'No outstanding wages. Stock products first!');save();return;}
+ if(nearby(23,-9,4.4)){openElevator();return;}
+ if(nearby(-5,-3,4.3)&&V.carry<capacity(s)){V.carry++;return;}
+ if(manualStock())return;
+}
+function pointerRequest(){
+ if(!renderer.domElement.requestPointerLock)return;
+ try{const result=renderer.domElement.requestPointerLock();if(result?.catch)result.catch(()=>notify('Mouse capture unavailable. Arrow keys still let you look.'));}catch(_){notify('Mouse capture unavailable; use arrow keys to look.');}
+}
+function show(id){for(const key of ['intro','shop','elevator','end'])$(key).classList.toggle('open',key===id);modal=id;running=!id&&!ending;if(id)document.exitPointerLock?.();}
+function resume(){show(null);running=true;pointerRequest();}
+function openShop(){
+ if(!nearby(1.5,-7,4.6)){notify('Find Mustache Mike at his pink counter to buy upgrades.');return;}
+ show('shop');renderShop();
+}
+function renderShop(){
+ $('shopMoney').textContent=centsText(s.money);
+ const list=$('shopitems');list.replaceChildren();
+ for(const u of UPGRADES){
+  const lv=s.levels[u.id],cost=price(u,lv),max=lv>=u.max;
+  const row=document.createElement('div');row.className='upgrade';
+  const info=document.createElement('div'),name=document.createElement('strong'),desc=document.createElement('small');
+  name.textContent=u.name+' · Lv '+lv+'/'+u.max;desc.textContent=u.detail;
+  info.append(name,desc);const btn=document.createElement('button');
+  btn.textContent=max?'MAXED':centsText(cost);btn.disabled=max||s.money<cost||(u.id==='cart'&&!s.levels.ladder);
+  btn.addEventListener('click',()=>{
+   if(!purchase(s,u.id))return;
+   if(u.id==='robot'){const r=s.robots[s.robots.length-1];if(r?.floor===s.floor)robotModels.set(r.id,botAppearance(r));}
+   if(u.id==='cart'){ladder=null;buildWorld();}
+   save();renderShop();uiUpdate();
   });
-  [-1, 1].forEach(s => {
-    const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.26, 4, 8), toon(0x4a2a12));
-    m.rotation.z = Math.PI / 2 + s * 0.25; m.position.set(s * 0.14, 1.26, 0.27); g.add(m);
-  });
-  const ant = box(0.04, 0.3, 0.04, 0x888888); ant.position.y = 1.7; const tip = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), toon(0xff3b5c)); tip.position.y = 1.88; g.add(ant, tip);
-  const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.5, 14), toon(0x333333)); wheel.rotation.z = Math.PI / 2; wheel.position.y = 0.22; g.add(wheel);
-  return g;
+  row.append(info,btn);list.append(row);
+ }
 }
-function syncRobots() {
-  while (robots.length < Math.min(S.lv.robot, 200)) {
-    const mesh = makeBotMesh(); mesh.position.set(-6 + Math.random() * 2, 0, 5 + Math.random() * 2); scene.add(mesh);
-    robots.push({ mesh, id: robots.length, target: -1, acc: Math.random() });
+function openElevator(){
+ if(!nearby(23,-9,4.5)){notify('Use the elevator near the front of the store.');return;}
+ show('elevator');const list=$('elevatorlist');list.replaceChildren();
+ for(let f=0;f<FLOORS;f++){
+  const btn=document.createElement('button');
+  btn.textContent=floorLabel(f)+' · '+Math.round(floorStocked(s,f)/itemsPerFloor*100)+'%';btn.disabled=f===s.floor;
+  btn.addEventListener('click',()=>{
+   s.floor=f;V.x=23;V.z=-5;V.y=V.vy=0;V.carry=0;
+   buildWorld();save();notify('Now working on '+floorLabel(f)+'. Another 7,200 items!');resume();
+  });list.append(btn);
+ }
+}
+function placeLadder(){
+ if(!s.levels.ladder){notify('Buy a ladder from Mustache Mike first.');return;}
+ if(s.levels.cart){notify('Your ladder was upgraded into an automatic cart.');return;}
+ if(V.z<11){notify('Take the ladder into an aisle first.');return;}
+ ladder={floor:s.floor,x:V.x,z:V.z};buildWorld();notify('Ladder deployed. Stand beside it and look up to stock the top shelf.');
+}
+function buildNextBelt(){
+ const a=nearestAisle(),n=s.belts[s.floor][a];
+ if(Math.abs(V.x-aisleX(a))>2.7||n>=BAYS||Math.abs(V.z-bayZ(n))>4.2){
+  notify('To extend a belt: stand in an aisle by the NEXT unbuilt segment, starting at the front.');return;
+ }
+ const cost=beltCost(s,s.floor,a);
+ if(!buildBelt(s,s.floor,a,n)){notify('Need '+centsText(cost)+' to build the next conveyor segment.');return;}
+ makeBelt(s.floor,a,n);save();notify('Connected segment '+(n+1)+' installed! Robots can collect supplies here.');
+}
+function updatePrompt(){
+ let msg='';
+ if(nearby(-5,-3,4.3))msg=V.carry<capacity(s)?'Hold E · Collect 1 product at a time · Warehouse':'Bag full — bring your stock into an aisle';
+ else if(nearby(1.5,-7,4.0))msg='E or Q · Talk to Mustache Mike for upgrades';
+ else if(nearby(10,-3,4.0))msg='E · Collect '+centsText(s.pending)+' in wages';
+ else if(nearby(23,-9,4.4))msg='E or R · Ride elevator to floors 1–15';
+ else if(V.z>=11){
+   const id=cellToStock();
+   if(id>=0)msg='Hold E · Stock '+['BOTTOM (1¢)','MIDDLE (2¢)','TOP (3¢)'][id%3]+(id%3===2&&!upperReach()?' · REQUIRES JUMP / LADDER / CART':'')+' · B builds conveyor';
+   else msg='Look toward a nearby shelf · B build conveyor · L deploy ladder';
+ }
+ if(msg){$('prompt').hidden=false;$('prompt').textContent=msg;}else $('prompt').hidden=true;
+}
+function createEndingBodies(){
+ const sun=new THREE.Mesh(new THREE.SphereGeometry(12,24,18),new THREE.MeshBasicMaterial({color:'#ffe178',fog:false}));
+ const moon=new THREE.Mesh(new THREE.SphereGeometry(9,24,18),new THREE.MeshBasicMaterial({color:'#e5f1ff',fog:false}));
+ sun.visible=moon.visible=false;scene.add(sun,moon);return {sun,moon};
+}
+const skyBodies=createEndingBodies();
+function beginEnding(){
+ if(ending)return;ending=true;save();show('end');endStarted=true;V.x=45;V.z=-8;V.y=0;V.pitch=.1;V.yaw=0;
+ $('end').style.background='rgba(21,28,51,.25)';$('end').querySelector('.panel').style.background='transparent';
+}
+function endingTick(dt){
+ if(!ending||endComplete)return;
+ const first=TEST_ENDING?.35:10,fade=.85;
+ endingTimer+=dt;let t=endingTimer,day=0;
+ while(day<20&&t>=first*fade**day){t-=first*fade**day;day++;}
+ if(day>=20){
+   endComplete=true;$('endingDay').textContent='Day 20 · Customers: 0';
+   $('bank').style.display='block';$('thanks').style.display='block';skyBodies.sun.visible=skyBodies.moon.visible=false;
+   scene.background.set('#260b22');return;
+ }
+ $('endingDay').textContent='Day '+(day+1)+' · Customers: 0';
+ const span=first*fade**day,p=t/span;
+ const sunPhase=p<.7,theta=(sunPhase?p/.7:(p-.7)/.3)*Math.PI;
+ const active=sunPhase?skyBodies.sun:skyBodies.moon;
+ skyBodies.sun.visible=sunPhase;skyBodies.moon.visible=!sunPhase;
+ active.position.set(45-95*Math.cos(theta),15+88*Math.sin(theta),-120);
+ const dawn=Math.max(0,Math.sin((p-.05)*Math.PI*2));
+ scene.background.set('#1b2447').lerp(new THREE.Color('#a6dcf4'),dawn);
+ sunlight.intensity=.3+1.7*dawn;
+}
+function tickCart(dt){
+ if(!s.levels.cart||remaining(s)<=0)return;
+ const c=s.cart;
+ c.z+=dt*(.28+s.levels.cartSpeed*.14);
+ if(c.z>bayZ(BAYS-1)+1.4){c.z=bayZ(0);c.aisle=(c.aisle+1)%AISLES;if(c.aisle===0)c.floor=(c.floor+1)%FLOORS;}
+ c.acc+=dt*(.15+s.levels.cartSpeed*.09);
+ if(c.acc>=1){
+  c.acc-=1;const bay=Math.max(0,Math.min(BAYS-1,Math.round((c.z-13)/2.65)));
+  for(const tier of [2,1,0])for(const side of [0,1]){
+   const id=cellId(c.floor,c.aisle,side,bay,tier);
+   if(s.fill[id]<SLOTS){const prev=s.fill[id];place(s,id,true);if(c.floor===s.floor)drawProduct(id,prev);return;}
   }
+ }
 }
-syncRobots();
-let frontier = 0;
-function findIncomplete(start) { for (let i = 0; i < UNIT_COUNT; i++) { const u = (start + i) % UNIT_COUNT; if (S.fill[u] < PER) return u; } return -1; }
-function updateRobot(r, dt) {
-  const p = r.mesh.position;
-  if (r.target < 0 || S.fill[r.target] >= PER) r.target = findIncomplete((frontier + r.id * 13) % UNIT_COUNT);
-  if (r.target < 0) return;
-  const { x: tx, z: tz } = unitInfo(r.target);
-  let gx, gz;
-  if (Math.abs(p.x - tx) > 0.3) { if (p.z > Z0 - 2.5) { gx = p.x; gz = Z0 - 3; } else { gx = tx; gz = p.z; } } else { gx = tx; gz = tz; }
-  const dx = gx - p.x, dz = gz - p.z, d = Math.hypot(dx, dz), step = Math.min(d, 6 * dt * (1 + 0.04 * S.lv.caf));
-  if (d > 0.001) { p.x += dx / d * step; p.z += dz / d * step; r.mesh.rotation.y = Math.atan2(dx, dz); p.y = Math.abs(Math.sin(performance.now() / 120 + r.id)) * 0.06; }
-  r.acc = Math.min(2, r.acc + dt * stat.botRate);
-  if (Math.abs(p.x - tx) < 0.35 && Math.abs(p.z - tz) < 0.7 && r.acc >= 1) { r.acc -= 1; stockUnit(r.target); }
+function syncRobots(){
+ for(const r of s.robots){
+  if(r.floor===s.floor){
+   if(!robotModels.has(r.id))robotModels.set(r.id,botAppearance(r));
+   const obj=robotModels.get(r.id);obj.position.set(r.x,.08*Math.sin(performance.now()/230+r.id),r.z);
+   const crate=obj.getObjectByName('crate');if(crate)crate.visible=r.carry>0;
+  }else if(robotModels.has(r.id)){const obj=robotModels.get(r.id);obj.visible=false;robotModels.delete(r.id);}
+ }
 }
-
-/* ---------- Carried box (in-hand) ---------- */
-const hand = box(0.5, 0.5, 0.5, 0xe0a85f); hand.position.set(0.45, -0.4, -0.8); camera.add(hand);
-
-/* ================= PLAYER ================= */
-const P = { x: -2, z: 0, yaw: 0, pitch: 0, carry: 0, act: 0 };
-const keys = {}; let mouseDown = false, locked = false, shopOpen = false, ending = false;
-
-function blocked(x, z) {
-  if (x < X_MIN + 0.6 || x > X_MAX - 0.6 || z < Z_MIN + 0.6 || z > Z_MAX - 0.6) return true;
-  if (z > Z0 - 1 && z < ZEND + 1 && x > cx(0) - 2.7 && x < cx(AISLES - 1) + 2.7) {
-    const a = Math.round((x - 4) / SPACING);
-    return !(a >= 0 && a < AISLES && Math.abs(x - cx(a)) < 1.45);
+const hand=round(.55,.46,.5,'#db9f68',camera);hand.position.set(.55,-.52,-1);hand.visible=false;
+function animate(now){
+ requestAnimationFrame(animate);const elapsed=Math.max(0,(now-last)/1000),dt=Math.min(.06,elapsed);last=now;
+ if(running&&!ending){
+  const turn=(held.ArrowLeft?1:0)-(held.ArrowRight?1:0);
+  V.yaw+=turn*dt*1.7;V.pitch=Math.max(-1.25,Math.min(1.25,V.pitch+((held.ArrowUp?1:0)-(held.ArrowDown?1:0))*dt));
+  const forward=(held.KeyW?1:0)-(held.KeyS?1:0),side=(held.KeyD?1:0)-(held.KeyA?1:0);
+  if(forward||side){
+   const speed=walkSpeed(s)*(held.ShiftLeft?1.4:1)*dt/Math.hypot(forward,side);
+   const dx=(-Math.sin(V.yaw)*forward+Math.cos(V.yaw)*side)*speed;
+   const dz=(-Math.cos(V.yaw)*forward-Math.sin(V.yaw)*side)*speed;
+   if(!isBlocked(V.x+dx,V.z))V.x+=dx;
+   if(!isBlocked(V.x,V.z+dz))V.z+=dz;
   }
-  return false;
-}
-function nearStation() { for (const s of stations) if (Math.hypot(P.x - s.x, P.z - s.z) < (s === stations[0] ? 4.2 : 3.2)) return true; return false; }
-function nearestUnit() {
-  if (P.z < Z0 - 2 || P.z > ZEND + 2) return -1;
-  const a = Math.round((P.x - 4) / SPACING); if (a < 0 || a >= AISLES || Math.abs(P.x - cx(a)) > 1.6) return -1;
-  const fx = -Math.sin(P.yaw), k0 = Math.round((P.z - Z0) / ULEN); let best = -1, bs = 1e9;
-  for (let k = k0 - 2; k <= k0 + 2; k++) {
-    if (k < 0 || k >= UNITS) continue;
-    for (let si = 0; si < 2; si++) {
-      const side = si ? 1 : -1, u = (a * 2 + si) * UNITS + k; if (S.fill[u] >= PER) continue;
-      const sc = Math.abs(Z0 + k * ULEN - P.z) + (fx * side > 0 ? 0 : 3);
-      if (sc < bs) { bs = sc; best = u; }
-    }
+  V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0)V.vy=0;
+  if(held.Space&&s.levels.jump&&V.y===0)V.vy=5.4;
+  if(held.KeyE||mouseDown){actionClock+=dt;while(actionClock>=.32){actionClock-=.32;act();if(modal)break;}}else actionClock=0;
+ }
+ if(!ending&&running){
+  // Render the current floor; background robot simulation advances on every floor.
+  camera.position.set(V.x,1.65+V.y,V.z);camera.rotation.set(V.pitch,V.yaw,0);
+  hand.visible=V.carry>0;hand.scale.setScalar(.45+Math.min(1,V.carry/capacity(s))*.55);
+ }
+ if(!ending){
+  for(const r of s.robots){
+   const prevTarget=r.target,prevCount=prevTarget>=0?s.fill[prevTarget]:-1;
+   const id=botStep(s,r,dt);
+   if(id>=0&&decode(id).floor===s.floor)drawProduct(id,s.fill[id]-1);
   }
-  return best;
+  tickCart(dt);
+  if(s.levels.cart&&cartMesh){cartMesh.visible=s.cart.floor===s.floor;if(cartMesh.visible)cartMesh.position.set(aisleX(s.cart.aisle),0,s.cart.z);}
+  syncRobots();
+  for(const b of beltCrates)b.crate.position.z=((now*.00065+b.segment*.27)%2.0)-1;
+  if(s.stocked>=TOTAL_ITEMS)beginEnding();
+ }
+ if(ending)endingTick(elapsed);
+ if(!modal){updatePrompt();}
+ if(now-savingAt>260){uiUpdate();savingAt=now;}
+ renderer.render(scene,camera);
 }
-function doAction() {
-  if (P.carry < stat.cap && nearStation()) { P.carry = Math.min(stat.cap, P.carry + 3); return true; }
-  if (P.carry > 0) { const u = nearestUnit(); if (u >= 0 && stockUnit(u)) { P.carry--; return true; } }
-  return false;
-}
-
-/* ================= INPUT ================= */
-const $ = id => document.getElementById(id);
-$('resetSave').addEventListener('click', event => {
-  event.stopPropagation();
-  if (confirm('Erase all saved Mustache Mart progress and restart?')) {
-    localStorage.removeItem(SAVE_KEY);
-    location.reload();
-  }
+window.addEventListener('keydown',e=>{
+ if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
+ held[e.code]=true;
+ if(e.repeat)return;
+ if(e.code==='Escape'){if(modal==='shop'||modal==='elevator')resume();else if(!ending){show('intro');$('play').textContent='Resume shift';}}
+ if(modal||ending)return;
+ if(e.code==='KeyQ')openShop();
+ if(e.code==='KeyR')openElevator();
+ if(e.code==='KeyL')placeLadder();
+ if(e.code==='KeyB')buildNextBelt();
+ if(e.code==='KeyE'){actionClock=.32;act();}
 });
-addEventListener('keydown', e => {
-  keys[e.code] = true;
-  if (e.code === 'KeyE' && !e.repeat) P.act = 1;
-  if (e.code === 'KeyQ' && !ending && $('start').style.display === 'none') toggleShop();
-  if (e.code === 'KeyF') { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.(); }
+window.addEventListener('keyup',e=>held[e.code]=false);
+window.addEventListener('blur',()=>{held={};mouseDown=false;actionClock=0;});
+window.addEventListener('mousemove',e=>{
+ if(!running||modal)return;
+ if(document.pointerLockElement===renderer.domElement||e.buttons===1){
+   V.yaw-=e.movementX*.0024;V.pitch=Math.max(-1.25,Math.min(1.25,V.pitch-e.movementY*.0024));
+ }
 });
-addEventListener('keyup', e => { keys[e.code] = false; });
-addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouseDown = false; P.act = 0; });
-addEventListener('mousedown', () => { if (locked) { mouseDown = true; P.act = 1; } });
-addEventListener('mouseup', () => { mouseDown = false; });
-addEventListener('mousemove', e => {
-  if (!locked || (document.pointerLockElement !== renderer.domElement && !mouseDown)) return;
-  P.yaw -= e.movementX * 0.0022; P.pitch = Math.max(-1.4, Math.min(1.4, P.pitch - e.movementY * 0.0022));
+renderer.domElement.addEventListener('mousedown',()=>{if(!modal){mouseDown=true;actionClock=.32;act();}});
+window.addEventListener('mouseup',()=>mouseDown=false);
+document.addEventListener('pointerlockchange',()=>{
+ if(!ending&&!modal&&document.pointerLockElement!==renderer.domElement){
+  // Arrow-key fallback still works, without bypassing browser permissions.
+  notify('Mouse released. Use arrow keys to look or click to recapture.');
+ }
 });
-function requestPointerLockSafe() {
-  // Browsers may reject pointer lock (notably under remote desktop, browser
-  // automation, accessibility configurations or certain Safari permissions).
-  // Gameplay still works with WASD and the arrow keys; no security overrides.
-  locked = true;
-  if (typeof renderer.domElement.requestPointerLock !== 'function') {
-    $('help').textContent = 'WASD move · Arrow keys look · Hold E to stock · Q shop · Mouse capture unavailable';
-    return;
-  }
-  try {
-    const result = renderer.domElement.requestPointerLock();
-    if (result && typeof result.catch === 'function') result.catch(() => {
-      $('help').textContent = 'WASD move · Arrow keys look · Drag mouse to look · E stock · Q shop';
-      locked = true;
-    });
-  } catch (_error) {
-    $('help').textContent = 'WASD move · Arrow keys look · Drag mouse to look · E stock · Q shop';
-    locked = true;
-  }
-}
-$('start').addEventListener('click', () => {
-  $('start').style.display = 'none';
-  requestPointerLockSafe();
-});
-document.addEventListener('pointerlockchange', () => {
-  locked = document.pointerLockElement === renderer.domElement;
-  if (!locked && !shopOpen && !ending) { $('start').style.display = 'flex'; $('start').querySelector('b').textContent = 'Click to resume'; }
-});
-function toggleShop() {
-  shopOpen = !shopOpen; $('shop').style.display = shopOpen ? 'flex' : 'none';
-  if (shopOpen) { locked = false; document.exitPointerLock?.(); renderShop(); } else { $('start').style.display = 'none'; requestPointerLockSafe(); }
-}
-$('shopClose').addEventListener('click', toggleShop);
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
-
-/* ================= SHOP ================= */
-function renderShop() {
-  $('shopCoins').textContent = Math.floor(S.coins).toLocaleString();
-  const list = $('shopList'); list.innerHTML = '';
-  UPGRADES.forEach(up => {
-    const lvl = S.lv[up.id], maxed = lvl >= up.max, cost = up.cost(lvl);
-    const row = document.createElement('div'); row.className = 'row';
-    row.innerHTML = `<div class="info"><b>${up.name}</b> <small>Lv ${lvl}/${up.max} — ${up.desc}</small></div>`;
-    const btn = document.createElement('button'); btn.textContent = maxed ? 'MAX' : `🪙 ${cost.toLocaleString()}`;
-    btn.disabled = maxed || S.coins < cost;
-    btn.onclick = () => { if (S.coins >= cost && !maxed) { S.coins -= cost; S.lv[up.id]++; recompute(); syncBelts(); syncRobots(); renderShop(); save(); } };
-    row.appendChild(btn); list.appendChild(row);
-  });
-}
-// Never replace live buttons while the player is trying to click them.
-// Repainting the entire shop every 400ms made purchases unreliable on slower Macs.
-setInterval(() => {
-  if (!shopOpen) return;
-  $('shopCoins').textContent = Math.floor(S.coins).toLocaleString();
-  const rows = $('shopList').children;
-  UPGRADES.forEach((up, i) => {
-    const button = rows[i]?.querySelector('button');
-    if (!button) return;
-    const level = S.lv[up.id], maxed = level >= up.max, cost = up.cost(level);
-    button.disabled = maxed || S.coins < cost;
-    const label = maxed ? 'MAX' : `🪙 ${cost.toLocaleString()}`;
-    if (button.textContent !== label) button.textContent = label;
-  });
-}, 400);
-
-/* ================= SAVE ================= */
-function save() { if (ending) return; try { localStorage.setItem(SAVE_KEY, JSON.stringify({ coins: S.coins, lv: S.lv, fill: Array.from(S.fill) })); } catch (e) {} }
-setInterval(save, 5000); addEventListener('beforeunload', save);
-
-/* ================= ENDING ================= */
-const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(16, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffe066, fog: false }));
-const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(11, 24, 16), new THREE.MeshBasicMaterial({ color: 0xeef2ff, fog: false }));
-sunMesh.visible = moonMesh.visible = false; scene.add(sunMesh, moonMesh);
-const starGeo = new THREE.BufferGeometry(), sp = [];
-for (let i = 0; i < 400; i++) { const th = Math.random() * 6.28, ph = Math.random() * 1.3; sp.push(28 + Math.cos(th) * 900 * Math.cos(ph), 900 * Math.sin(ph) + 20, -Math.abs(Math.sin(th)) * 900 * Math.cos(ph) - 50); }
-starGeo.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
-const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 3, sizeAttenuation: false, transparent: true, opacity: 0, fog: false })); scene.add(stars);
-
-let endT = 0, endRunning = false, endDone = false;
-const TEST_ENDING = location.hash === '#ending-test';
-const dayLen = i => FIRST_DAY_SECONDS * (TEST_ENDING ? 0.035 : 1) * DAY_SPEEDUP ** i;
-function startEnding() {
-  if (ending) return; save(); ending = true; shopOpen = false; $('shop').style.display = 'none'; document.exitPointerLock?.(); $('start').style.display = 'none';
-  $('fade').style.opacity = 1;
-  setTimeout(() => {
-    $('hud').style.display = 'none'; hand.visible = false; robots.forEach(r => (r.mesh.visible = false));
-    camera.position.set(DOOR_X, 1.7, Z_MIN + 7); camera.rotation.set(0.05, 0, 0);
-    $('endHud').style.display = 'block'; endRunning = true; $('fade').style.opacity = 0;
-  }, 1100);
-}
-if (location.hash === '#ending' || TEST_ENDING) startEnding();
-
-function updateEnding(dt) {
-  if (!endRunning || endDone) return;
-  endT += dt; let i = 0, t = endT;
-  while (i < DAYS && t >= dayLen(i)) { t -= dayLen(i); i++; }
-  if (i >= DAYS) {
-    endDone = true; sunMesh.visible = moonMesh.visible = false; scene.background.copy(SKY_NIGHT); scene.fog.color.copy(SKY_NIGHT); stars.material.opacity = 1;
-    $('endHud').style.display = 'none'; $('bank').style.display = 'flex'; requestAnimationFrame(() => requestAnimationFrame(() => $('bank').classList.add('show'))); return;
-  }
-  $('dayTxt').textContent = `Day ${i + 1}`;
-  document.documentElement.dataset.endingDay = String(i + 1);
-  const u = t / dayLen(i); let h = 0;
-  sunMesh.visible = moonMesh.visible = false;
-  const arc = (v, m) => { const th = Math.PI - v * Math.PI; m.position.set(DOOR_X + Math.cos(th) * 190, Math.sin(th) * 130 - 6, -300); m.visible = true; return Math.sin(th); };
-  if (u < 0.65) h = arc(u / 0.65, sunMesh); else arc((u - 0.65) / 0.35, moonMesh);
-  const day = Math.min(1, Math.max(0, h * 2.5));
-  const sky = SKY_NIGHT.clone().lerp(SKY_DAY, day);
-  if (h > 0 && h < 0.35) sky.lerp(SKY_DAWN, (0.35 - h) / 0.35 * 0.7);
-  scene.background.copy(sky); scene.fog.color.copy(sky);
-  stars.material.opacity = 1 - day; hemi.intensity = 0.45 + 0.55 * day; sunLight.intensity = 0.15 + 0.75 * day;
-}
-
-/* ================= MAIN LOOP ================= */
-const fwd = new THREE.Vector3(); let last = performance.now(), tBelt = 0;
-function frame(now) {
-  requestAnimationFrame(frame);
-  const elapsed = Math.max(0, (now - last) / 1000);
-  const dt = Math.min(0.05, elapsed); last = now; tBelt += dt;
-
-  while (frontier < UNIT_COUNT && S.fill[frontier] >= PER) frontier++;
-  if (!ending) robots.forEach(r => updateRobot(r, dt));
-  if (S.lv.robot > robots.length) { /* extra bots beyond 200 still work, invisibly */
-    const extra = S.lv.robot - robots.length; hiddenAcc = (typeof hiddenAcc === 'number' ? hiddenAcc : 0) + dt * stat.botRate * extra;
-    while (hiddenAcc >= 1) { hiddenAcc -= 1; const u = findIncomplete(frontier); if (u >= 0) stockUnit(u); else break; }
-  }
-  stations.forEach(s => s.g.userData.crates.forEach((c, i) => { c.position.set(0, 0.75, ((tBelt * 0.8 + i * 1.07) % 3) - 1.5); }));
-
-  if (!ending && locked && !shopOpen) {
-    // Keyboard look works even where browser pointer lock is disallowed.
-    P.yaw += ((keys.ArrowLeft ? 1 : 0) - (keys.ArrowRight ? 1 : 0)) * dt * 1.8;
-    P.pitch = Math.max(-1.4, Math.min(1.4, P.pitch
-      + ((keys.ArrowUp ? 1 : 0) - (keys.ArrowDown ? 1 : 0)) * dt * 1.25));
-    const f = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0), s = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
-    if (f || s) {
-      const sp = stat.speed * (keys.ShiftLeft ? 1.5 : 1) * dt / Math.hypot(f, s);
-      const dx = (-Math.sin(P.yaw) * f + Math.cos(P.yaw) * s) * sp, dz = (-Math.cos(P.yaw) * f - Math.sin(P.yaw) * s) * sp;
-      if (!blocked(P.x + dx, P.z)) P.x += dx; if (!blocked(P.x, P.z + dz)) P.z += dz;
-    }
-    if (keys.KeyE || mouseDown) {
-      P.act += dt * stat.rate * (nearStation() && P.carry < stat.cap ? 3 : 1);
-      while (P.act >= 1) { if (doAction()) P.act -= 1; else { P.act = 0; break; } }
-    } else P.act = 0;
-  }
-  if (!ending) {
-    camera.position.set(P.x, 1.7, P.z); camera.rotation.set(P.pitch, P.yaw, 0);
-    hand.scale.setScalar(0.3 + 0.7 * (P.carry / stat.cap)); hand.visible = P.carry > 0;
-    $('coins').textContent = Math.floor(S.coins).toLocaleString(); $('carry').textContent = P.carry; $('cap').textContent = stat.cap; $('bots').textContent = S.lv.robot;
-    $('objective').textContent = S.stocked === 0
-      ? 'FIRST SHIFT · Find the yellow DELIVERY DOCK, hold E to fill your box.'
-      : S.stocked < 12
-        ? 'FIRST SHIFT · Carry boxes to the colorful aisles and hold E to stock.'
-        : S.stocked < 100
-          ? 'FIRST SHIFT · Press Q to invest your coins in faster stocking.'
-          : 'OPENING PREP · No empty shelves allowed. Every single item counts.';
-    const pc = S.stocked / TOTAL * 100; $('barFill').style.width = pc + '%'; $('barTxt').textContent = `Stocked ${S.stocked.toLocaleString()} / ${TOTAL.toLocaleString()} (${pc.toFixed(1)}%)`;
-    const pr = $('prompt'); let msg = '';
-    if (P.carry < stat.cap && nearStation()) msg = 'Hold E: grab stock 📦';
-    else if (P.carry > 0 && nearestUnit() >= 0) msg = 'Hold E: stock the shelf 🪙';
-    else if (P.carry === 0) msg = 'Out of stock! Find a delivery belt 🛞';
-    pr.style.display = msg ? 'block' : 'none'; pr.textContent = msg;
-  }
-  // Cinematic time must use real elapsed time, even when a slow GPU drops frames.
-  updateEnding(elapsed);
-  renderer.render(scene, camera);
-}
-let hiddenAcc = 0;
-if (S.stocked >= TOTAL && !ending) startEnding();
-requestAnimationFrame(frame);
+renderer.domElement.addEventListener('click',()=>{if(running)pointerRequest();});
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+$('play').addEventListener('click',resume);
+$('reset').addEventListener('click',e=>{e.stopPropagation();if(confirm('Erase your new 15-floor save and restart?')){localStorage.removeItem(SAVE_KEY);location.reload();}});
+$('shopClose').addEventListener('click',resume);
+$('elevatorClose').addEventListener('click',resume);
+buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();
+if(PREVIEW_ENDING)beginEnding();
+requestAnimationFrame(animate);
