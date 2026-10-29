@@ -121,3 +121,12 @@ test('the self-driving lift can stock the 3-cent top tier, not just low and midd
  assert.equal(st.fill[id],1);
  assert.equal(st.money,3);
 });
+
+test('existing v4 saves relocate receiving-dock bots out of solid pickup counter',()=>{
+ const r=rules,st=r.newState();st.levels.robot=1;
+ st.robots=[{id:0,floor:0,x:r.DOCK.x,z:r.DOCK.z,phase:'supply',target:0,carry:0,acc:0}];
+ const restored=r.loadState(r.serialize(st));
+ assert.equal(restored.robots.length,1);
+ assert.equal(restored.robots[0].z,r.REAR_CROSSWALK);
+ assert.equal(collision.isBlocked(restored.robots[0].x,restored.robots[0].z),false);
+});
