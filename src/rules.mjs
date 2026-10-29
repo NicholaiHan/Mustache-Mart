@@ -137,7 +137,7 @@ export function sellLadder(s,id){
 export function sellBelt(s,f,a,segment){
  if(!Number.isInteger(segment)||segment!==s.belts[f]?.[a]-1)return 0;
  s.belts[f][a]--;const cost=s.beltReceipts[f][a].pop()||12;
- s.beltStock[f][a]=Math.min(s.beltStock[f][a],16);
+ if(s.belts[f][a]===0){s.beltStock[f][a]=0;s.beltTimers[f][a]=0;}
  const refund=Math.floor(cost/2);s.money+=refund;return refund;
 }
 export function advanceBelts(s,dt){
