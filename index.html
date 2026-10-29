@@ -92,6 +92,18 @@ button:active:not(:disabled){transform:translateY(1px)}
 #pickupStatus{position:absolute;bottom:155px;left:50%;transform:translateX(-50%);background:#223e3cdd;color:#edeee6;padding:10px 16px;border-left:4px solid #dcb875;border-radius:5px;max-width:90vw;font-size:12px;font-weight:700;letter-spacing:.08em}
 @media(max-width:650px){.shopHeader{gap:11px}.mikePortrait{width:58px;height:58px}.panel{padding:16px}#payReceipt{top:140px}}
 
+
+/* Distinct build diagnostics: if absent, you are running a stale local folder. */
+#buildChip{position:absolute;top:76px;right:14px;background:#173d3b;color:#f7f7ef;
+ border:1px solid #a7ccc1;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:850;
+ letter-spacing:.025em;box-shadow:0 4px 18px #16262440;z-index:5;max-width:30vw}
+#buildIntro{padding:12px 15px;margin:9px 0 17px;background:#e5f1e9;border:2px solid #75a18a;
+ border-radius:9px;color:#1e5040;font-weight:750;line-height:1.45}
+#buildIntro small{display:block;font-weight:500;margin-top:3px;color:#3e6355}
+#devBanner{display:none;background:#f7ebce;color:#654921;border:1px solid #c8a66d;
+ padding:8px 12px;border-radius:7px;margin:8px 0;font-weight:800}
+@media(max-width:700px){#buildChip{top:130px;max-width:45vw;font-size:10px}#buildIntro{font-size:13px}}
+
 </style>
 </head>
 <body>
@@ -105,6 +117,7 @@ button:active:not(:disabled){transform:translateY(1px)}
     <span class="pill">🤖 <span id="robots">0</span></span>
   </div>
   <div class="pill" id="objective">Collect a can from the delivery dock, then stock the nearest shelf.</div>
+  <div id="buildChip">UPDATED BUILD · 2026.10.29.3</div>
   <div id="crosshair"></div>
   <div id="prompt" class="pill" hidden></div>
   <div id="toast"></div>
@@ -116,6 +129,10 @@ button:active:not(:disabled){transform:translateY(1px)}
 <div class="dialog open" id="intro">
   <div class="panel">
     <h1>MUSTACHE<br>MART 🥸</h1>
+    <div id="buildIntro">UPDATED EDITION · BUILD 2026.10.29.3
+      <small>Four checkout lanes · Robotic Mike behind counter · Back-left FIRE EXIT · Climbable ladders · Powered conveyors</small>
+    </div>
+    <div id="devBanner">DEVELOPMENT MODE · $500 minimum testing funds enabled</div>
     <p><strong>15 floors. 144,000 products. One grand opening.</strong><br>The inventory warehouse is all the way at the BACK of the store. Begin by carrying a single can through long aisles. Earn 1¢ on lower racks, 2¢ using a step ladder and 3¢ with the telescopic ladder extension. Collect pay at the front window, then visit Mustache Mike for tools and economy contracts.</p>
     <p class="hint">WASD to walk · E to collect / stock · mouse or arrow keys to aim · Q near Mike for upgrades · R at elevator · B to extend rear-fed conveyor · Space to jump (upgrade) · L to place a ladder · C to climb, W/S to move up/down · X to sell equipment · Buy a robot at Mike's, walk into an aisle and left-click to deploy.</p>
     <button id="play">Start your shift</button> <button id="reset">Reset this game's saved progress</button>
