@@ -10,7 +10,7 @@ test.before(async()=>{
 test('solid stations, high-bay racks, wall boundaries and pallets never permit walking through',()=>{
  const c=collision;
  for(const [label,x,z] of [
-  ['Mike counter',1.5,-9],['Mike robot',1.5,-7.05],
+  ['Mike counter',1.5,-9],['Mike robot behind front desk',1.5,-10.48],
   ['Payroll counter',10,-3.2],['Receiving desk',1.5,96],
   ['Warehouse shelving',7.7,96.4],['Stock pallet',30,95],
   ['Structural pillar',101,26],['Shelf rack 1',4.6,31],
@@ -21,7 +21,7 @@ test('solid stations, high-bay racks, wall boundaries and pallets never permit w
   ['Payroll reachable from the aisle',10,-1.3],
   ['Receiving accessible in front',1.5,93.1],
   ['Main aisle',8,35],['Aisle crosswalk',8,9],
-  ['Fire-exit interaction',98.6,40.5],['Grand opening interaction',46.5,-8.3]
+  ['Fire-exit interaction on back-left wall',-6.5,85],['Grand opening interaction',46.5,-8.3]
  ])assert.equal(c.isBlocked(x,z),false,label);
 });
 test('swept movement cannot tunnel through long shelves or counters',()=>{
