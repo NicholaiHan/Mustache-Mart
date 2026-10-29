@@ -44,3 +44,10 @@ node server.cjs
 ```
 
 Open http://127.0.0.1:8000 in Chrome or Safari. Your browser save format remains unchanged.
+
+## First-floor checkout and thirty-session audit (October 29, 2026)
+
+The cashier checkout module creates four animated POS belts solely on Floor 1, each with card terminal, scanner, cash register and tiny white mustache. Mike is now behind his counter, the pay counter is physically aligned with its signage, and the red brick-blocked fire exit has been relocated to the back-left wall. Explicit `/#dev` mode starts with a $500 test balance.
+
+30 accelerated first-floor runs in `tests/first-floor-30.test.cjs` cover all 9,600 products each (**288,000 first-floor placements**) plus payroll, purchase, robot placement, automation, ladder height, conveyors, physical checkout collisions, equipment resale and persistence. They are not rendered 30-times-through browser playthroughs. The browser smoke test separately exercises actual WebGL interactions and visual screenshots. First-floor completion properly leaves the main entrance locked until all fifteen floors are complete.
+
