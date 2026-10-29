@@ -1,0 +1,96 @@
+import * as THREE from 'three';
+// Floor 1: four grounded, operational-looking point-of-sale lanes.
+// A separate loop animates checkout belts; checkout inventory is deliberately
+// independent from the warehouse delivery system.
+export const CHECKOUT_X=[32,57,70,83];
+export const CHECKOUT_Z=1.8;
+export function createCheckout({getWorld,getFloor,round,textLabel}){
+ let carriers=[],laneRoots=[];
+ const steel=new THREE.MeshStandardMaterial({color:'#899c9b',metalness:.65,roughness:.28});
+ const body=new THREE.MeshStandardMaterial({color:'#e3e4dd',metalness:.16,roughness:.46});
+ const dark=new THREE.MeshStandardMaterial({color:'#303c40',roughness:.82});
+ const black=new THREE.MeshStandardMaterial({color:'#202a2d',roughness:.4});
+ const gold=new THREE.MeshStandardMaterial({color:'#c08b50',metalness:.34,roughness:.48});
+ const paper=new THREE.MeshStandardMaterial({color:'#d6c6a9',roughness:.85});
+ const display=new THREE.MeshBasicMaterial({color:'#9bd8c6'});
+ const mustache=new THREE.MeshStandardMaterial({color:'#f1f0e8',metalness:.12,roughness:.52});
+ function fixture(parent,w,h,d,mat,x,y,z){
+  const obj=round(w,h,d,mat,parent);obj.position.set(x,y,z);return obj;
+ }
+ function build(){
+  carriers=[];laneRoots=[];
+  if(getFloor()!==0)return;
+  const world=getWorld();
+  for(let i=0;i<CHECKOUT_X.length;i++){
+   const x=CHECKOUT_X[i];
+   const lane=new THREE.Group();lane.position.set(x,0,CHECKOUT_Z);world.add(lane);laneRoots.push(lane);
+   // Continuous checkout base, not a floating belt.
+   fixture(lane,1.55,.25,5.5,body,0,.65,0);
+   for(const xx of [-.64,.64])for(const zz of [-2.2,2.2]){
+     fixture(lane,.13,.59,.16,steel,xx,.29,zz);
+     fixture(lane,.26,.08,.26,black,xx,.045,zz);
+   }
+   fixture(lane,1.22,.07,4.6,dark,0,.84,.1);
+   for(const xx of [-.68,.68])fixture(lane,.065,.22,5.36,steel,xx,.86,0);
+   for(let n=0;n<11;n++){
+    const roller=new THREE.Mesh(new THREE.CylinderGeometry(.052,.052,1.19,10),steel);
+    roller.rotation.z=Math.PI/2;roller.position.set(0,.9,-2.12+n*.43);lane.add(roller);
+   }
+   // POS console and scanner at the customer-facing end.
+   fixture(lane,1.85,1.15,1.23,body,.1,.65,-3.23);
+   fixture(lane,2.05,.12,1.48,steel,.1,1.27,-3.23);
+   fixture(lane,.63,.14,.5,dark,-.45,1.39,-3.32); // scanner
+   fixture(lane,.52,.7,.13,black,.39,1.79,-3.46); // angled payment screen
+   fixture(lane,.43,.46,.038,display,.39,1.79,-3.385);
+   fixture(lane,.12,.23,.18,black,-.46,1.54,-2.89); // handheld scanner cradle
+   const keypad=fixture(lane,.32,.07,.39,black,-.46,1.41,-2.83);
+   fixture(lane,.26,.038,.09,display,-.46,1.47,-2.94);
+   // Side-embossed tiny white mustache on register casing.
+   for(const sign of [-1,1]){
+    const whisker=new THREE.Mesh(new THREE.SphereGeometry(.075,12,8),mustache);
+    whisker.scale.set(1,.3,.42);
+    whisker.rotation.z=sign*.24;
+    whisker.position.set(.39+sign*.065,1.57,-3.528);
+    lane.add(whisker);
+   }
+   // Bagging/receipt and checkout light supported by actual hardware.
+   fixture(lane,1.3,.11,.87,steel,1.04,1.26,-3.35);
+   fixture(lane,.52,.37,.33,body,1.02,1.48,-3.3);
+   fixture(lane,.4,.035,.27,paper,1.02,1.7,-3.25);
+   fixture(lane,.1,3.25,.1,steel,-.81,2.81,-3.35);
+   fixture(lane,.85,.53,.21,black,-.82,4.52,-3.35);
+   const number=textLabel('LANE '+String(i+1).padStart(2,'0'),.78,.35,'#2a4441','#d9f0df',39,'interior');
+   number.position.set(-.82,4.54,-3.22);lane.add(number);
+   const closed=textLabel('PAYMENT  /  CARD  /  RECEIPT',2.85,.45,'#d5ddd6','#394c45',28,'interior');
+   closed.position.set(0,1.62,2.85);lane.add(closed);
+   const items=[];
+   for(let j=0;j<3;j++){
+    const item=fixture(lane,.32,.39,.35,
+      new THREE.MeshStandardMaterial({color:['#a5b99f','#cc9c6f','#8ca7ba'][j],roughness:.67}),
+      (j%2?.26:-.21),1.11,1.1+j*.95);
+    const label=fixture(lane,.28,.19,.018,body,item.position.x,item.position.y,item.position.z-.184);
+    items.push({item,label,start:j*.95,side:item.position.x});
+   }
+   carriers.push({items,lane});
+  }
+ }
+ function update(timeSec){
+  if(getFloor()!==0)return;
+  // Customer belt animation exists even before grand opening as a powered demo.
+  for(const {items} of carriers)for(const {item,label,start,side} of items){
+   const z=2.0-((timeSec*.32+start)%4.0);
+   item.position.set(side,1.11,z);
+   label.position.set(side,1.11,z-.184);
+  }
+ }
+ function nearest(x,z){
+  if(getFloor()!==0)return -1;
+  let best=-1,dist=2.15;
+  for(let i=0;i<CHECKOUT_X.length;i++){
+   const d=Math.hypot(x-CHECKOUT_X[i],z-(CHECKOUT_Z-3.2));
+   if(d<dist){dist=d;best=i;}
+  }
+  return best;
+ }
+ return {build,update,nearest};
+}
