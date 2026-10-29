@@ -249,8 +249,17 @@ function buildShelves(){
  const posts=add(new THREE.InstancedMesh(postGeo,darkMetal,per*2));
  const lips=add(new THREE.InstancedMesh(lipGeo,metal,per*TIERS));
  const kicks=add(new THREE.InstancedMesh(kickGeo,darkMetal,per));
+ // Physical shelf bolts and two angled rear brace struts per bay. One draw call
+ // per detail category instead of thousands of separate meshes (MacBook-safe).
+ const boltGeo=new THREE.CylinderGeometry(.046,.046,.028,6);
+ const bolts=add(new THREE.InstancedMesh(boltGeo,new THREE.MeshStandardMaterial({
+  color:'#515d60',metalness:.79,roughness:.27
+ }),per*TIERS*4));
+ const braceGeo=roundedGeo(.055,RACK_HEIGHT*.84,.058,.009);
+ const braces=add(new THREE.InstancedMesh(braceGeo,darkMetal,per*2));
+ bolts.frustumCulled=false;braces.frustumCulled=false;
  for(const inst of [boards,backs,posts,lips,kicks])inst.frustumCulled=false;
- let bi=0,ri=0,pi=0,ki=0;
+ let bi=0,ri=0,pi=0,ki=0,boltIndex=0,braceIndex=0;
  for(let a=0;a<AISLES;a++){
   const aisleLabel=textLabel('AISLE '+String(a+1).padStart(2,'0')+'  |  '+goods[a%goods.length],5.6,.7,'#465f55','#ffffff',39);
   aisleLabel.position.set(aisleX(a),4.35,9.1);add(aisleLabel);
@@ -273,10 +282,24 @@ function buildShelves(){
     boards.setColorAt(bi,color.set('#d7dad7'));
     dummy.position.set(x-sg*.72,TIER_Y[tier]+.025,z);dummy.updateMatrix();lips.setMatrixAt(bi,dummy.matrix);
     lips.setColorAt(bi,color.set(tier===3?'#b09973':tier===2?'#8c9a8f':'#c6c9c2'));bi++;
+    // Four small hex fasteners fix every shelf lip to its supports.
+    for(const zOffset of [-1.0,1.0])for(const yOffset of [-.042,.042]){
+      dummy.position.set(x-sg*.77,TIER_Y[tier]+.024+yOffset,z+zOffset);
+      dummy.rotation.set(0,0,Math.PI/2);
+      dummy.updateMatrix();bolts.setMatrixAt(boltIndex++,dummy.matrix);
+    }
+    dummy.rotation.set(0,0,0);
    }
+   // Rear crossed rack braces: diagonals align with real upright positions.
+   for(const direction of [-1,1]){
+     dummy.position.set(x+sg*.54,RACK_HEIGHT/2,z);
+     dummy.rotation.set(direction*.18,0,0);
+     dummy.updateMatrix();braces.setMatrixAt(braceIndex++,dummy.matrix);
+   }
+   dummy.rotation.set(0,0,0);
   }
  }
- for(const m of [boards,backs,posts,lips,kicks]){
+ for(const m of [boards,backs,posts,lips,kicks,bolts,braces]){
   m.instanceMatrix.needsUpdate=true;
   if(m.instanceColor)m.instanceColor.needsUpdate=true;
  }
@@ -285,6 +308,10 @@ function buildShelves(){
   const label=textLabel('1c  /  1c  /  2c  /  3c',2.65,.34,'#f4f2e8','#445651',34);
   label.position.set(aisleX(a)+(side===0?-2.3:2.3),3.38,12.15);
   label.rotation.y=0;add(label);
+  const endPlate=round(.18,.85,.68,'#72837c');
+  endPlate.position.set(aisleX(a)+(side===0?-3.1:3.1),2.45,11.56);
+  const yellowGuard=round(.21,.14,.8,'#d4aa65');
+  yellowGuard.position.set(aisleX(a)+(side===0?-3.1:3.1),2.04,11.56);
  }
  const maxForType=Math.ceil(AISLES/5)*2*BAYS*TIERS*SLOTS;
  meshes=Array.from({length:5},(_,i)=>{
