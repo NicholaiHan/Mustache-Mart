@@ -1,0 +1,25 @@
+{
+  "name": "mustache-mart",
+  "version": "0.1.0",
+  "description": "Stock an absurdly large supermarket. Nobody is coming to the grand opening.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "three": "0.160.0"
+  },
+  "devDependencies": {
+    "electron": "31.7.7",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "com.example.mustachemart",
+    "productName": "Mustache Mart",
+    "files": ["main.js", "index.html", "src/**/*", "node_modules/three/build/three.module.js"],
+    "win": { "target": "dir" },
+    "mac": { "target": "dir" },
+    "linux": { "target": "dir" }
+  }
+}

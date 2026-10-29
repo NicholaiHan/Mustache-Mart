@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mustache Mart</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --ink:#2b1b3d; --pop:#ffd23f; --pink:#ff6b9a; --teal:#3ec9c0; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#87d7ff;
+    font-family:"Baloo 2","Comic Sans MS","Chalkboard SE",system-ui,sans-serif; color:var(--ink); }
+  canvas { display:block; }
+  .pill { background:#fff; border:4px solid var(--ink); border-radius:18px; padding:6px 14px;
+    font-weight:800; box-shadow:4px 4px 0 var(--ink); }
+  #hud { position:fixed; inset:0; pointer-events:none; }
+  #top { position:absolute; top:14px; left:14px; display:flex; gap:10px; flex-wrap:wrap; }
+  #cross { position:absolute; left:50%; top:50%; width:10px; height:10px; margin:-5px; border-radius:50%;
+    background:#fff; border:3px solid var(--ink); }
+  #prompt { position:absolute; bottom:70px; left:50%; transform:translateX(-50%); font-size:22px; }
+  #help { position:absolute; bottom:14px; right:14px; font-size:14px; }
+  #bar { position:absolute; bottom:14px; left:14px; width:260px; height:26px; background:#fff;
+    border:4px solid var(--ink); border-radius:14px; overflow:hidden; box-shadow:4px 4px 0 var(--ink); }
+  #barFill { height:100%; width:0; background:linear-gradient(90deg,var(--pink),var(--pop)); }
+  #barTxt { position:absolute; inset:0; text-align:center; font-size:14px; line-height:20px; font-weight:800; }
+  .screen { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column;
+    text-align:center; background:rgba(135,215,255,.92); z-index:10; cursor:pointer; padding:20px; }
+  .screen h1 { font-size:clamp(40px,8vw,92px); margin:0; color:#fff; -webkit-text-stroke:4px var(--ink);
+    paint-order:stroke fill; text-shadow:6px 6px 0 var(--ink); line-height:1; }
+  .screen p { font-size:22px; max-width:640px; font-weight:700; }
+  #shop { position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:20;
+    background:rgba(43,27,61,.55); }
+  #shopBox { width:min(720px,94vw); max-height:90vh; overflow:auto; background:#fff7e0; border:6px solid var(--ink);
+    border-radius:28px; padding:18px; box-shadow:8px 8px 0 var(--ink); }
+  #shopBox h2 { margin:0 0 8px; font-size:34px; }
+  .row { display:flex; align-items:center; gap:12px; background:#fff; border:3px solid var(--ink); border-radius:16px;
+    padding:8px 12px; margin:8px 0; }
+  .row .info { flex:1; } .row b { font-size:18px; } .row small { display:block; opacity:.75; font-weight:700; }
+  button { font:inherit; font-weight:800; font-size:16px; background:var(--pop); border:3px solid var(--ink);
+    border-radius:14px; padding:8px 14px; box-shadow:3px 3px 0 var(--ink); cursor:pointer; }
+  button:disabled { background:#ddd; color:#888; cursor:not-allowed; }
+  button:active:not(:disabled) { transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink); }
+  #fade { position:fixed; inset:0; background:#000; opacity:0; pointer-events:none; transition:opacity 1s; z-index:30; }
+  #endHud { position:fixed; top:18px; left:50%; transform:translateX(-50%); display:none; z-index:15; text-align:center; font-size:22px; }
+  #bank { position:fixed; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; z-index:25; pointer-events:none; }
+  #tape { width:140%; background:#d90f1e; color:#fff; text-align:center; font-weight:900; letter-spacing:4px;
+    font-size:clamp(36px,9vw,120px); padding:14px 0; transform:rotate(-4deg) scaleX(0);
+    border-top:10px dashed rgba(255,255,255,.65); border-bottom:10px dashed rgba(255,255,255,.65);
+    box-shadow:0 10px 30px rgba(0,0,0,.5); transition:transform 1.2s cubic-bezier(.2,1.4,.4,1); }
+  #thanks { margin-top:36px; font-size:clamp(28px,5vw,60px); font-weight:900; color:#fff; -webkit-text-stroke:3px #000;
+    paint-order:stroke fill; opacity:0; transition:opacity 1.5s 1.2s; text-shadow:4px 4px 0 #000; }
+  #bank.show #tape { transform:rotate(-4deg) scaleX(1); } #bank.show #thanks { opacity:1; }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="top">
+    <div class="pill">🪙 <span id="coins">0</span></div>
+    <div class="pill">📦 <span id="carry">0</span>/<span id="cap">0</span></div>
+    <div class="pill">🤖 <span id="bots">0</span></div>
+  </div>
+  <div id="cross"></div>
+  <div id="prompt" class="pill" style="display:none"></div>
+  <div id="bar"><div id="barFill"></div><div id="barTxt"></div></div>
+  <div id="help" class="pill">WASD move · Shift sprint · Hold E / Click: grab &amp; stock · Q: shop · F: fullscreen</div>
+</div>
+
+<div id="start" class="screen">
+  <h1>MUSTACHE<br>MART</h1>
+  <p>The grand opening is coming. Every shelf in this enormous store must be stocked first. All of them. Good luck!</p>
+  <p><b>Click to start</b><br>WASD move · Mouse look · Hold E or click to grab &amp; stock · Q opens the shop</p>
+</div>
+
+<div id="shop"><div id="shopBox">
+  <h2>🛒 Upgrade Shop</h2>
+  <div class="pill" style="display:inline-block">🪙 <span id="shopCoins">0</span></div>
+  <div id="shopList"></div>
+  <p><button id="shopClose">Back to work (Q)</button></p>
+</div></div>
+
+<div id="endHud" class="pill"><span id="dayTxt">Day 1</span> · Customers today: 0</div>
+<div id="bank"><div id="tape">WENT BANKRUPT</div><div id="thanks">Thanks for Playing!</div></div>
+<div id="fade"></div>
+
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
+<script type="module" src="./src/game.js"></script>
+</body>
+</html>
