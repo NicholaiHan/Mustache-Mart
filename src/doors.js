@@ -9,29 +9,40 @@ export function createDoors({getWorld,getFloor,round,cube,textLabel}){
    if(getFloor()!==0)return;
    const world=getWorld();
    // Right wall: recess and metal jamb are deliberately depth-separated to avoid z-fighting.
-   const recess=round(.25,4.4,3.45,mat('#6a7778',.35,.4));recess.position.set(102.48,2.25,40.5);
-   const sill=round(.26,.17,3.6,mat('#343c3d',.3,.5));sill.position.set(102.25,.16,40.5);
-   const brick=new THREE.Group();brick.position.set(103.3,0,40.5);world.add(brick);
-   const mortar=mat('#b5aaa0',0,.95),brickMat=mat('#8f5148',0,.9);
-   const backing=round(.25,4.1,3.2,mortar,brick);backing.position.set(0,2.16,0);
-   for(let row=0;row<13;row++)for(let col=0;col<5;col++){
-     const z=(col-2)*.67+(row%2?.25:0);
-     if(z>1.6)continue;
-     const block=round(.08,.27,.6,brickMat,brick);
-     block.position.set(-.18,.35+row*.29,z);
+   const metal=mat('#647577',.5,.32);
+   for(const z of [38.7,42.3]){
+     const jamb=round(.29,4.53,.13,metal);jamb.position.set(102.48,2.27,z);
    }
+   const header=round(.28,.24,3.74,metal);header.position.set(102.47,4.55,40.5);
+   const sill=round(.3,.095,3.72,mat('#343c3d',.45,.5));sill.position.set(102.34,.09,40.5);
+   const brick=new THREE.Group();brick.position.set(103.35,0,40.5);world.add(brick);
+   const mortar=mat('#c0b5a5',0,.96),brickMat=mat('#92564b',0,.9);
+   const backing=round(.13,4.13,3.35,mortar,brick);backing.position.set(0,2.13,0);
+   for(let row=0;row<13;row++)for(let col=0;col<6;col++){
+     const z=(col-2.5)*.56+(row%2?.26:0);
+     if(Math.abs(z)>1.62)continue;
+     const block=round(.082,.269,.52,brickMat,brick);
+     block.position.set(-.113,.38+row*.285,z);
+   }
+   const safetyPlate=round(.09,.61,1.13,mat('#f5e7c6',.06,.86));
+   safetyPlate.position.set(102.18,4.1,40.5);
+   const exitSign=textLabel('FIRE EXIT',1.07,.38,'#aa2421','#ffffff',39,'interior');
+   exitSign.rotation.y=-Math.PI/2;exitSign.position.set(102.08,4.18,40.5);world.add(exitSign);
    firePivot=new THREE.Group();firePivot.position.set(102.17,0,38.98);world.add(firePivot);
    const door=round(.17,3.88,2.98,mat('#af2726',.23,.4),firePivot);door.position.set(0,2.1,1.49);
    const plate=round(.075,.48,1.55,mat('#dedddd',.45,.32),firePivot);plate.position.set(-.13,2.05,1.49);
    const bar=round(.11,.11,1.68,mat('#566064',.58,.38),firePivot);bar.position.set(-.22,1.95,1.49);
    const label=textLabel('FIRE EXIT',2.5,.44,'#f3eee9','#a52622',45,'interior');
-   label.rotation.y=Math.PI/2;label.position.set(-.19,3.36,1.49);firePivot.add(label);
+   label.rotation.y=-Math.PI/2;label.position.set(-.19,3.36,1.49);firePivot.add(label);
    const emergency=round(.16,.16,.13,new THREE.MeshBasicMaterial({color:'#f0d68c'}),firePivot);emergency.position.set(-.2,3.68,2.72);
    // Double-panel front entrance with inset panes, metal rails, and sliding mechanism.
-   const frame=round(8.5,5.6,.34,mat('#59676a',.67,.35));frame.position.set(46.5,2.8,-12.43);
-   const inset=round(7.8,4.95,.12,mat('#343d41',.4,.45));inset.position.set(46.5,2.5,-12.17);
-   const glazing=mat('#adc8cf',.18,.11);glazing.transparent=true;glazing.opacity=.35;glazing.depthWrite=false;
-   const track=round(7.65,.16,.35,mat('#abb1ae',.65,.28));track.position.set(46.5,5.05,-11.96);
+   const frameMat=mat('#59686a',.67,.31);
+   const glazing=mat('#adc8cf',.18,.11);
+   glazing.transparent=true;glazing.opacity=.33;glazing.depthWrite=false;
+   const leftPost=round(.22,5.58,.42,frameMat);leftPost.position.set(42.6,2.79,-12.33);
+   const rightPost=round(.22,5.58,.42,frameMat);rightPost.position.set(50.4,2.79,-12.33);
+   const track=round(7.91,.21,.52,frameMat);track.position.set(46.5,5.57,-12.31);
+   const threshold=round(7.9,.12,.61,mat('#abb1ae',.65,.32));threshold.position.set(46.5,.06,-12.31);
    entryLeft=new THREE.Group();entryRight=new THREE.Group();world.add(entryLeft,entryRight);
    for(const [g,side] of [[entryLeft,-1],[entryRight,1]]){
      g.position.set(46.5+side*1.86,0,-11.91);
