@@ -66,14 +66,14 @@ function roundedGeo(w,h,d,r=.09){
  g.translate(0,0,-d/2);return g;
 }
 function round(w,h,d,mat,parent=world){return add(new THREE.Mesh(roundedGeo(w,h,d),typeof mat==='string'||typeof mat==='number'?toon(mat):mat),parent);}
-function textLabel(text,w=3,h=.75,bg='#fffaf0',fg='#302945',font=44){
+function textLabel(text,w=3,h=.75,bg='#f7f6ef',fg='#303a3b',font=44,face='entrance'){
  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=Math.round(512*h/w);
  const ctx=canvas.getContext('2d');ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
- ctx.strokeStyle='#302945';ctx.lineWidth=12;ctx.strokeRect(0,0,canvas.width,canvas.height);
+ ctx.strokeStyle='#49524e';ctx.lineWidth=12;ctx.strokeRect(0,0,canvas.width,canvas.height);
  ctx.fillStyle=fg;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 '+font+'px system-ui';ctx.fillText(text,256,canvas.height/2,480);
  const sign=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(canvas),transparent:false,side:THREE.FrontSide}));
  // Every lettered sign faces the entrance (-Z); its reverse is never mirrored.
- sign.rotation.y=Math.PI;
+ sign.rotation.y=face==='entrance'?Math.PI:0;
  return sign;
 }
 function clearWorld(){
@@ -95,52 +95,118 @@ function itemGeometry(type){
 }
 function buildShell(){
  const theme=pastel[s.floor%pastel.length];
- scene.background.set(theme);scene.fog.color.set(theme);
- const floorCanvas=document.createElement('canvas');floorCanvas.width=floorCanvas.height=128;
- const ctx=floorCanvas.getContext('2d');ctx.fillStyle='#fff6e5';ctx.fillRect(0,0,128,128);
- ctx.fillStyle='#f4e7e5';ctx.fillRect(0,0,64,64);ctx.fillRect(64,64,64,64);
- ctx.strokeStyle='#e9d9d1';ctx.lineWidth=3;for(let p=0;p<=128;p+=64){ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,128);ctx.stroke();ctx.beginPath();ctx.moveTo(0,p);ctx.lineTo(128,p);ctx.stroke();}
- const tex=new THREE.CanvasTexture(floorCanvas);tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(FLOOR_W/4,FLOOR_D/4);
- const tiles=add(new THREE.Mesh(new THREE.PlaneGeometry(FLOOR_W,FLOOR_D),new THREE.MeshStandardMaterial({map:tex,roughness:.85})));
- tiles.rotation.x=-Math.PI/2;tiles.position.set(46.5,0,44);
- const ceiling=cube(FLOOR_W,.3,FLOOR_D,'#fffbe9');ceiling.position.set(46.5,6.3,44);
+ scene.background.set('#d8ddda');scene.fog.color.set('#d8ddda');
+ // Fine pale ceramic tiles with subtle grout and material variation.
+ const fc=document.createElement('canvas');fc.width=fc.height=256;
+ const ctx=fc.getContext('2d');
+ ctx.fillStyle='#d6d4cd';ctx.fillRect(0,0,256,256);
+ for(let row=0;row<4;row++)for(let col=0;col<4;col++){
+  const shade=(row*7+col*3)%3;
+  ctx.fillStyle=['#e6e6e0','#e9e9e3','#e2e4e0'][shade];
+  ctx.fillRect(col*64+2,row*64+2,60,60);
+ }
+ ctx.strokeStyle='#c6c8c4';ctx.lineWidth=1;
+ for(let p=0;p<=256;p+=64){ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,256);ctx.stroke();}
+ const tiles=new THREE.CanvasTexture(fc);tiles.wrapS=tiles.wrapT=THREE.RepeatWrapping;
+ tiles.repeat.set(FLOOR_W/6,FLOOR_D/6);
+ const ground=add(new THREE.Mesh(new THREE.PlaneGeometry(FLOOR_W,FLOOR_D),new THREE.MeshStandardMaterial({map:tiles,roughness:.9})));
+ ground.rotation.x=-Math.PI/2;ground.position.set(46.5,0,44);
+ const ceiling=cube(FLOOR_W,.28,FLOOR_D,'#e8e8e4');ceiling.position.set(46.5,CEILING_Y,44);
+ // Plastered walls, powder-coated trim, high-bay beams and cold-white lights.
  for(const [x,z,w,d] of [[-10,44,.5,114],[103,44,.5,114],[46.5,100.7,113,.5],[46.5,-12.7,113,.5]]){
- const wall=cube(w,6.25,d,theme);wall.position.set(x,3.1,z);
+  const wall=cube(w,CEILING_Y,d,'#e1e4e1');wall.position.set(x,CEILING_Y/2,z);
+  const skirting=cube(w,.5,d+.02,'#85928e');skirting.position.set(x,.3,z);
+  const cornice=cube(w,.28,d+.1,'#aeb8b4');cornice.position.set(x,CEILING_Y-.2,z);
  }
- for(let x=-1;x<100;x+=10)for(let z=0;z<100;z+=18){
-   const lamp=round(3.4,.09,.35,new THREE.MeshBasicMaterial({color:'#fffef0'}));lamp.position.set(x,6.09,z);
+ for(let z=-4;z<100;z+=18){
+  const beam=cube(110,.35,.55,'#9aa4a3');beam.position.set(46.5,CEILING_Y-.58,z);
+  for(let x=-3;x<102;x+=10){
+   const fixture=round(4.1,.12,.52,new THREE.MeshBasicMaterial({color:'#fdfdf6'}));
+   fixture.position.set(x,CEILING_Y-.85,z+1.7);
+   const mount=cube(4.35,.1,.64,'#aab1ac');mount.position.set(x,CEILING_Y-.68,z+1.7);
+  }
  }
- // Colored pillars and tall glass display panels avoid the empty-box feel.
- for(let z=8;z<96;z+=20){
-   const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.26,.3,6.1,16),toon('#ffcf7b'));pillar.position.set(101.8,3.05,z);add(pillar);
-   const glass=cube(.05,2.8,12,new THREE.MeshStandardMaterial({color:'#c3eeff',metalness:.18,roughness:.12,transparent:true,opacity:.65}));
-   glass.position.set(102.2,3.2,z);
+ for(let z=6;z<98;z+=20){
+  for(const x of [-7,101]){
+   const column=new THREE.Mesh(new THREE.CylinderGeometry(.3,.34,CEILING_Y-.4,16),toon('#a5aeab'));
+   column.position.set(x,(CEILING_Y-.4)/2,z);add(column);
+   const base=round(.83,.66,.83,'#687872');base.position.set(x,.33,z);
+  }
  }
- const sign=textLabel('MUSTACHE MART · '+floorLabel(s.floor),11,1.2,'#ff9db6','#322947',54);sign.position.set(45,5.3,-11.95);add(sign);
- const mapSign=textLabel('15 FLOORS · 108,000 PRODUCTS',9.4,.75,'#f5fff4','#343249',37);mapSign.position.set(45,4.2,-11.8);add(mapSign);
+ // Visible ceiling ducts and sprinkler runs reinforce the industrial scale.
+ for(const x of [1,48,96]){
+  const vent=cube(1.3,.66,109,'#b4c0c0');vent.position.set(x,CEILING_Y-1.15,44);
+  for(let z=0;z<95;z+=12){
+   const collar=cube(1.5,.75,.12,'#889695');collar.position.set(x,CEILING_Y-1.15,z);
+  }
+ }
+ // Wall-size wayfinding signs, mounted facing into the store, never mirrored.
+ const name=textLabel('MUSTACHE MART  /  '+floorLabel(s.floor),10.8,1.05,'#38524a','#ffffff',53,'interior');
+ name.position.set(47,14.2,-12.36);add(name);
+ const direction=textLabel('RECEIVING WAREHOUSE  →  BACK OF STORE',10.8,.7,'#d8e1d8','#32453e',35,'interior');
+ direction.position.set(47,12.9,-12.32);add(direction);
+ // Back room visual staging: pallets, cartons, rolling shutter and safety striping.
+ const shutter=round(11,8,.18,'#98a4a5');shutter.position.set(17,5,100.24);
+ for(let y=1.2;y<8.2;y+=.7){
+  const seam=cube(10.5,.055,.1,'#657577');seam.position.set(17,y,100.07);
+ }
+ for(let j=0;j<8;j++){
+  const x=30+(j%4)*3.5,z=95+Math.floor(j/4)*3.0;
+  const pallet=round(2.7,.22,2.4,'#9d8264');pallet.position.set(x,.14,z);
+  for(let a=0;a<2;a++)for(let b=0;b<2;b++)for(let level=0;level<2;level++){
+   const box=round(1.1,.75,.95,['#b39d7c','#b7a98b','#afa38d'][(j+a+b)%3]);
+   box.position.set(x+(a-.5)*1.15,.64+level*.78,z+(b-.5)*1.07);
+   const tape=cube(.09,.77,.99,'#e1d9c4');tape.position.copy(box.position);tape.position.y+=.02;
+  }
+ }
+ for(let z=91;z<98;z+=2.2){
+  const stripe=cube(4,.02,.22,'#d9be6d');stripe.position.set(1.5,.035,z);
+ }
+ const receiver=textLabel('GOODS RECEIVING  •  LOAD HERE',7,.9,'#d8c088','#303a3a',43);
+ receiver.position.set(DOCK.x,4.4,94.4);add(receiver);
 }
-function addKiosk(x,z,name,accent){
+function addKiosk(x,z,name,accent,facing='interior'){
  const platform=round(4,1.1,2.3,'#ffffff');platform.position.set(x,.55,z);
  const top=round(4.5,.18,2.6,accent);top.position.set(x,1.18,z);
  const stripe=round(4.1,.22,.2,'#322947');stripe.position.set(x,.85,z-1.18);
- const sign=textLabel(name,4.5,.85,accent,'#322947',48);sign.position.set(x,2.8,z-1);add(sign);
+ const sign=textLabel(name,4.6,.82,accent,'#303b3c',44,facing);sign.position.set(x,2.8,z-1);add(sign);
 }
 function makeMike(x,z){
  const guy=new THREE.Group();add(guy);
- const body=round(1.1,1.25,.7,'#5cbfd1',guy);body.position.set(0,1.1,0);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.42,20,16),toon('#ffc997'));head.position.set(0,2.05,0);guy.add(head);
+ // Mike is facing the shopper: two clearly visible black dot eyes,
+ // a waxed mustache, tidy green apron and a small brass nameplate.
+ const torso=round(.98,1.3,.65,'#667f72',guy);torso.position.set(0,1.08,0);
+ const apron=round(.73,.92,.08,'#c5cec7',guy);apron.position.set(0,1,.39);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.45,24,18),toon('#d9ad88'));
+ head.position.set(0,2.04,0);guy.add(head);
+ const cap=new THREE.Mesh(new THREE.SphereGeometry(.46,22,10,0,Math.PI*2,0,Math.PI*.48),toon('#46564b'));
+ cap.position.set(0,2.18,0);guy.add(cap);
+ const brim=round(.8,.085,.27,'#46564b',guy);brim.position.set(0,2.31,.28);
  for(const sign of [-1,1]){
- const eye=new THREE.Mesh(new THREE.SphereGeometry(.066,10,8),toon('#26233b'));eye.position.set(sign*.15,2.12,-.35);guy.add(eye);
- const moustache=new THREE.Mesh(new THREE.SphereGeometry(.19,10,8),toon('#332237'));moustache.scale.set(1,.45,.6);moustache.position.set(sign*.14,1.88,-.39);moustache.rotation.z=sign*.25;guy.add(moustache);
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(.069,12,10),toon('#202b2c'));
+  eye.position.set(sign*.16,2.12,.445);guy.add(eye);
+  const moustache=new THREE.Mesh(new THREE.SphereGeometry(.18,14,10),toon('#33302e'));
+  moustache.scale.set(1,.47,.62);moustache.position.set(sign*.14,1.89,.435);
+  moustache.rotation.z=sign*.2;guy.add(moustache);
  }
+ const badge=round(.34,.15,.045,'#d5b472',guy);badge.position.set(.23,1.35,.447);
  guy.position.set(x,0,z);
 }
 function buildService(){
- addKiosk(-5,-3,'DELIVERY DOCK','#ffdf70');addKiosk(10,-3,'PAY WINDOW','#95e7cb');
- addKiosk(1.5,-9,'MUSTACHE MIKE','#ffb2d0');makeMike(1.5,-7.1);
- const elevator=round(5,4.8,.6,'#8d9bc4');elevator.position.set(23,2.4,-11.4);
- const seam=round(.09,4.3,.12,'#373747');seam.position.set(23,2.4,-11.03);
- const esign=textLabel('ELEVATOR · 1–15',5.5,.75,'#c9f7ff','#322947',43);esign.position.set(23,5.4,-11.0);add(esign);
+ addKiosk(DOCK.x,DOCK.z,'WAREHOUSE PICKUP','#c9b080','entrance');
+ addKiosk(10,-3,'PAY WINDOW','#c6d5c8','interior');
+ addKiosk(1.5,-9,'MUSTACHE MIKE','#c8c2b6','interior');
+ makeMike(1.5,-7.1);
+ const elevator=round(5.1,6.5,.6,'#71888c');elevator.position.set(23,3.25,-11.4);
+ const seam=round(.09,6.1,.12,'#3b484e');seam.position.set(23,3.25,-11.03);
+ const upper=round(5.6,.35,.7,'#404c50');upper.position.set(23,6.48,-11.34);
+ const esign=textLabel('ELEVATOR  /  F01–F15',5.6,.75,'#e0e4db','#344541',39,'interior');
+ esign.position.set(23,7.2,-11.02);add(esign);
+ const entranceSign=textLabel('CUSTOMER SERVICE   |   PAYROLL',8.2,.76,'#e5e5db','#475752',39,'interior');
+ entranceSign.position.set(9,4.65,-11.7);add(entranceSign);
+ // Follow-through markers guide the player toward distant stock.
+ const rearArrow=textLabel('STOCKROOM / RECEIVING  ↑  100 m',8.0,.68,'#46594e','#ffffff',36);
+ rearArrow.position.set(1.6,4.6,8.8);add(rearArrow);
 }
 function buildShelves(){
  const per=AISLES*2*BAYS;
