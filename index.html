@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>Mustache Mart</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#87d7ff">
 <style>
   :root { --ink:#2b1b3d; --pop:#ffd23f; --pink:#ff6b9a; --teal:#3ec9c0; }
   * { box-sizing:border-box; }
@@ -59,7 +60,8 @@
     <div class="pill">📦 <span id="carry">0</span>/<span id="cap">0</span></div>
     <div class="pill">🤖 <span id="bots">0</span></div>
   </div>
-  <div id="objective" class="pill">FIRST SHIFT · Find the delivery dock.</div>\n  <div id="cross"></div>
+  <div id="objective" class="pill">FIRST SHIFT · Find the delivery dock.</div>
+  <div id="cross"></div>
   <div id="prompt" class="pill" style="display:none"></div>
   <div id="bar"><div id="barFill"></div><div id="barTxt"></div></div>
   <div id="help" class="pill">WASD move · Shift sprint · Hold E / Click: grab &amp; stock · Q: shop · F: fullscreen</div>
@@ -83,7 +85,7 @@
 <div id="bank"><div id="tape">WENT BANKRUPT</div><div id="thanks">Thanks for Playing!</div></div>
 <div id="fade"></div>
 
-<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 <script type="module" src="./src/game.js"></script>
 </body>
 </html>
