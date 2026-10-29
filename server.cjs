@@ -4,11 +4,13 @@
 const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const BUILD = require('./build.json');
 
 const ROOT = __dirname;
 const PUBLIC_FILES = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
+  ['/build.json', ['build.json', 'application/json; charset=utf-8']],
   ['/src/game.js', ['src/game.js', 'text/javascript; charset=utf-8']],
   ['/src/rules.mjs', ['src/rules.mjs', 'text/javascript; charset=utf-8']],
   ['/src/rendering.js', ['src/rendering.js', 'text/javascript; charset=utf-8']],
@@ -68,6 +70,7 @@ if (require.main === module) {
       process.exitCode = 1;
     });
     server.listen(parsed, '127.0.0.1', () => {
+      console.log('MUSTACHE MART UPDATED BUILD ' + BUILD.version + ' — '+BUILD.name);
       console.log('Mustache Mart running at http://127.0.0.1:' + server.address().port);
       console.log('Open that address in Safari or Chrome. Control+C stops the server.');
     });
