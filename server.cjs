@@ -10,6 +10,7 @@ const PUBLIC_FILES = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
   ['/src/game.js', ['src/game.js', 'text/javascript; charset=utf-8']],
+  ['/src/rules.mjs', ['src/rules.mjs', 'text/javascript; charset=utf-8']],
   ['/vendor/three.module.js', ['vendor/three.module.js', 'text/javascript; charset=utf-8']]
 ]);
 const HEADERS = {
