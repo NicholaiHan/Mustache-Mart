@@ -99,11 +99,12 @@ function buildShell(){
  for(let y=1.2;y<8.2;y+=.7){
   const seam=cube(10.5,.055,.1,'#657577');seam.position.set(17,y,100.07);
  }
+ const cartonMat=new THREE.MeshStandardMaterial({map:cartonTexture(),roughness:.89});
  for(let j=0;j<8;j++){
   const x=30+(j%4)*3.5,z=95+Math.floor(j/4)*3.0;
   const pallet=round(2.7,.22,2.4,'#9d8264');pallet.position.set(x,.14,z);
   for(let a=0;a<2;a++)for(let b=0;b<2;b++)for(let level=0;level<2;level++){
-   const box=round(1.1,.75,.95,new THREE.MeshStandardMaterial({map:cartonTexture(),roughness:.89}));
+   const box=round(1.1,.75,.95,cartonMat);
    box.position.set(x+(a-.5)*1.15,.64+level*.78,z+(b-.5)*1.07);
    const tape=cube(.09,.77,.99,'#e1d9c4');tape.position.copy(box.position);tape.position.y+=.02;
   }
