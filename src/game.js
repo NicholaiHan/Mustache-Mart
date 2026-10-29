@@ -33,7 +33,7 @@ const TEST_ENDING=location.hash==='#ending-test', PREVIEW_ENDING=location.hash==
 const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
 let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0,shopCategory='tools';
 let doorInteractionHeld=false,ignoreMouseUntil=0,placementRobotId=null,placementSpot=null,robotGhost=null,climbingLadderId=null;
-let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],feederCrates=[],cartMesh=null,ladderMesh=null;
+let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],feederCrates=[],clawVisual=null,cartMesh=null,ladderMesh=null;
 let selectedBeltAisle=0;
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
 let receiptTimeout=0,payrollTransactions=0;
@@ -93,14 +93,14 @@ const {buildShell,buildService,buildShelves,drawProduct,getMike}=createEnvironme
  FLOOR_W,FLOOR_D,CEILING_Y,RACK_HEIGHT,TIER_Y,makeMike
 });
 const {makeBelt,makeReceivingSystem,makeCart,makeLadder}=createEquipment({
- s,round,getWorld:()=>world,getBeltCrates:()=>beltCrates,getFeedCrates:()=>feederCrates
+ s,round,getWorld:()=>world,getBeltCrates:()=>beltCrates,getFeedCrates:()=>feederCrates,setClawVisual:claw=>clawVisual=claw
 });
 const doors=createDoors({getWorld:()=>world,getFloor:()=>s.floor,round,cube,textLabel});
 const checkout=createCheckout({getWorld:()=>world,getFloor:()=>s.floor,round,textLabel});
 function buildWorld(){
  clearWorld(world);
  world=new THREE.Group();scene.add(world);
- currentFloor=s.floor;beltCrates=[];feederCrates=[];cartMesh=null;ladderMesh=null;robotModels=new Map();robotGhost=null;
+ currentFloor=s.floor;beltCrates=[];feederCrates=[];clawVisual=null;cartMesh=null;ladderMesh=null;robotModels=new Map();robotGhost=null;
  buildShell();buildService();buildShelves();doors.build();checkout.build();makeReceivingSystem();
  for(let a=0;a<AISLES;a++)for(let segment=0;segment<s.belts[s.floor][a];segment++)makeBelt(s.floor,a,segment);
  for(const robot of s.robots)if(robot.placed&&robot.floor===s.floor)robotModels.set(robot.id,botAppearance(robot));
@@ -462,6 +462,14 @@ function animate(now){
   tickCart(dt);
   if(s.levels.cart&&cartMesh){cartMesh.visible=s.cart.floor===s.floor;if(cartMesh.visible)cartMesh.position.set(aisleX(s.cart.aisle),0,s.cart.z);}
   syncRobots();
+  if(clawVisual){
+   const cycle=(now*.00066)%1;
+   // Lift while crossing the dock, close the jaws to grasp, and release at chute.
+   clawVisual.position.y=Math.sin(cycle*Math.PI*2)*.17;
+   if(clawVisual.userData.jaws)clawVisual.userData.jaws.forEach((jaw,i)=>{
+    jaw.position.x=(i===0?1.65:2.05)+(i===0?1:-1)*(.08+.13*Math.cos(cycle*Math.PI*2));
+   });
+  }
   for(const f of feederCrates){
    f.crate.visible=s.belts[s.floor][f.aisle]>0;
    if(f.crate.visible){
