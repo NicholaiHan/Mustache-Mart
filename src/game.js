@@ -414,7 +414,7 @@ function animate(now){
   hand.visible=V.carry>0;hand.scale.setScalar(.45+Math.min(1,V.carry/capacity(s))*.55);
  }
  if(!ending){
-  advanceBelts(s,dt);
+  advanceBelts(s,Math.min(elapsed,2));
   for(const r of s.robots){
    const prevTarget=r.target,prevCount=prevTarget>=0?s.fill[prevTarget]:-1;
    const id=botStep(s,r,dt);
