@@ -112,6 +112,7 @@ const assert=require('node:assert/strict');
   await page.keyboard.press('l');
   await page.waitForFunction(()=>window.__martTest.snapshot().ladders===1);
   await page.keyboard.press('c');
+  assert.notEqual((await page.evaluate(()=>window.__martTest.snapshot().climbing)),null,'C must attach to a placed ladder');
   await page.keyboard.down('w');await page.waitForTimeout(850);await page.keyboard.up('w');
   assert.ok((await page.evaluate(()=>window.__martTest.snapshot().y))>.4,'player truly climbs upward');
   await page.keyboard.press('c');
