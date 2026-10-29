@@ -50,18 +50,19 @@ function buildShell(){
     crown.position.set(horizontal?x:x+(x>50?-.4:.4),CEILING_Y-.21,horizontal?z+(z<0?.36:-.36):z);
    }
  };
- wallSegment(-10,44,.5,114);
  wallSegment(46.5,100.7,113,.5);
  if(s.floor===0){
-   // Fire exit aperture on right side, centered z=40.5, width 3.4 m.
-   wallSegment(103,12.9,.5,51.8);
-   wallSegment(103,71.6,.5,58.8);
-   wallSegment(103,40.5,.5,3.4,CEILING_Y-4.65,(CEILING_Y+4.65)/2);
+   // Single fire exit on the back-left wall, with a real door-shaped aperture.
+   wallSegment(-10,35.15,.5,96.3);
+   wallSegment(-10,93.85,.5,14.3);
+   wallSegment(-10,85,.5,3.4,CEILING_Y-4.65,(CEILING_Y+4.65)/2);
+   wallSegment(103,44,.5,114);
    // Front entrance opening x=42.5..50.5, with a tall structural lintel.
    wallSegment(16.25,-12.7,52.5,.5);
    wallSegment(76.75,-12.7,52.5,.5);
    wallSegment(46.5,-12.7,8,.5,CEILING_Y-5.45,(CEILING_Y+5.45)/2);
  }else{
+   wallSegment(-10,44,.5,114);
    wallSegment(103,44,.5,114);
    wallSegment(46.5,-12.7,113,.5);
  }
