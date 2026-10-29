@@ -20,7 +20,7 @@ if(location.hash==='#rich')s.money=100000;
 const TEST_ENDING=location.hash==='#ending-test', PREVIEW_ENDING=location.hash==='#ending'||TEST_ENDING;
 const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
 let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0,shopCategory='tools';
-let doorInteractionHeld=false,ignoreMouseUntil=0,placementRobotId=null,robotGhost=null,climbingLadderId=null;
+let doorInteractionHeld=false,ignoreMouseUntil=0,placementRobotId=null,placementSpot=null,robotGhost=null,climbingLadderId=null;
 let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],cartMesh=null,ladderMesh=null;
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
 let receiptTimeout=0,payrollTransactions=0;
@@ -71,6 +71,7 @@ const FLOOR_W=113,FLOOR_D=114,FRONT=-13,BACK=101;
 const RACK_HEIGHT=13.5,CEILING_Y=16.2;
 const TIER_Y=[.65,2.65,6.9,11.8],CHEST_REACH=1.8;
 const dummy=new THREE.Object3D(),color=new THREE.Color();
+const placeRay=new THREE.Raycaster(),groundForPlacement=new THREE.Plane(new THREE.Vector3(0,1,0),0),placeHit=new THREE.Vector3();
 
 const {add,cube,roundedGeo,round,textLabel,clearWorld}=createRendering({getWorld:()=>world,scene,toon});
 const {makeMike,botAppearance}=createCharacters({s,add,round,toon,textLabel,getWorld:()=>world});
@@ -175,7 +176,7 @@ function nearestBeltStock(){
  return best;
 }
 function startRobotPlacement(id){
- placementRobotId=id;show(null);running=true;document.exitPointerLock?.();
+ placementRobotId=id;placementSpot=null;show(null);running=true;document.exitPointerLock?.();
  robotGhost=botAppearance({x:V.x,z:V.z,carry:0,id:-1});
  robotGhost.scale.setScalar(.9);
  robotGhost.traverse(o=>{
@@ -185,12 +186,14 @@ function startRobotPlacement(id){
 }
 function completeRobotPlacement(){
  if(placementRobotId===null)return false;
- const a=nearestAisle(),bay=nearestBay();
- if(V.z<11||V.z>91.8||Math.abs(V.x-aisleX(a))>2.4){
-  notify('Walk into an aisle before placing the robot.');return false;
+ const a=placementSpot?.aisle??nearestAisle(),bay=placementSpot?.bay??nearestBay();
+ const x=aisleX(a),z=bayZ(bay);
+ if(!placementSpot&&(V.z<11||V.z>91.8||Math.abs(V.x-x)>2.4)){
+  notify('Walk to an aisle or aim your pointer at a visible aisle floor.');return false;
  }
+ if(isBlocked(x,z,s.floor)||blockedEquipment(s,x,z)){notify('That location is occupied. Choose an open spot.');return false;}
  if(!assignRobot(s,placementRobotId,s.floor,a,bay))return false;
- const id=placementRobotId;placementRobotId=null;
+ const id=placementRobotId;placementRobotId=null;placementSpot=null;
  if(robotGhost){world.remove(robotGhost);robotGhost=null;}
  buildWorld();save();
  notify('Robot #'+id+' installed in aisle '+(a+1)+'. It will use the closest stock source.');
@@ -198,7 +201,7 @@ function completeRobotPlacement(){
 }
 function cancelPlacement(){
  if(placementRobotId===null)return false;
- placementRobotId=null;
+ placementRobotId=null;placementSpot=null;
  if(robotGhost){world.remove(robotGhost);robotGhost=null;}
  notify('Placement canceled. Your purchased robot remains in Mike’s shop.');return true;
 }
@@ -430,7 +433,12 @@ function animate(now){
  }
  doors.update(dt);
  if(ending)endingTick(elapsed);
- if(robotGhost&&placementRobotId!==null){robotGhost.position.set(aisleX(nearestAisle()),0,bayZ(nearestBay()));robotGhost.visible=V.z>=11&&V.z<=92;}
+ if(robotGhost&&placementRobotId!==null){
+  const a=placementSpot?.aisle??nearestAisle(),b=placementSpot?.bay??nearestBay();
+  const x=aisleX(a),z=bayZ(b);
+  robotGhost.position.set(x,0,z);
+  robotGhost.visible=(!!placementSpot||(V.z>=11&&V.z<=92))&&!isBlocked(x,z,s.floor);
+ }
  if(!modal){updatePrompt();}
  if(now-savingAt>260){uiUpdate();savingAt=now;}
  renderer.render(scene,camera);
@@ -459,6 +467,19 @@ window.addEventListener('keyup',e=>{held[e.code]=false;if(e.code==='KeyE')doorIn
 window.addEventListener('blur',()=>{held={};mouseDown=false;doorInteractionHeld=false;actionClock=0;});
 window.addEventListener('mousemove',e=>{
  if(!running||modal)return;
+ if(placementRobotId!==null){
+  // Mouse cursor selects a visible floor point; the preview snaps to the aisle.
+  const screen=new THREE.Vector2(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);
+  placeRay.setFromCamera(screen,camera);
+  const point=placeRay.ray.intersectPlane(groundForPlacement,placeHit);
+  placementSpot=null;
+  if(point&&Math.hypot(point.x-V.x,point.z-V.z)<20&&point.z>=11&&point.z<=91.5){
+   const a=Math.max(0,Math.min(AISLES-1,Math.round((point.x-8)/10)));
+   const bay=Math.max(0,Math.min(BAYS-1,Math.round((point.z-13)/2.65)));
+   if(!isBlocked(aisleX(a),bayZ(bay),s.floor))placementSpot={aisle:a,bay};
+  }
+  return;
+ }
  if(document.pointerLockElement===renderer.domElement||e.buttons===1){
   // Ignore a browser's synthetic pointer recenter jump and bound subsequent deltas.
   if(performance.now()<ignoreMouseUntil)return;
@@ -498,7 +519,7 @@ if(location.hash==='#rich'){
   doorStatus(){return {fire:doors.isFireOpen(),entrance:doors.isEntranceOpen()};},
   checkBlocked(x,z){return isBlocked(x,z,s.floor)||blockedEquipment(s,x,z);},
    move(dx,dz){const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));V.x=next.x;V.z=next.z;return next;},
-   snapshot(){return {x:V.x,z:V.z,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
+   snapshot(){return {x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
  };
 }
 buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();
