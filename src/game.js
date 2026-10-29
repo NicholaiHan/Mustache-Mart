@@ -4,6 +4,7 @@ import {createEnvironment} from './environment.js';
 import {createCharacters} from './characters.js';
 import {createEquipment} from './equipment.js';
 import {createDoors} from './doors.js';
+import {moveWithCollisions,isBlocked} from './collision.mjs';
 import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
@@ -80,13 +81,6 @@ function buildWorld(){
  cartMesh=makeCart();
  ladderMesh=makeLadder();
  uiUpdate();
-}
-function isBlocked(x,z){
- if(x<-9.2||x>100.8||z<-11.2||z>99)return true;
- if(z>11.2&&z<93.2)for(let a=0;a<AISLES;a++){
- const rel=Math.abs(x-aisleX(a));if(rel>2.57&&rel<4.2)return true;
- }
- return false;
 }
 function nearestAisle(){let a=Math.round((V.x-8)/10);return Math.max(0,Math.min(AISLES-1,a));}
 function nearestBay(){return Math.max(0,Math.min(BAYS-1,Math.round((V.z-13)/2.65)));}
@@ -282,8 +276,8 @@ function animate(now){
    const speed=walkSpeed(s)*(held.ShiftLeft?1.4:1)*dt/Math.hypot(forward,side);
    const dx=(-Math.sin(V.yaw)*forward+Math.cos(V.yaw)*side)*speed;
    const dz=(-Math.cos(V.yaw)*forward-Math.sin(V.yaw)*side)*speed;
-   if(!isBlocked(V.x+dx,V.z))V.x+=dx;
-   if(!isBlocked(V.x,V.z+dz))V.z+=dz;
+   const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor);
+   V.x=next.x;V.z=next.z;
   }
   V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0)V.vy=0;
   if(held.Space&&s.levels.jump&&V.y===0)V.vy=5.4;
@@ -361,7 +355,9 @@ if(location.hash==='#rich'){
   setUpgrade(id,level){if(id in s.levels)s.levels[id]=level;},
   setCompletion(value){s.fill.fill(value?SLOTS:0);s.stocked=value?TOTAL_ITEMS:0;},
   doorStatus(){return {fire:doors.isFireOpen(),entrance:doors.isEntranceOpen()};},
-  snapshot(){return {floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
+  checkBlocked(x,z){return isBlocked(x,z,s.floor);},
+   move(dx,dz){const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor);V.x=next.x;V.z=next.z;return next;},
+   snapshot(){return {x:V.x,z:V.z,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
  };
 }
 buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();
