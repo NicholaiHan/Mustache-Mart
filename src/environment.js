@@ -33,11 +33,55 @@ function buildShell(){
  const ground=add(new THREE.Mesh(new THREE.PlaneGeometry(FLOOR_W,FLOOR_D),new THREE.MeshStandardMaterial({map:tiles,roughness:.9})));
  ground.rotation.x=-Math.PI/2;ground.position.set(46.5,0,44);
  const ceiling=cube(FLOOR_W,.28,FLOOR_D,'#e8e8e4');ceiling.position.set(46.5,CEILING_Y,44);
- // Plastered walls, powder-coated trim, high-bay beams and cold-white lights.
- for(const [x,z,w,d] of [[-10,44,.5,114],[103,44,.5,114],[46.5,100.7,113,.5],[46.5,-12.7,113,.5]]){
-  const wall=cube(w,CEILING_Y,d,'#e1e4e1');wall.position.set(x,CEILING_Y/2,z);
-  const skirting=cube(w,.5,d+.02,'#85928e');skirting.position.set(x,.3,z);
-  const cornice=cube(w,.28,d+.1,'#aeb8b4');cornice.position.set(x,CEILING_Y-.2,z);
+ // Lightly textured industrial wall coating and physical door apertures.
+ // A single solid panel is never placed behind either interactive door.
+ const plaster=document.createElement('canvas');plaster.width=plaster.height=256;
+ const pc=plaster.getContext('2d');pc.fillStyle='#d9ddda';pc.fillRect(0,0,256,256);
+ for(let i=0;i<4400;i++){
+   const n=(i*181+37)%65536,x=n%256,y=(i*53+Math.floor(i/256)*19)%256;
+   pc.fillStyle=i%3?'#d4d8d5':'#e1e4e1';pc.fillRect(x,y,1+(i%3),1+(i%2));
+ }
+ const wallTex=new THREE.CanvasTexture(plaster);wallTex.wrapS=wallTex.wrapT=THREE.RepeatWrapping;
+ wallTex.repeat.set(7,1.2);
+ const wallMat=new THREE.MeshStandardMaterial({map:wallTex,roughness:.94,metalness:0});
+ const wallSegment=(x,z,w,d,h=CEILING_Y,y=CEILING_Y/2)=>{
+   const body=cube(w,h,d,wallMat);body.position.set(x,y,z);
+   if(h===CEILING_Y){
+    // These decorative trims are offset toward the store, not coplanar with plaster.
+    const horizontal=w>d;
+    const trim=cube(horizontal?w-.08:.16,.22,horizontal?.12:d-.08,'#8a9691');
+    trim.position.set(horizontal?x:x+(x>50?-.4:.4),.2,horizontal?z+(z<0?.36:-.36):z);
+    const crown=cube(horizontal?w-.08:.18,.23,horizontal?.12:d-.08,'#adb7b1');
+    crown.position.set(horizontal?x:x+(x>50?-.4:.4),CEILING_Y-.21,horizontal?z+(z<0?.36:-.36):z);
+   }
+ };
+ wallSegment(-10,44,.5,114);
+ wallSegment(46.5,100.7,113,.5);
+ if(s.floor===0){
+   // Fire exit aperture on right side, centered z=40.5, width 3.4 m.
+   wallSegment(103,12.9,.5,51.8);
+   wallSegment(103,71.6,.5,58.8);
+   wallSegment(103,40.5,.5,3.4,CEILING_Y-4.65,(CEILING_Y+4.65)/2);
+   // Front entrance opening x=42.5..50.5, with a tall structural lintel.
+   wallSegment(16.25,-12.7,52.5,.5);
+   wallSegment(76.75,-12.7,52.5,.5);
+   wallSegment(46.5,-12.7,8,.5,CEILING_Y-5.45,(CEILING_Y+5.45)/2);
+ }else{
+   wallSegment(103,44,.5,114);
+   wallSegment(46.5,-12.7,113,.5);
+ }
+ // Uprights, panel joints, painted trims and wayfinding details are actual geometry.
+ for(const x of [-5,5,16,28,40,53,65,78,91]){
+  if(s.floor===0&&x>42&&x<52)continue;
+  const rib=cube(.15,CEILING_Y-1,.18,'#b5c0ba');rib.position.set(x,CEILING_Y/2,-12.32);
+ }
+ for(const z of [0,18,56,76,95]){
+  if(s.floor===0&&Math.abs(z-40.5)<3)continue;
+  const rib=cube(.18,CEILING_Y-1,.15,'#bdc6c0');rib.position.set(102.57,CEILING_Y/2,z);
+ }
+ for(const z of [12,44,77]){
+  const notice=textLabel(z===12?'SAFETY FIRST':z===44?'AISLE EQUIPMENT':'RECEIVING AHEAD',3.3,.55,'#e7e8df','#44554f',34,'interior');
+  notice.position.set(101.9,3.8,z);notice.rotation.y=-Math.PI/2;add(notice);
  }
  for(let z=-4;z<100;z+=18){
   const beam=cube(110,.35,.55,'#9aa4a3');beam.position.set(46.5,CEILING_Y-.58,z);
@@ -94,7 +138,17 @@ function addKiosk(x,z,name,accent,facing='interior'){
 }
 function buildService(){
  addKiosk(DOCK.x,DOCK.z,'WAREHOUSE PICKUP','#c9b080','entrance');
- addKiosk(10,-3,'PAY WINDOW','#c6d5c8','interior');
+ const payBack=round(5.6,3.6,.24,'#536363');payBack.position.set(10,2.8,-8.5);
+ const counter=round(5.1,1.18,2.05,'#dddcd5');counter.position.set(10,.59,-3.2);
+ const workTop=round(5.32,.13,2.18,'#7e8988');workTop.position.set(10,1.24,-3.2);
+ const glassMat=new THREE.MeshStandardMaterial({color:'#b8d1d3',transparent:true,opacity:.24,metalness:.1,roughness:.12,depthWrite:false});
+ const glass=cube(4.95,1.8,.06,glassMat);glass.position.set(10,2.65,-3.89);
+ for(const x of [7.5,12.5]){const stanchion=round(.1,2.24,.17,'#657477');stanchion.position.set(x,2.56,-3.89);}
+ const windowSign=textLabel('PAYROLL  /  STAFF SERVICES',4.8,.69,'#dce4dd','#33443d',37,'interior');
+ windowSign.position.set(10,4.1,-3.75);add(windowSign);
+ const terminal=round(.74,.47,.12,'#303b40');terminal.position.set(9.2,1.56,-3.05);
+ const screen=round(.5,.27,.03,new THREE.MeshBasicMaterial({color:'#92c4b6'}));screen.position.set(9.2,1.6,-2.97);
+ const documents=round(.78,.035,.43,'#f4f2e8');documents.position.set(10.9,1.35,-2.96);
  addKiosk(1.5,-9,'MUSTACHE MIKE','#c8c2b6','interior');
  makeMike(1.5,-7.1);
  const elevator=round(5.1,6.5,.6,'#71888c');elevator.position.set(23,3.25,-11.4);
@@ -102,6 +156,11 @@ function buildService(){
  const upper=round(5.6,.35,.7,'#404c50');upper.position.set(23,6.48,-11.34);
  const esign=textLabel('ELEVATOR  /  F01–F15',5.6,.75,'#e0e4db','#344541',39,'interior');
  esign.position.set(23,7.2,-11.02);add(esign);
+ const receivingRack=round(4.3,3.8,.75,'#838f8d');receivingRack.position.set(7.7,1.9,96.4);
+ for(let shelf=1;shelf<4;shelf++){const r=round(4.5,.11,1.2,'#c2c7c0');r.position.set(7.7,shelf*.98,96.4);}
+ const dockTerminal=round(.85,1.1,.52,'#7a8b8c');dockTerminal.position.set(3.7,.59,95.8);
+ const dockScreen=round(.64,.43,.08,new THREE.MeshBasicMaterial({color:'#accfbd'}));dockScreen.position.set(3.7,.95,95.49);
+ const receivingLabel=textLabel('INVENTORY  /  RECEIVING',5.4,.77,'#dfd9c4','#414d48',39,'entrance');receivingLabel.position.set(DOCK.x,5.7,94.35);add(receivingLabel);
  const entranceSign=textLabel('CUSTOMER SERVICE   |   PAYROLL',8.2,.76,'#e5e5db','#475752',39,'interior');
  entranceSign.position.set(9,4.65,-11.7);add(entranceSign);
  // Follow-through markers guide the player toward distant stock.
