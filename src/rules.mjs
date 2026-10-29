@@ -40,7 +40,7 @@ export function loadState(text){
  for(const u of UPGRADES)s.levels[u.id]=limit(d.levels?.[u.id],u.max);
  if(Array.isArray(d.belts))for(let f=0;f<FLOORS;f++)for(let a=0;a<AISLES;a++)s.belts[f][a]=limit(d.belts[f]?.[a],BAYS);
  if(Array.isArray(d.cursor))d.cursor.slice(0,FLOORS).forEach((v,i)=>s.cursor[i]=limit(v,CELLS_PER_FLOOR-1));
- if(Array.isArray(d.robots))s.robots=d.robots.slice(0,s.levels.robot).map((r,i)=>({id:i,floor:limit(r.floor,FLOORS-1),x:old?DOCK.x:(Number.isFinite(r.x)?r.x:DOCK.x),z:old?DOCK.z:(Number.isFinite(r.z)?r.z:DOCK.z),phase:!old&&['supply','shelf'].includes(r.phase)?r.phase:'supply',target:!old&&Number.isInteger(r.target)&&r.target>=0&&r.target<TOTAL_CELLS?r.target:-1,carry:limit(r.carry,8),acc:0}));
+ if(Array.isArray(d.robots))s.robots=d.robots.slice(0,s.levels.robot).map((r,i)=>({id:i,floor:limit(r.floor,FLOORS-1),x:old?DOCK.x:(Number.isFinite(r.x)?r.x:DOCK.x),z:old?REAR_CROSSWALK:(Number.isFinite(r.z)?r.z:REAR_CROSSWALK),phase:!old&&['supply','shelf'].includes(r.phase)?r.phase:'supply',target:!old&&Number.isInteger(r.target)&&r.target>=0&&r.target<TOTAL_CELLS?r.target:-1,carry:limit(r.carry,8),acc:0}));
  while(s.robots.length<s.levels.robot)hireRobot(s);
  const c=d.cart||{};s.cart={floor:limit(c.floor,FLOORS-1),aisle:limit(c.aisle,AISLES-1),z:Math.max(11,Math.min(94,Number(c.z)||13)),acc:0};
  }catch(_){return newState();}
@@ -81,22 +81,36 @@ export function incomplete(s,f,start=0){
  return -1;
 }
 export function nextRobotFloor(s){for(let f=0;f<FLOORS;f++)if(incomplete(s,f,s.cursor[f])>=0)return f;return -1;}
-export function hireRobot(s){const f=nextRobotFloor(s);if(f>=0)s.robots.push({id:s.robots.length,floor:f,x:DOCK.x,z:DOCK.z,phase:'supply',target:-1,carry:0,acc:0});}
+export function hireRobot(s){const f=nextRobotFloor(s);if(f>=0)s.robots.push({id:s.robots.length,floor:f,x:DOCK.x,z:REAR_CROSSWALK,phase:'supply',target:-1,carry:0,acc:0});}
 export const remaining=s=>TOTAL_ITEMS-s.stocked;
 export const canOpenStore=s=>s.stocked===TOTAL_ITEMS&&remaining(s)===0;
 export function floorStocked(s,f){let sum=0,base=f*CELLS_PER_FLOOR;for(let i=0;i<CELLS_PER_FLOOR;i++)sum+=s.fill[base+i];return sum;}
 export const itemsPerFloor=CELLS_PER_FLOOR*SLOTS;
+// Robot lane routing. Transitions between aisles happen only in the open
+// rear crosswalk, away from high-bay shelves and rear warehouse pallets.
+export const REAR_CROSSWALK=92.35;
 function approach(r,x,z,dt,speed){
- let gx=x,gz=z;if(Math.abs(r.x-x)>2&&r.z<94){gx=r.x;gz=DOCK.z;}else if(Math.abs(r.x-x)>2)gz=DOCK.z;
- const dx=gx-r.x,dz=gz-r.z,dist=Math.hypot(dx,dz);if(dist<.3)return true;
- const n=Math.min(dist,dt*speed);r.x+=dx/dist*n;r.z+=dz/dist*n;return false;
+ let gx=x,gz=z;
+ const crossing=Math.abs(r.x-x)>2.2;
+ if(crossing&&r.z<REAR_CROSSWALK-.35){
+  gx=r.x;gz=REAR_CROSSWALK; // move along current aisle first
+ }else if(crossing){
+  gx=x;gz=REAR_CROSSWALK; // cross only behind the racks
+ }
+ const dx=gx-r.x,dz=gz-r.z,dist=Math.hypot(dx,dz);
+ if(dist>=.27){
+  const n=Math.min(dist,dt*speed);
+  r.x+=dx/dist*n;r.z+=dz/dist*n;
+ }
+ // Do not report success at an intermediate crosswalk waypoint.
+ return Math.hypot(x-r.x,z-r.z)<.31;
 }
 export function botStep(s,r,dt){
- if(incomplete(s,r.floor,s.cursor[r.floor])<0){const f=nextRobotFloor(s);if(f<0)return -1;r.floor=f;r.x=DOCK.x;r.z=DOCK.z;r.phase='supply';r.target=-1;r.carry=0;}
+ if(incomplete(s,r.floor,s.cursor[r.floor])<0){const f=nextRobotFloor(s);if(f<0)return -1;r.floor=f;r.x=DOCK.x;r.z=REAR_CROSSWALK;r.phase='supply';r.target=-1;r.carry=0;}
  if(r.phase==='supply'){
   r.target=incomplete(s,r.floor,s.cursor[r.floor]);if(r.target<0)return -1;
   const {aisle,bay}=decode(r.target),length=s.belts[r.floor][aisle];
-  const x=length?aisleX(aisle)+1.3:DOCK.x,z=length?bayZ(Math.max(BAYS-length,bay)):DOCK.z;
+  const x=length?aisleX(aisle)+1.3:DOCK.x,z=length?bayZ(Math.max(BAYS-length,bay)):REAR_CROSSWALK;
   if(approach(r,x,z,dt,3.8+s.levels.robotSpeed*.35)){r.carry=8;r.phase='shelf';}
   return -1;
  }
