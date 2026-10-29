@@ -10,7 +10,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep
+ floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,assignRobot,sellRobot,deployLadder,sellLadder,sellBelt,advanceBelts,takeBelt
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -20,8 +20,8 @@ if(location.hash==='#rich')s.money=100000;
 const TEST_ENDING=location.hash==='#ending-test', PREVIEW_ENDING=location.hash==='#ending'||TEST_ENDING;
 const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
 let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0,shopCategory='tools';
-let doorInteractionHeld=false,ignoreMouseUntil=0;
-let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],cartMesh=null,ladderMesh=null,ladder=null;
+let doorInteractionHeld=false,ignoreMouseUntil=0,placementRobotId=null,robotGhost=null,climbingLadderId=null;
+let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],cartMesh=null,ladderMesh=null;
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
 let receiptTimeout=0,payrollTransactions=0;
 const NOTE='Easy shelves: 1¢ · ladder: 2¢ · upgraded ladder: 3¢ · deliveries at the BACK';
@@ -73,22 +73,22 @@ const TIER_Y=[.65,2.65,6.9,11.8],CHEST_REACH=1.8;
 const dummy=new THREE.Object3D(),color=new THREE.Color();
 
 const {add,cube,roundedGeo,round,textLabel,clearWorld}=createRendering({getWorld:()=>world,scene,toon});
-const {makeMike,botAppearance}=createCharacters({add,round,toon,textLabel,getWorld:()=>world});
+const {makeMike,botAppearance}=createCharacters({s,add,round,toon,textLabel,getWorld:()=>world});
 const {buildShell,buildService,buildShelves,drawProduct,getMike}=createEnvironment({
  s,scene,add,cube,round,roundedGeo,textLabel,toon,dummy,color,goods,pastel,
  FLOOR_W,FLOOR_D,CEILING_Y,RACK_HEIGHT,TIER_Y,makeMike
 });
 const {makeBelt,makeCart,makeLadder}=createEquipment({
- s,round,getWorld:()=>world,getLadder:()=>ladder,getBeltCrates:()=>beltCrates
+ s,round,getWorld:()=>world,getBeltCrates:()=>beltCrates
 });
 const doors=createDoors({getWorld:()=>world,getFloor:()=>s.floor,round,cube,textLabel});
 function buildWorld(){
  clearWorld(world);
  world=new THREE.Group();scene.add(world);
- currentFloor=s.floor;beltCrates=[];cartMesh=null;ladderMesh=null;robotModels=new Map();
+ currentFloor=s.floor;beltCrates=[];cartMesh=null;ladderMesh=null;robotModels=new Map();robotGhost=null;
  buildShell();buildService();buildShelves();doors.build();
  for(let a=0;a<AISLES;a++)for(let segment=0;segment<s.belts[s.floor][a];segment++)makeBelt(s.floor,a,segment);
- for(const robot of s.robots)if(robot.floor===s.floor)robotModels.set(robot.id,botAppearance(robot));
+ for(const robot of s.robots)if(robot.placed&&robot.floor===s.floor)robotModels.set(robot.id,botAppearance(robot));
  cartMesh=makeCart();
  ladderMesh=makeLadder();
  uiUpdate();
@@ -103,13 +103,27 @@ function cellToStock(){
  const tier=V.pitch>.78?3:V.pitch>.38?2:V.pitch<-.3?0:1;
  return cellId(s.floor,a,side,bay,tier);
 }
-function isLadderNear(){return ladder&&ladder.floor===s.floor&&nearby(ladder.x,ladder.z,3.2);}
+function nearestLadder(distance=1.8){
+ let best=null,dist=distance;
+ for(const l of s.ladders)if(l.floor===s.floor){
+  const d=Math.hypot(V.x-l.x,V.z-l.z);if(d<dist){dist=d;best=l;}
+ }
+ return best;
+}
+function isLadderNear(){return !!nearestLadder(3.2);}
 function isCartNear(){return s.levels.cart&&s.cart.floor===s.floor&&nearby(aisleX(s.cart.aisle),s.cart.z,3.6);}
 function canReach(tier){
  if(tier===0)return true;
- if(tier===1)return V.y>.35||isLadderNear()||isCartNear();
- if(tier===2)return isLadderNear()||isCartNear();
- return (isLadderNear()&&s.levels.ladderPlus)||isCartNear();
+ if(tier===1)return V.y>.35||isCartNear();
+ if(tier===2)return V.y>4.0||isCartNear();
+ return V.y>8.2||isCartNear();
+}
+function toggleClimb(){
+ if(climbingLadderId!==null){climbingLadderId=null;notify('Released ladder.');return;}
+ const l=nearestLadder(1.9);
+ if(!l){notify('Approach a placed ladder and press C to climb.');return;}
+ climbingLadderId=l.id;V.vy=0;V.x=l.x;V.z=l.z;
+ notify('Climbing: W up · S down · C release.');
 }
 function manualStock(){
  if(!V.carry)return false;
@@ -124,7 +138,7 @@ function manualStock(){
  return true;
 }
 function act(){
- if(modal||ending)return;
+ if(modal||ending||placementRobotId!==null)return;
  if(doors.nearFire(V.x,V.z)){
   if(doorInteractionHeld)return;
   doorInteractionHeld=true;
@@ -145,6 +159,10 @@ function act(){
  if(nearby(10,-3,4.0)){const paid=payOut(s);if(paid)showPayReceipt(paid);else notify('Your payroll balance is currently $0.00. Stock more products to earn wages.');save();return;}
  if(nearby(23,-9,4.4)){openElevator();return;}
  if(nearby(DOCK.x,DOCK.z,4.4)&&V.carry<capacity(s)){V.carry++;return;}
+ if(V.carry<capacity(s)){
+  const source=nearestBeltStock();
+  if(source){takeBelt(s,s.floor,source.aisle);V.carry++;notify('Picked up one delivered conveyor product.');return;}
+ }
  if(manualStock())return;
 }
 function pointerRequest(){
@@ -173,8 +191,8 @@ function renderShop(){
   btn.textContent=max?'MAXED':centsText(cost);btn.disabled=max||s.money<cost||(['cart','ladderPlus'].includes(u.id)&&!s.levels.ladder);
   btn.addEventListener('click',()=>{
    if(!purchase(s,u.id))return;
-   if(u.id==='robot'){const r=s.robots[s.robots.length-1];if(r?.floor===s.floor)robotModels.set(r.id,botAppearance(r));}
-   if(u.id==='cart'){ladder=null;buildWorld();}
+   if(u.id==='robot'){const r=s.robots[s.robots.length-1];save();startRobotPlacement(r.id);return;}
+   if(['cart','ladderPlus','robotLift'].includes(u.id))buildWorld();
    save();renderShop();uiUpdate();
   });
   row.append(info,btn);list.append(row);
@@ -193,10 +211,11 @@ function openElevator(){
  }
 }
 function placeLadder(){
- if(!s.levels.ladder){notify('Buy a ladder from Mustache Mike first.');return;}
- if(s.levels.cart){notify('Your ladder was upgraded into an automatic cart.');return;}
- if(V.z<11){notify('Take the ladder into an aisle first.');return;}
- ladder={floor:s.floor,x:V.x,z:V.z};buildWorld();notify(s.levels.ladderPlus?'Extended ladder deployed: 2¢ and 3¢ rack bands unlocked.':'Step ladder deployed: 2¢ bands unlocked. Upgrade it for 3¢ racks.');
+ if(!s.ladderInventory.length){notify('Buy a portable ladder from Mike first.');return;}
+ if(V.z<11||V.z>92||Math.abs(V.x-aisleX(nearestAisle()))>2.5){notify('Stand in a supermarket aisle to install a ladder.');return;}
+ const l=deployLadder(s,s.floor,nearestAisle(),nearestBay());
+ if(!l){notify('A ladder already occupies this area.');return;}
+ buildWorld();save();notify('Ladder placed · C to climb, W/S to go up/down, X to sell.');
 }
 function buildNextBelt(){
  const a=nearestAisle(),n=s.belts[s.floor][a];
@@ -205,7 +224,7 @@ function buildNextBelt(){
  }
  const cost=beltCost(s,s.floor,a);
  if(!buildBelt(s,s.floor,a,n)){notify('Need '+centsText(cost)+' to build the next conveyor segment.');return;}
- makeBelt(s.floor,a,n);save();notify('Back-fed conveyor segment '+(n+1)+' connected! Robots can collect here.');
+ makeBelt(s.floor,a,n);save();notify('Working conveyor '+(n+1)+' connected; products will arrive at its endpoint.');
 }
 function updatePrompt(){
  let msg='';
