@@ -110,7 +110,9 @@ test('built conveyors and moving robots have physical player collision',()=>{
  assert.equal(c.blockedEquipment(st,8,40),false);
  assert.equal(r.purchase(st,'robot'),true);
  const bot=st.robots[0];
- assert.equal(c.blockedEquipment(st,bot.x,bot.z),true);
+ assert.equal(c.blockedEquipment(st,bot.x,bot.z),false,'unplaced robots are ghost inventory');
+ assert.equal(r.assignRobot(st,bot.id,0,0,18),true);
+ assert.equal(c.blockedEquipment(st,bot.x,bot.z),true,'deployed robots are solid');
  const escape=c.moveWithCollisions(bot.x,bot.z,2.5,0,0,(x,z)=>c.blockedEquipment(st,x,z));
  assert.equal(c.isBlocked(escape.x,escape.z),false);
  assert.ok(Math.hypot(escape.x-bot.x,escape.z-bot.z)>.3,'player must be able to step away from overlapping robot');
