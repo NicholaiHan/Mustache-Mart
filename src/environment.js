@@ -3,7 +3,7 @@ import {AISLES,BAYS,TIERS,SLOTS,CELLS_PER_FLOOR,DOCK,aisleX,bayZ,decode,floorLab
 // Architecture, walls, supermarket service counters, shelves, products.
 // The factory owns shelf rendering buffers so other systems never modify them directly.
 export function createEnvironment({s,scene,add,cube,round,roundedGeo,textLabel,toon,dummy,color,goods,pastel,FLOOR_W,FLOOR_D,CEILING_Y,RACK_HEIGHT,TIER_Y,makeMike}){
-let meshes=[];
+let meshes=[],mikeModel=null;
 function itemGeometry(type){
  const shapes=[
  [[0,0],[.13,0],[.15,.03],[.15,.38],[.13,.4],[0,.4]],
@@ -150,7 +150,7 @@ function buildService(){
  const screen=round(.5,.27,.03,new THREE.MeshBasicMaterial({color:'#92c4b6'}));screen.position.set(9.2,1.6,-2.97);
  const documents=round(.78,.035,.43,'#f4f2e8');documents.position.set(10.9,1.35,-2.96);
  addKiosk(1.5,-9,'MUSTACHE MIKE','#c8c2b6','interior');
- makeMike(1.5,-7.1);
+ mikeModel=makeMike(1.5,-7.1);
  const elevator=round(5.1,6.5,.6,'#71888c');elevator.position.set(23,3.25,-11.4);
  const seam=round(.09,6.1,.12,'#3b484e');seam.position.set(23,3.25,-11.03);
  const upper=round(5.6,.35,.7,'#404c50');upper.position.set(23,6.48,-11.34);
@@ -242,5 +242,5 @@ function drawProduct(id,slot){
 }
 
 
-return {buildShell,buildService,buildShelves,drawProduct};
+return {buildShell,buildService,buildShelves,drawProduct,getMike:()=>mikeModel};
 }
