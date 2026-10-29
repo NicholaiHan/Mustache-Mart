@@ -82,6 +82,7 @@ button:active:not(:disabled){transform:translateY(1px)}
 .upgrade button{background:#e1eee5;border:1px solid #6a8e77;color:#234735;box-shadow:none}
 .upgrade button:disabled{background:#edf0ed;color:#829288}
 #shopMoney{font-variant-numeric:tabular-nums;color:#245740}
+.robotActions{display:flex;gap:8px;flex-wrap:wrap}.robotActions button{font-size:12px}.robotActions button:last-child{background:#f8e5df;border-color:#b48379;color:#7f352a}
 #payReceipt{position:absolute;right:20px;top:78px;width:304px;max-width:calc(100vw - 40px);background:#f8f8f2;color:#21352f;border:1px solid #adbcb2;border-top:5px solid #4e8369;border-radius:8px;box-shadow:0 15px 50px #101c1d66;padding:17px 19px;opacity:0;transform:translateY(-14px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:9}
 #payReceipt.active{opacity:1;transform:translateY(0)}
 #payReceipt .eyebrow{font-size:10px;letter-spacing:.17em;font-weight:900;color:#54705f}
@@ -110,13 +111,13 @@ button:active:not(:disabled){transform:translateY(1px)}
   <div id="payReceipt" role="status" aria-live="polite" aria-hidden="true"><div class="eyebrow">PAYROLL / TRANSACTION APPROVED</div><div class="amount" id="receiptAmount">$0.00</div><div class="line"><span>PAY WINDOW · STAFF WAGES</span><span id="receiptNumber">#0001</span></div><div class="foot">MUSTACHE MART · THANK YOU FOR YOUR SERVICE</div></div>
   <div id="pickupStatus" hidden>RECEIVING / PRODUCTS READY · HOLD E TO LOAD</div>
   <div id="progress"><span id="progressText">0 / 144,000 stocked</span><div id="progress-track"><div id="progress-bar"></div></div></div>
-  <div class="pill" id="help">WASD move · Mouse / Arrows look · Shift sprint · E interact · Space jump · L ladder · B build belt · Esc pause</div>
+  <div class="pill" id="help">WASD move · Mouse look · E interact · L place ladder · C climb · B conveyor · X sell · Click deploy robot · Esc pause</div>
 </div>
 <div class="dialog open" id="intro">
   <div class="panel">
     <h1>MUSTACHE<br>MART 🥸</h1>
     <p><strong>15 floors. 144,000 products. One grand opening.</strong><br>The inventory warehouse is all the way at the BACK of the store. Begin by carrying a single can through long aisles. Earn 1¢ on lower racks, 2¢ using a step ladder and 3¢ with the telescopic ladder extension. Collect pay at the front window, then visit Mustache Mike for tools and economy contracts.</p>
-    <p class="hint">WASD to walk · E to collect / stock · mouse or arrow keys to aim · Q near Mike for upgrades · R at elevator · B to extend rear-fed conveyor · Space to jump (upgrade) · L for ladder · Escape to close any dialogue.</p>
+    <p class="hint">WASD to walk · E to collect / stock · mouse or arrow keys to aim · Q near Mike for upgrades · R at elevator · B to extend rear-fed conveyor · Space to jump (upgrade) · L to place a ladder · C to climb, W/S to move up/down · X to sell equipment · Buy a robot at Mike's, walk into an aisle and left-click to deploy.</p>
     <button id="play">Start your shift</button> <button id="reset">Reset this game's saved progress</button>
     <p class="hint">Your progress stays in this browser on this Mac. The game uses only locally stored assets and does not need Electron.</p>
   </div>
