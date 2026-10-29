@@ -20,8 +20,8 @@ test('Game UI references correspond to valid IDs',()=>{
  const required=[...new Set([...game.matchAll(/\$\('([^']+)'\)/g)].map(m=>m[1]))];
  assert.deepEqual(required.filter(x=>!ids.has(x)),[]);
  assert.match(html,/15 floors/i);
- assert.match(html,/PAY WINDOW/);
- assert.match(html,/shopkeeper/i);
+ assert.match(html,/pay window/i);
+ assert.match(html,/Mustache Mike/i);
 });
 test('Only local game assets are accessible and all serve successfully',async()=>{
  for(const a of ['/','/index.html','/src/game.js','/src/rules.mjs','/vendor/three.module.js']){
