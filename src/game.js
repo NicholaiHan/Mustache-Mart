@@ -221,11 +221,11 @@ function sellNearby(){
   const d=Math.hypot(V.x-l.x,V.z-l.z);
   if(d<dist){dist=d;best={type:'ladder',id:l.id};}
  }
- for(const r of s.robots.filter(r=>r.placed&&r.floor===s.floor)){
+ if(!best||best.type!=='ladder')for(const r of s.robots.filter(r=>r.placed&&r.floor===s.floor)){
   const d=Math.hypot(V.x-r.x,V.z-r.z);
   if(d<dist){dist=d;best={type:'robot',id:r.id};}
  }
- for(let a=0;a<AISLES;a++){
+ if(!best||best.type!=='ladder')for(let a=0;a<AISLES;a++){
   const n=s.belts[s.floor][a];if(!n)continue;
   const z=bayZ(BAYS-n),d=Math.hypot(V.x-(aisleX(a)+1.4),V.z-z);
   if(d<dist){dist=d;best={type:'belt',a,seg:n-1};}
