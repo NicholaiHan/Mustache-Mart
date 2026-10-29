@@ -24,7 +24,7 @@ test('Game UI references correspond to valid IDs',()=>{
  assert.match(html,/Mustache Mike/i);
 });
 test('Only local game assets are accessible and all serve successfully',async()=>{
- for(const a of ['/','/index.html','/src/game.js','/src/rules.mjs','/vendor/three.module.js']){
+ for(const a of ['/','/index.html','/src/game.js','/src/rules.mjs','/src/rendering.js','/src/environment.js','/src/characters.js','/src/equipment.js','/src/doors.js','/vendor/three.module.js']){
   const r=await fetch(base+a);assert.equal(r.status,200,a);
   assert.match(r.headers.get('content-security-policy'),/default-src 'none'/);
   assert.equal(r.headers.get('x-content-type-options'),'nosniff');
@@ -47,6 +47,9 @@ test('Browser scene implements floor access, building and ending',()=>{
  assert.match(game,/buildNextBelt\(\)/);
  assert.match(game,/openElevator\(\)/);
  assert.match(game,/beginEnding\(\)/);
+ const doors=fs.readFileSync(path.join(root,'src/doors.js'),'utf8');
+ assert.match(doors,/FIRE EXIT/);
+ assert.match(game,/stock the entire building before opening/);
  assert.match(game,/WENT BANKRUPT|endingDay/);
  assert.ok(fs.statSync(path.join(root,'vendor/three.module.js')).size>100000);
 });
