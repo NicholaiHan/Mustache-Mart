@@ -1,73 +1,64 @@
 # Mustache Mart 🥸
+## Fifteen Floors of Regret
 
-A ridiculous, long-form cartoon first-person supermarket stocking simulator.
-Source is based on the original Claude prototype. This is an experimental **playable
-prototype**, **not** a signed or published Steam product.
+A deliberately overlong, pastel-colored, first-person supermarket stocking game, now with connected conveyor segments and autonomous mustached robots. This is a playable prototype, not a published Steam title.
 
-## Mac: safest way to try the current game (no Electron, no npm install)
+### Play on your Mac (no Electron, no npm install)
 
-1. Download **the entire latest repository** from
+1. Download the entire latest repository from:
    https://github.com/NicholaiHan/Mustache-Mart/archive/refs/heads/main.zip
-   and unzip it. Do **not** open the old `mustache-mart.zip` sitting inside.
-2. Open Terminal. Type `cd ` (including the space), drag the **extracted folder**
-   onto the Terminal window, then press Return.
-3. Enter **`node server.cjs`**. Node.js is already installed if `node -v` prints a version.
-4. Open **http://127.0.0.1:8000** in Safari or Chrome (on the same Mac).
-5. Click the game screen to capture the mouse; press Escape to release it.
-   Use Control+C in Terminal to stop the local server.
+2. Extract it, then move the Mustache-Mart-main folder to your Desktop. Do not run the old mustache-mart.zip file inside the repository.
+3. Open Terminal and run:
 
-**No npm install, Electron installer, Apple security bypass, or login is required.**
-The browser uses the committed `vendor/three.module.js`. The server binds only to
-`127.0.0.1` and explicitly allows only the game's three local files. No
-external game services, CDN or analytics are used. The code can be inspected.
+       cd ~/Desktop/Mustache-Mart-main
+       node server.cjs
 
-If macOS shows **“Malware Blocked and Moved to Trash”** for Electron, do **not**
-restore the app, use `xattr -d`, disable Gatekeeper or XProtect, or select an
-override option. The browser path avoids Electron entirely. Security or
-functionality can never be guaranteed 100%; only run software you trust.
+4. Visit http://127.0.0.1:8000 in Chrome or Safari. Keep Terminal open to play; Control+C stops the local server.
 
-## Features
+Node.js must already be installed (you have it if you played the prior browser build). Do not restore the Electron app that macOS previously identified as malware, and do not override Apple's security systems.
 
-- Cartoon-style 3D first-person world, 24 aisles × 2 sides × 100 shelf units
-  × 3 tiers × 4 items = **57,600 products**.
-- Stock soup cans, bottled water and wine. Earn coins per item.
-- WASD walking, Shift sprinting, mouse look, E or click to grab supplies/stock.
-- Q upgrade shop: better shoes, bag capacity, faster hands, improved earnings,
-  supply conveyor stations and mustached self-stocking robots.
-- Browser-local save progress; Reset button on title screen.
-- When every shelf is filled, an empty grand opening leads to 20 progressively
-  faster sunrise/sunset cycles, then **WENT BANKRUPT / Thanks for Playing!**
+### Progression
 
-Conveyor upgrades currently create supply stations, not a full physics-based
-transport network. This prototype is not feature-complete.
+- Fifteen accessible elevator floors, each with ten aisles, totaling 108,000 products.
+- Start carrying **one can at a time**. Stocking a bottom shelf earns 1¢, middle 2¢, and top 3¢. High shelves require purchased jumping shoes or a ladder/cart.
+- Take your wages to the PAY WINDOW near the delivery dock to get spendable money.
+- Find Mustache Mike at his pink counter for carrying capacity, speed, jumping shoes, ladder, mobile stocking cart, cart motors, mustached robots, robot speed boosts, and automatic payroll.
+- Build a connected conveyor yourself by standing at the next unbuilt belt segment inside an aisle and pressing B, starting at the aisle entrance. Robots can collect supplies from connected belts.
+- Bots seek missing shelf products, restock using the dock or belts, and work on other floors while you're away. The mobile ladder cart slowly moves down aisles and fills shelves.
+- Progress saves to this browser automatically. The previous prototype's save remains separate; this version starts a new game.
 
-## Offline checks
+### Controls
 
-No package install is required to run the static/server tests:
+| Key | Action |
+| --- | --- |
+| WASD | Walk |
+| Mouse or arrow keys | Look |
+| Shift | Sprint |
+| Hold E / click | Pick up, stock, interact |
+| Space | Jump (after buying spring-loaded shoes) |
+| L | Deploy your step ladder |
+| B | Place next connected conveyor segment |
+| Q | Open shop (near Mustache Mike) |
+| R | Select floor (near elevator) |
+| Esc | Pause, exit menu or release mouse |
+| Control+C in Terminal | Stop server |
 
-```sh
-node --check server.cjs
-node --check src/game.js
-node --test tests/smoke.test.cjs
-```
+Look upward to stock the 3¢ top shelf, straight ahead for the middle, and downward for the bottom.
 
-To preview the full ending without stocking every shelf, visit
-`http://127.0.0.1:8000/#ending`. The automated test-only short preview is
-`#ending-test`. The `#rich` developer shortcut awards testing coins.
+### Test results
 
-GitHub Actions runs static/server tests on macOS and Linux, plus headless
-Chromium game-start and ending smoke tests. See **Actions** for actual results.
-Passing CI verifies those scenarios, **not** every graphics card or Mac OS
-version. A human playthrough on the target Mac is still necessary.
+Automated GitHub Actions jobs run on macOS 15 and Ubuntu, checking static source, local-only file serving, core economy rules, and actual Chromium gameplay. Browser tests cover pickup and stocking, wages, buying an upgrade, connected conveyor placement, visiting floor 15 and the bankruptcy ending.
 
-## Desktop development and Steam
+Local check without installing npm packages:
 
-The Electron wrapper remains in source for later desktop packaging, but **do
-not use `npm start`** on a Mac that previously blocked Electron as malware.
-A Steam-ready Mac release still needs an audited runtime, code signing and
-Apple notarization, Steamworks onboarding, release assets, performance testing,
-controller/accessibility work, and an end-to-end playtest. Linux and Windows
-desktop distribution also require dedicated release verification.
+    node --test tests/*.test.cjs
 
-The game runs entirely on your own machine; progress is saved by the browser
-in localStorage and does not sync to Steam Cloud.
+Developer testing: append #rich to the browser address to get bonus coins; #ending-test previews the ending quickly.
+
+### End of the game
+
+After all shelves are filled, nobody comes to the grand opening. Twenty sunrise/sunset cycles accelerate until WENT BANKRUPT appears, followed by Thanks for Playing!
+
+### Limitations
+
+Floors currently share a procedural layout with changing palettes; this is not fifteen uniquely modeled departments. Conveyors provide connected supply pickup points, not a physics-based transport network with turns and junctions. Robot routing is scripted and simple. There is no finished native Mac/Steam release or Apple-notarized executable. Fully finishing all 108,000 products and testing every possible Mac hardware configuration remain outstanding. Automated tests do not provide a 100% safety guarantee.
