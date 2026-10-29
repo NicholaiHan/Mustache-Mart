@@ -1,73 +1,73 @@
 # Mustache Mart 🥸
 
-A cartoon first-person supermarket stocking game built with Electron and Three.js.
-Based on the original Claude ZIP prototype and upgraded for a much larger store.
+A ridiculous, long-form cartoon first-person supermarket stocking simulator.
+Source is based on the original Claude prototype. This is an experimental **playable
+prototype**, **not** a signed or published Steam product.
 
-## Current playable version (0.2)
-- 24 aisles, 100 shelf sections on each side of every aisle, three tiers of four items:
-  **57,600 individual products** before opening day.
-- Three grocery categories: soup cans, water bottles and wine bottles.
-- WASD walk; mouse look; Shift sprint; hold E or click to collect and stock.
-- Earn coins per item; Q opens the upgrade shop with better shoes, bag capacity,
-  faster hands, higher item pay, conveyor supply stations and mustached auto-stocking robots.
-- Auto-save in localStorage. The title screen has a reset-save control.
-- After every item is stocked, the empty grand opening plays a 20-cycle accelerating
-  sunrise/sunset montage, then a red WENT BANKRUPT banner and Thanks for Playing!
+## Mac: safest way to try the current game (no Electron, no npm install)
 
-## Play in your browser (no Electron needed)
+1. Download **the entire latest repository** from
+   https://github.com/NicholaiHan/Mustache-Mart/archive/refs/heads/main.zip
+   and unzip it. Do **not** open the old `mustache-mart.zip` sitting inside.
+2. Open Terminal. Type `cd ` (including the space), drag the **extracted folder**
+   onto the Terminal window, then press Return.
+3. Enter **`node server.cjs`**. Node.js is already installed if `node -v` prints a version.
+4. Open **http://127.0.0.1:8000** in Safari or Chrome (on the same Mac).
+5. Click the game screen to capture the mouse; press Escape to release it.
+   Use Control+C in Terminal to stop the local server.
 
-Requires Node.js (Node 22 LTS or newer recommended). This is a local developer
-preview and does not publish your game to the internet.
+**No npm install, Electron installer, Apple security bypass, or login is required.**
+The browser uses the committed `vendor/three.module.js`. The server binds only to
+`127.0.0.1` and explicitly allows only the game's three local files. No
+external game services, CDN or analytics are used. The code can be inspected.
 
-```bash
-npm install --ignore-scripts
-npm run web
+If macOS shows **“Malware Blocked and Moved to Trash”** for Electron, do **not**
+restore the app, use `xattr -d`, disable Gatekeeper or XProtect, or select an
+override option. The browser path avoids Electron entirely. Security or
+functionality can never be guaranteed 100%; only run software you trust.
+
+## Features
+
+- Cartoon-style 3D first-person world, 24 aisles × 2 sides × 100 shelf units
+  × 3 tiers × 4 items = **57,600 products**.
+- Stock soup cans, bottled water and wine. Earn coins per item.
+- WASD walking, Shift sprinting, mouse look, E or click to grab supplies/stock.
+- Q upgrade shop: better shoes, bag capacity, faster hands, improved earnings,
+  supply conveyor stations and mustached self-stocking robots.
+- Browser-local save progress; Reset button on title screen.
+- When every shelf is filled, an empty grand opening leads to 20 progressively
+  faster sunrise/sunset cycles, then **WENT BANKRUPT / Thanks for Playing!**
+
+Conveyor upgrades currently create supply stations, not a full physics-based
+transport network. This prototype is not feature-complete.
+
+## Offline checks
+
+No package install is required to run the static/server tests:
+
+```sh
+node --check server.cjs
+node --check src/game.js
+node --test tests/smoke.test.cjs
 ```
 
-Open http://localhost:8000 in Chrome or Safari. Keep Terminal open while playing;
-press Ctrl+C to stop the preview.
+To preview the full ending without stocking every shelf, visit
+`http://127.0.0.1:8000/#ending`. The automated test-only short preview is
+`#ending-test`. The `#rich` developer shortcut awards testing coins.
 
-## Play as a desktop app
+GitHub Actions runs static/server tests on macOS and Linux, plus headless
+Chromium game-start and ending smoke tests. See **Actions** for actual results.
+Passing CI verifies those scenarios, **not** every graphics card or Mac OS
+version. A human playthrough on the target Mac is still necessary.
 
-Only use this option if macOS allows the downloaded runtime to run normally.
+## Desktop development and Steam
 
-```bash
-npm install
-npm start
-```
+The Electron wrapper remains in source for later desktop packaging, but **do
+not use `npm start`** on a Mac that previously blocked Electron as malware.
+A Steam-ready Mac release still needs an audited runtime, code signing and
+Apple notarization, Steamworks onboarding, release assets, performance testing,
+controller/accessibility work, and an end-to-end playtest. Linux and Windows
+desktop distribution also require dedicated release verification.
 
-If macOS displays **Malware Blocked and Moved to Trash**, do not override XProtect,
-disable Gatekeeper, or restore the blocked executable. Update macOS first and
-only use a current, trusted Electron release, or use the browser preview instead.
-A local Electron development build is not code-signed or notarized for public
-distribution; a future Steam/macOS build needs security review and proper signing.
-
-## Validate syntax
-
-```bash
-npm run check
-```
-
-## Desktop builds
-
-```bash
-npm run dist
-```
-
-Electron Builder is configured for unpacked desktop output. Build on each target OS
-when practical and test each generated build. A build is **not** a published Steam
-release: Steam distribution requires a Steamworks account, Steam Direct onboarding,
-application setup, store assets, builds uploaded via SteamPipe, and Valve review.
-
-## Developer shortcuts
-The original prototype supports `#rich` for 10 million test coins and
-`#ending` to preview the ending. These are debugging shortcuts, not achievements.
-
-## Notes
-- This is a playable prototype, not a content-complete commercial release.
-- Conveyor purchases add animated supply pickup stations inside aisles. They do
-  not yet implement a physics-based item transport network.
-- Robot helpers autonomously travel to and fill incomplete shelves.
-- Saves use localStorage on each machine, not Steam Cloud.
-- The project deliberately avoids reusing assets from other games.
-
+The game runs entirely on your own machine; progress is saved by the browser
+in localStorage and does not sync to Steam Cloud.
