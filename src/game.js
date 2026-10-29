@@ -37,12 +37,12 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.4));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.4;
+renderer.toneMappingExposure=1.15;
 document.body.prepend(renderer.domElement);
 const scene=new THREE.Scene();scene.background=new THREE.Color('#d9dfe0');scene.fog=new THREE.Fog('#d9dfe0',75,190);
 const camera=new THREE.PerspectiveCamera(76,innerWidth/innerHeight,.1,1100);camera.rotation.order='YXZ';
 scene.add(camera);
-const skyLight=new THREE.HemisphereLight('#ffffff','#a7afb6',1.55);scene.add(skyLight);
+const skyLight=new THREE.HemisphereLight('#ffffff','#a7afb6',1.2);scene.add(skyLight);
 const sunlight=new THREE.DirectionalLight('#ffffff',1.1);sunlight.position.set(-30,75,35);scene.add(sunlight);
 const toon=(c,extra={})=>new THREE.MeshToonMaterial({color:c,...extra});
 const baseMat=new THREE.MeshStandardMaterial({color:'#d9dedf',roughness:.52,metalness:.12});
@@ -281,38 +281,88 @@ function drawProduct(id,slot){
  m.setColorAt(idx,color.set(palettes[aisle%5][slot%3]));
  m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;
 }
+
+function equipmentMaterial(hex, metalness=.12, roughness=.48){
+ return new THREE.MeshStandardMaterial({color:hex,metalness,roughness});
+}
+function cylinder(radius,depth,material,parent,x,y,z,rotation=0){
+ const part=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,depth,20),material);
+ part.rotation.z=rotation;part.position.set(x,y,z);parent.add(part);return part;
+}
+function industrialWheel(parent,x,y,z,r=.26){
+ const rubber=equipmentMaterial('#292f32',.08,.85),rim=equipmentMaterial('#8d999a',.55,.3);
+ cylinder(r,.17,rubber,parent,x,y,z,Math.PI/2);
+ cylinder(r*.55,.18,rim,parent,x,y,z,Math.PI/2);
+ cylinder(r*.16,.19,equipmentMaterial('#c77a34',.25,.4),parent,x,y,z,Math.PI/2);
+}
 function makeBelt(f,a,segment){
- const group=new THREE.Group();world.add(group);const z=bayZ(BAYS-1-segment);
- group.position.set(aisleX(a)+1.4,0,z);
- const base=round(.98,.28,2.55,'#667682',group);base.position.y=.25;
- for(let k=0;k<5;k++){
- const roller=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,.93,12),toon('#38485a'));
- roller.rotation.z=Math.PI/2;roller.position.set(0,.41,(k-2)*.55);group.add(roller);
+ const group=new THREE.Group();world.add(group);
+ group.position.set(aisleX(a)+1.4,0,bayZ(BAYS-1-segment));
+ const steel=equipmentMaterial('#a2adae',.62,.36);
+ const belt=equipmentMaterial('#384447',.08,.85);
+ const orange=equipmentMaterial('#ba743c',.2,.45);
+ const frame=round(1.08,.2,2.55,steel,group);frame.position.y=.44;
+ const surface=round(.86,.065,2.4,belt,group);surface.position.y=.56;
+ for(const side of [-1,1]){
+   const rail=round(.07,.22,2.55,steel,group);rail.position.set(side*.5,.65,0);
+   for(const z of [-.91,.91]) {
+    const foot=round(.1,.45,.14,steel,group);foot.position.set(side*.45,.23,z);
+   }
  }
- const crate=round(.55,.42,.52,'#d89b5b',group);crate.position.set(0,.75,0);
+ for(let i=0;i<6;i++)cylinder(.07,.91,steel,group,0,.6,(i-2.5)*.4,Math.PI/2);
+ const guard=round(.06,.16,.44,orange,group);guard.position.set(.54,.67,-.83);
+ const crate=round(.59,.37,.48,equipmentMaterial('#bca582',0,.9),group);
+ crate.position.set(0,.84,0);
  beltCrates.push({crate,segment});
 }
 function botAppearance(r){
  const b=new THREE.Group();world.add(b);
- const body=round(.78,.82,.6,'#7a8c84',b);body.position.y=.7;
- const head=round(.66,.46,.55,'#bfc9c2',b);head.position.y=1.33;
- for(let j of [-1,1]){
- const eye=new THREE.Mesh(new THREE.SphereGeometry(.073,12,10),toon('#252539'));eye.position.set(j*.18,1.41,-.29);b.add(eye);
- const moustache=new THREE.Mesh(new THREE.SphereGeometry(.19,12,10),toon('#49314b'));moustache.scale.set(1,.42,.55);moustache.position.set(j*.15,1.2,-.33);moustache.rotation.z=j*.28;b.add(moustache);
+ const shell=equipmentMaterial('#e0e1db',.16,.37);
+ const trim=equipmentMaterial('#677476',.35,.38);
+ const black=equipmentMaterial('#252c31',.05,.45);
+ const orange=equipmentMaterial('#c57d3c',.18,.4);
+ const frame=round(.95,.36,.98,black,b);frame.position.y=.43;
+ const body=round(.86,.75,.88,shell,b);body.position.y=.88;
+ const shoulder=round(.79,.15,.78,trim,b);shoulder.position.y=1.27;
+ const head=round(.69,.51,.65,shell,b);head.position.y=1.57;
+ const visor=round(.59,.29,.07,black,b);visor.position.set(0,1.59,-.34);
+ for(const side of [-1,1]){
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(.073,16,12),new THREE.MeshBasicMaterial({color:'#a3d8d5'}));
+  eye.position.set(side*.16,1.64,-.388);b.add(eye);
+  const stache=new THREE.Mesh(new THREE.SphereGeometry(.155,16,12),black);
+  stache.scale.set(1,.33,.5);stache.position.set(side*.13,1.46,-.39);
+  stache.rotation.z=side*.22;b.add(stache);
+  industrialWheel(b,side*.48,.27,-.3,.22);
+  industrialWheel(b,side*.48,.27,.32,.22);
+  const arm=round(.16,.48,.18,trim,b);arm.position.set(side*.54,1.01,-.06);
  }
- for(let j of [-1,1]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.2,14),toon('#424251'));wheel.rotation.z=Math.PI/2;wheel.position.set(j*.42,.26,0);b.add(wheel);}
- const crate=round(.37,.3,.35,'#d8a05f',b);crate.position.set(0,1,-.38);crate.name='crate';
+ const light=round(.26,.08,.12,orange,b);light.position.set(0,1.84,-.07);
+ const hatch=round(.55,.07,.44,trim,b);hatch.position.set(0,1.31,.13);
+ const crate=round(.45,.33,.39,equipmentMaterial('#b89e79',0,.75),b);
+ crate.position.set(0,1.55,-.16);crate.name='crate';
  b.position.set(r.x,0,r.z);return b;
 }
 function makeCart(){
  if(!s.levels.cart)return;
  cartMesh=new THREE.Group();world.add(cartMesh);
- const base=round(1.2,.33,1.5,'#ad9a72',cartMesh);base.position.y=.38;
- const mast=round(.17,9.2,.21,'#778786',cartMesh);mast.position.set(.35,4.9,.45);
- const shelf=round(.8,.12,.9,'#d8ded8',cartMesh);shelf.position.set(.15,9.45,.2);
- for(let side of [-1,1])for(let z of [-.5,.5]){
- const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.16,16),toon('#393344'));wheel.rotation.z=Math.PI/2;wheel.position.set(side*.57,.22,z);cartMesh.add(wheel);
+ const shell=equipmentMaterial('#e4e2da',.15,.42);
+ const steel=equipmentMaterial('#88999a',.6,.35);
+ const dark=equipmentMaterial('#2d3439',.08,.62);
+ const orange=equipmentMaterial('#c17e44',.18,.48);
+ const body=round(1.38,.65,1.83,shell,cartMesh);body.position.y=.67;
+ const bumper=round(1.46,.19,.17,dark,cartMesh);bumper.position.set(0,.42,-.92);
+ const grille=round(.72,.31,.045,dark,cartMesh);grille.position.set(0,.78,-.93);
+ for(const side of [-1,1]){
+  industrialWheel(cartMesh,side*.69,.28,-.52,.27);
+  industrialWheel(cartMesh,side*.69,.28,.57,.27);
+  const light=round(.18,.12,.04,orange,cartMesh);light.position.set(side*.49,.94,-.938);
+  const railing=round(.07,8.7,.08,steel,cartMesh);railing.position.set(side*.5,5.2,.62);
  }
+ const mast=round(.19,9.6,.23,steel,cartMesh);mast.position.set(0,5.1,.49);
+ const runner=round(.79,.14,.96,steel,cartMesh);runner.position.set(0,9.72,.23);
+ const lift=round(.94,.08,.52,shell,cartMesh);lift.position.set(0,9.9,-.2);
+ const stripe=round(.69,.08,.045,orange,cartMesh);stripe.position.set(0,1.04,-.925);
+ const panel=round(.38,.23,.07,dark,cartMesh);panel.position.set(0,1.02,-.92);
 }
 function makeLadder(){
  if(!ladder||s.levels.cart||ladder.floor!==s.floor)return;
