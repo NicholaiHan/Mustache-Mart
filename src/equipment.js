@@ -60,14 +60,26 @@ function makeCart(){
  return cartMesh;
 }
 function makeLadder(){
- const ladder=getLadder();
- if(!ladder||s.levels.cart||ladder.floor!==s.floor)return;
- const ladderMesh=new THREE.Group();getWorld().add(ladderMesh);
- for(const x of [-.4,.4]){const h=s.levels.ladderPlus?10.6:6.2;const post=round(.13,h,.13,'#d5a844',ladderMesh);post.position.set(x,h/2+.1,0);}
- for(let n=0;n<(s.levels.ladderPlus?18:10);n++){const rung=round(.82,.12,.3,'#b5bec3',ladderMesh);rung.position.set(0,.42+n*.55,0);}
- ladderMesh.position.set(ladder.x,0,ladder.z);
- return ladderMesh;
+ const group=new THREE.Group();getWorld().add(group);
+ for(const ladder of s.ladders.filter(l=>l.floor===s.floor)){
+  const ladderMesh=new THREE.Group();group.add(ladderMesh);
+  const high=s.levels.ladderPlus;
+  const h=high?10.6:6.2;
+  const metal=equipmentMaterial('#b5bdba',.68,.28),warning=equipmentMaterial('#d6aa48',.32,.4),rubber=equipmentMaterial('#2e3b40',.03,.86);
+  for(const x of [-.43,.43]){
+   const post=round(.11,h,.13,metal,ladderMesh);post.position.set(x,h/2+.1,0);
+   const foot=round(.2,.2,.27,rubber,ladderMesh);foot.position.set(x,.14,0);
+  }
+  for(let n=0;n<(high?18:10);n++){
+   const rung=round(.81,.105,.19,n%3===0?warning:metal,ladderMesh);
+   rung.position.set(0,.48+n*.55,-.04);
+  }
+  const stabilizer=round(1.2,.15,.88,warning,ladderMesh);stabilizer.position.set(0,.17,.36);
+  const cap=round(1,.13,.31,rubber,ladderMesh);cap.position.set(0,h+.08,0);
+  ladderMesh.position.set(ladder.x,0,ladder.z);
+  ladderMesh.name='ladder-'+ladder.id;
+ }
+ return group;
 }
-
 return {makeBelt,makeCart,makeLadder};
 }
