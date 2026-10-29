@@ -3,41 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#a6e4ed">
+<meta name="theme-color" content="#d3d6d2">
 <title>Mustache Mart · 15 Floors of Regret</title>
 <style>
-:root {color-scheme:light;--ink:#322947;--yellow:#ffcf56;--pink:#f88dac;--aqua:#a2eadd;--paper:#fffcf0}
+:root {color-scheme:light;--ink:#30393b;--yellow:#d9b478;--pink:#a1a99f;--aqua:#b4c2b9;--paper:#f2f0e9}
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#a6e4ed;color:var(--ink);font-family:system-ui,-apple-system,"Trebuchet MS",sans-serif}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#d3d6d2;color:var(--ink);font-family:system-ui,-apple-system,"Trebuchet MS",sans-serif}
 canvas{display:block}
-button{font:inherit;font-weight:850;border:3px solid var(--ink);border-radius:15px;padding:10px 15px;background:var(--yellow);color:var(--ink);cursor:pointer;box-shadow:3px 4px 0 var(--ink)}
+button{font:inherit;font-weight:850;border:2px solid var(--ink);border-radius:9px;padding:10px 15px;background:var(--yellow);color:var(--ink);cursor:pointer;box-shadow:2px 3px 0 #202c2b44}
 button:hover:not(:disabled){filter:brightness(1.035)}
 button:disabled{background:#dbdadd;color:#777;cursor:default}
 button:focus-visible{outline:4px solid #a944e0;outline-offset:2px}
 #hud{position:absolute;inset:0;pointer-events:none}
 #stats{position:absolute;top:14px;left:14px;display:flex;gap:8px;flex-wrap:wrap;max-width:min(930px,90vw)}
-.pill{background:rgba(255,253,246,.96);padding:9px 14px;border:3px solid var(--ink);border-radius:15px;font-weight:850;box-shadow:3px 4px 0 var(--ink)}
+.pill{background:rgba(247,248,243,.95);padding:9px 14px;border:2px solid #42504e;border-radius:9px;font-weight:750;box-shadow:3px 4px 0 var(--ink)}
 #objective{position:absolute;top:76px;left:14px;max-width:min(650px,90vw);font-size:13px}
 #progress{position:absolute;left:14px;bottom:20px;width:300px;max-width:54vw;border:3px solid var(--ink);border-radius:15px;background:#fff;padding:5px 10px;font-size:12px;font-weight:800}
 #progress-track{height:7px;background:#ece4ed;border-radius:10px;overflow:hidden;margin-top:5px}
-#progress-bar{height:100%;width:0;background:linear-gradient(90deg,#fb85a8,#48c9b8)}
+#progress-bar{height:100%;width:0;background:linear-gradient(90deg,#7d988d,#c2a174)}
 #prompt{position:absolute;bottom:85px;left:50%;transform:translateX(-50%);max-width:95vw;text-align:center;font-size:16px}
 #help{position:absolute;bottom:18px;right:15px;text-align:right;font-size:12px;max-width:min(500px,48vw)}
 #crosshair{position:absolute;top:50%;left:50%;width:13px;height:13px;transform:translate(-50%,-50%);border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 2px var(--ink)}
-#toast{position:absolute;top:135px;left:50%;transform:translateX(-50%);color:var(--ink);font-weight:800;padding:12px 18px;background:#fff7cd;border:3px solid var(--ink);border-radius:14px;opacity:0;transition:opacity .15s;max-width:90vw;text-align:center}
-.dialog{position:fixed;inset:0;z-index:20;background:rgba(29,22,50,.67);display:none;align-items:center;justify-content:center;padding:20px}
+#toast{position:absolute;top:135px;left:50%;transform:translateX(-50%);color:var(--ink);font-weight:800;padding:12px 18px;background:#f5eed9;border:3px solid var(--ink);border-radius:14px;opacity:0;transition:opacity .15s;max-width:90vw;text-align:center}
+.dialog{position:fixed;inset:0;z-index:20;background:rgba(25,31,31,.64);display:none;align-items:center;justify-content:center;padding:20px}
 .dialog.open{display:flex}
-.panel{background:var(--paper);border:5px solid var(--ink);border-radius:26px;padding:23px;max-height:88vh;overflow:auto;box-shadow:8px 10px 0 #251b38;width:min(800px,100%)}
-.panel h1{font-size:clamp(40px,7vw,76px);font-weight:1000;line-height:.95;color:#f77a99;text-shadow:3px 4px 0 var(--ink);margin:0 0 16px}
+.panel{background:var(--paper);border:3px solid var(--ink);border-radius:16px;padding:23px;max-height:88vh;overflow:auto;box-shadow:8px 10px 26px #151e1e66;width:min(800px,100%)}
+.panel h1{font-size:clamp(40px,7vw,76px);font-weight:1000;line-height:.95;color:#344b45;text-shadow:2px 3px 0 #d5d3bd;margin:0 0 16px}
 .panel h2{font-size:30px;margin:0 0 12px}
 .panel p{line-height:1.5}
-#intro{background:radial-gradient(circle at 50% 40%,#c3fff1 0%,#a6e4ed 75%)}
+#intro{background:radial-gradient(circle at 50% 40%,#edf0e9 0%,#d6dbd6 75%)}
 #intro .panel{text-align:center;max-width:660px}
 .hint{font-size:13px;color:#635e6b}
 #shopitems{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:10px;margin:14px 0}
-.upgrade{display:flex;flex-direction:column;justify-content:space-between;background:#fff;border:3px solid var(--ink);border-radius:16px;padding:13px;gap:10px}
+.upgrade{display:flex;flex-direction:column;justify-content:space-between;background:#fdfdf9;border:2px solid #828e89;border-radius:10px;padding:13px;gap:10px}
 .upgrade small{display:block;color:#665f70;line-height:1.35;margin:5px 0}
 .upgrade button{align-self:flex-start;font-size:13px}
+#shopTabs{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 8px}
+#shopTabs button{background:#e4e6dd}
+#shopTabs button.selected{background:#c1d1c6;border-color:#526d5f}
+#shopTabs button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px #f5f7ef}
 #elevatorlist{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:18px 0}
 #elevatorlist button{font-size:14px}
 #end{background:#17213f;color:#fff;text-align:center}
@@ -46,7 +50,7 @@ button:focus-visible{outline:4px solid #a944e0;outline-offset:2px}
 #endingDay{font-size:30px;font-weight:900}
 #bank{display:none;background:#d92334;color:white;padding:22px;transform:rotate(-4deg);font-size:clamp(37px,7vw,92px);font-weight:1000;border-block:9px dashed #fff;box-shadow:0 9px 28px #0009}
 #thanks{font-size:38px;display:none;font-weight:850;margin-top:36px}
-#loading{position:fixed;inset:0;z-index:99;background:#fdf6de;display:grid;place-items:center;text-align:center;font-size:22px;font-weight:900}
+#loading{position:fixed;inset:0;z-index:99;background:#f0eee7;display:grid;place-items:center;text-align:center;font-size:22px;font-weight:900}
 #loading[hidden]{display:none}
 @media(max-width:650px){#stats{gap:4px}.pill{padding:6px 8px;font-size:11px}#objective{top:103px}#elevatorlist{grid-template-columns:repeat(3,1fr)}#help{font-size:10px}}
 </style>
@@ -65,28 +69,28 @@ button:focus-visible{outline:4px solid #a944e0;outline-offset:2px}
   <div id="crosshair"></div>
   <div id="prompt" class="pill" hidden></div>
   <div id="toast"></div>
-  <div id="progress"><span id="progressText">0 / 108,000 stocked</span><div id="progress-track"><div id="progress-bar"></div></div></div>
+  <div id="progress"><span id="progressText">0 / 144,000 stocked</span><div id="progress-track"><div id="progress-bar"></div></div></div>
   <div class="pill" id="help">WASD move · Mouse / Arrows look · Shift sprint · E interact · Space jump · L ladder · B build belt · Esc pause</div>
 </div>
 <div class="dialog open" id="intro">
   <div class="panel">
     <h1>MUSTACHE<br>MART 🥸</h1>
-    <p><strong>15 floors. 108,000 items. One grand opening.</strong><br>Carry a SINGLE can at the start. Earn 1¢ for a bottom-shelf item, 2¢ for the middle shelf, and 3¢ for the very top. Collect your wages at the PAY WINDOW, then visit the mustached shopkeeper to buy upgrades. Eventually let conveyor belts and robots do all the work.</p>
-    <p class="hint">Move: WASD · Hold E: interact · Mouse or arrows: look · Q: shopkeeper (nearby) · R: elevator (nearby) · B: extend conveyor · Space: jump (upgrade) · L: place ladder · Esc: pause</p>
+    <p><strong>15 floors. 144,000 products. One grand opening.</strong><br>The inventory warehouse is all the way at the BACK of the store. Begin by carrying a single can through long aisles. Earn 1¢ on lower racks, 2¢ using a step ladder and 3¢ with the telescopic ladder extension. Collect pay at the front window, then visit Mustache Mike for tools and economy contracts.</p>
+    <p class="hint">WASD to walk · E to collect / stock · mouse or arrow keys to aim · Q near Mike for upgrades · R at elevator · B to extend rear-fed conveyor · Space to jump (upgrade) · L for ladder · Escape to close any dialogue.</p>
     <button id="play">Start your shift</button> <button id="reset">Reset this game's saved progress</button>
     <p class="hint">Your progress stays in this browser on this Mac. The game uses only locally stored assets and does not need Electron.</p>
   </div>
 </div>
 <div class="dialog" id="shop" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
  <div class="panel"><h2 id="shopTitle">🧔 Mustache Mike's Upgrade Counter</h2>
-  <p>Available at the counter: <strong id="shopMoney">$0.00</strong>. Stock shelves, then collect wages at the window. Robots automatically earn their own wages.</p>
-  <div id="shopitems"></div><button id="shopClose">Back to work</button>
+  <p>Cash available: <strong id="shopMoney">$0.00</strong>. Tools improve hauling and access; economy contracts multiply product revenue. Visit the pay window to collect your manual wages.</p>
+  <div id="shopTabs" role="group" aria-label="Upgrade categories"><button id="tab-tools" type="button" aria-pressed="true" class="selected">Equipment &amp; automation</button><button id="tab-economy" type="button" aria-pressed="false">Economy contracts</button></div><div id="shopitems"></div><button id="shopClose">Back to work (Esc)</button>
  </div>
 </div>
 <div class="dialog" id="elevator" role="dialog" aria-modal="true" aria-labelledby="elevatorTitle">
  <div class="panel"><h2 id="elevatorTitle">🛗 Fifteen Floors of Retail</h2>
   <p>Choose a floor. Each floor has its own shelving and conveyor layouts. Robots continue working when you're upstairs.</p>
-  <div id="elevatorlist"></div><button id="elevatorClose">Back to work</button>
+  <div id="elevatorlist"></div><button id="elevatorClose">Back to work (Esc)</button>
  </div>
 </div>
 <div class="dialog" id="end"><div class="panel">
