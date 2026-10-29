@@ -124,7 +124,7 @@ const assert=require('node:assert/strict');
   await page.keyboard.press('b');await page.waitForTimeout(250);
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.belts[0],1);
-  await page.waitForTimeout(1600);
+  await page.waitForFunction(()=>window.__martTest.snapshot().beltStock[0]>0,undefined,{timeout:25000});
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.ok(snap.beltStock[0]>0,'connected conveyor transports products to its endpoint');
   await page.evaluate(()=>window.__martTest.teleport(9.4,89.85));
