@@ -4,11 +4,12 @@
   "description": "An absurdly long, colorful, first-person supermarket shelf-stocking simulator.",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "node server.cjs",
     "dist": "electron-builder",
     "check": "node --check main.js && node --check src/game.js && node --check server.cjs",
     "web": "node server.cjs",
-    "test": "node --test tests/*.test.cjs"
+    "test": "node --test tests/*.test.cjs",
+    "desktop": "electron ."
   },
   "dependencies": {
     "three": "0.160.0"
