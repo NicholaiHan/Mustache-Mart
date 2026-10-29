@@ -40,7 +40,7 @@ export function loadState(text){
  for(const u of UPGRADES)s.levels[u.id]=limit(d.levels?.[u.id],u.max);
  if(Array.isArray(d.belts))for(let f=0;f<FLOORS;f++)for(let a=0;a<AISLES;a++)s.belts[f][a]=limit(d.belts[f]?.[a],BAYS);
  if(Array.isArray(d.cursor))d.cursor.slice(0,FLOORS).forEach((v,i)=>s.cursor[i]=limit(v,CELLS_PER_FLOOR-1));
- if(Array.isArray(d.robots))s.robots=d.robots.slice(0,s.levels.robot).map((r,i)=>({id:i,floor:limit(r.floor,FLOORS-1),x:old?DOCK.x:(Number.isFinite(r.x)?r.x:DOCK.x),z:old?REAR_CROSSWALK:(Number.isFinite(r.z)?r.z:REAR_CROSSWALK),phase:!old&&['supply','shelf'].includes(r.phase)?r.phase:'supply',target:!old&&Number.isInteger(r.target)&&r.target>=0&&r.target<TOTAL_CELLS?r.target:-1,carry:limit(r.carry,8),acc:0}));
+ if(Array.isArray(d.robots))s.robots=d.robots.slice(0,s.levels.robot).map((r,i)=>({id:i,floor:limit(r.floor,FLOORS-1),x:old?DOCK.x:(Number.isFinite(r.x)?r.x:DOCK.x),z:old||(r.phase==='supply'&&Math.abs(Number(r.x)-DOCK.x)<3&&Number(r.z)>93&&Number(r.z)<98)?REAR_CROSSWALK:(Number.isFinite(r.z)?r.z:REAR_CROSSWALK),phase:!old&&['supply','shelf'].includes(r.phase)?r.phase:'supply',target:!old&&Number.isInteger(r.target)&&r.target>=0&&r.target<TOTAL_CELLS?r.target:-1,carry:limit(r.carry,8),acc:0}));
  while(s.robots.length<s.levels.robot)hireRobot(s);
  const c=d.cart||{};s.cart={floor:limit(c.floor,FLOORS-1),aisle:limit(c.aisle,AISLES-1),z:Math.max(11,Math.min(94,Number(c.z)||13)),acc:0};
  }catch(_){return newState();}
