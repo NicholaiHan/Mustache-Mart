@@ -89,3 +89,26 @@ test('30 accelerated complete full-building runs preserve 144,000 items, wages, 
  assert.equal(reports.length,30);
  console.log('30 accelerated full-building simulations passed: '+reports.reduce((v,a)=>v+a.items,0).toLocaleString()+' items processed; all 15 floors, wages, saves and finale verified per run');
 });
+
+test('working robots follow open rear crosswalk instead of phasing through shelf steel',()=>{
+ const r=rules,c=collision,st=r.newState();
+ st.money=500;assert.equal(r.purchase(st,'robot'),true);
+ const bot=st.robots[0];
+ for(let i=0;i<2600;i++){
+   r.botStep(st,bot,.1);
+   assert.equal(c.isBlocked(bot.x,bot.z),false,'robot cannot traverse a solid shelf or pallet');
+ }
+ assert.ok(st.stocked>=16,'robot still stocks multiple products without clipping');
+});
+test('built conveyors and moving robots have physical player collision',()=>{
+ const r=rules,c=collision,st=r.newState();st.money=500;
+ assert.equal(r.buildBelt(st,0,0,0),true);
+ assert.equal(c.blockedEquipment(st,r.aisleX(0)+1.4,r.bayZ(r.BAYS-1)),true);
+ assert.equal(c.blockedEquipment(st,8,40),false);
+ assert.equal(r.purchase(st,'robot'),true);
+ const bot=st.robots[0];
+ assert.equal(c.blockedEquipment(st,bot.x,bot.z),true);
+ const escape=c.moveWithCollisions(bot.x,bot.z,2.5,0,0,(x,z)=>c.blockedEquipment(st,x,z));
+ assert.equal(c.isBlocked(escape.x,escape.z),false);
+ assert.ok(Math.hypot(escape.x-bot.x,escape.z-bot.z)>.3,'player must be able to step away from overlapping robot');
+});
