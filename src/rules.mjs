@@ -83,6 +83,7 @@ export function incomplete(s,f,start=0){
 export function nextRobotFloor(s){for(let f=0;f<FLOORS;f++)if(incomplete(s,f,s.cursor[f])>=0)return f;return -1;}
 export function hireRobot(s){const f=nextRobotFloor(s);if(f>=0)s.robots.push({id:s.robots.length,floor:f,x:DOCK.x,z:DOCK.z,phase:'supply',target:-1,carry:0,acc:0});}
 export const remaining=s=>TOTAL_ITEMS-s.stocked;
+export const canOpenStore=s=>s.stocked===TOTAL_ITEMS&&remaining(s)===0;
 export function floorStocked(s,f){let sum=0,base=f*CELLS_PER_FLOOR;for(let i=0;i<CELLS_PER_FLOOR;i++)sum+=s.fill[base+i];return sum;}
 export const itemsPerFloor=CELLS_PER_FLOOR*SLOTS;
 function approach(r,x,z,dt,speed){
