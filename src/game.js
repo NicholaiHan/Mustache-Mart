@@ -19,7 +19,18 @@ const TYPE_NAMES = ['Soup Cans', 'Water Bottles', 'Fancy Wine'];
 const S = { coins: 0, lv: { speed: 0, bag: 0, hands: 0, price: 0, belt: 0, robot: 0, caf: 0 }, fill: new Uint8Array(UNIT_COUNT), stocked: 0 };
 try {
   const raw = localStorage.getItem(SAVE_KEY);
-  if (raw) { const d = JSON.parse(raw); S.coins = d.coins || 0; Object.assign(S.lv, d.lv || {}); (d.fill || []).forEach((v, i) => { if (i < UNIT_COUNT) S.fill[i] = Math.max(0, Math.min(PER, Number(v) || 0)); }); }
+  if (raw) {
+    const d = JSON.parse(raw);
+    S.coins = Number.isFinite(d.coins) ? Math.max(0, d.coins) : 0;
+    const limits = { speed:25, bag:40, hands:30, price:30, belt:72, robot:200, caf:20 };
+    for (const key of Object.keys(limits)) {
+      const level = Number(d.lv?.[key]);
+      if (Number.isFinite(level)) S.lv[key] = Math.max(0, Math.min(limits[key], Math.floor(level)));
+    }
+    if (Array.isArray(d.fill)) d.fill.slice(0, UNIT_COUNT).forEach((v,i) => {
+      S.fill[i] = Math.max(0, Math.min(PER, Math.floor(Number(v) || 0)));
+    });
+  }
 } catch (e) {}
 S.stocked = S.fill.reduce((a, b) => a + b, 0);
 if (location.hash === '#rich') S.coins = 10_000_000;
@@ -45,8 +56,18 @@ const UPGRADES = [
 ];
 
 /* ================= THREE SETUP ================= */
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'default' });
+} catch (err) {
+  const message = document.createElement('div');
+  message.setAttribute('role', 'alert');
+  message.style.cssText = 'position:fixed;inset:10%;z-index:99;background:white;border:5px solid #2b1b3d;border-radius:20px;padding:30px;font:700 20px system-ui;overflow:auto';
+  message.textContent = 'Mustache Mart could not start its 3D renderer. Please update Safari or Chrome and enable hardware acceleration. Your save is still stored in this browser. Details: ' + String(err.message || err);
+  document.body.appendChild(message);
+  throw err;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 document.body.prepend(renderer.domElement);
 
@@ -284,6 +305,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyF') { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.(); }
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouseDown = false; P.act = 0; });
 addEventListener('mousedown', () => { if (locked) { mouseDown = true; P.act = 1; } });
 addEventListener('mouseup', () => { mouseDown = false; });
 addEventListener('mousemove', e => {
@@ -332,9 +354,10 @@ starGeo.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
 const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 3, sizeAttenuation: false, transparent: true, opacity: 0, fog: false })); scene.add(stars);
 
 let endT = 0, endRunning = false, endDone = false;
-const dayLen = i => FIRST_DAY_SECONDS * DAY_SPEEDUP ** i;
+const TEST_ENDING = location.hash === '#ending-test';
+const dayLen = i => FIRST_DAY_SECONDS * (TEST_ENDING ? 0.035 : 1) * DAY_SPEEDUP ** i;
 function startEnding() {
-  if (ending) return; ending = true; shopOpen = false; $('shop').style.display = 'none'; document.exitPointerLock(); $('start').style.display = 'none';
+  if (ending) return; save(); ending = true; shopOpen = false; $('shop').style.display = 'none'; document.exitPointerLock(); $('start').style.display = 'none';
   $('fade').style.opacity = 1;
   setTimeout(() => {
     $('hud').style.display = 'none'; hand.visible = false; robots.forEach(r => (r.mesh.visible = false));
@@ -342,7 +365,7 @@ function startEnding() {
     $('endHud').style.display = 'block'; endRunning = true; $('fade').style.opacity = 0;
   }, 1100);
 }
-if (location.hash === '#ending') startEnding();
+if (location.hash === '#ending' || TEST_ENDING) startEnding();
 
 function updateEnding(dt) {
   if (!endRunning || endDone) return;
@@ -353,6 +376,7 @@ function updateEnding(dt) {
     $('endHud').style.display = 'none'; $('bank').style.display = 'flex'; requestAnimationFrame(() => requestAnimationFrame(() => $('bank').classList.add('show'))); return;
   }
   $('dayTxt').textContent = `Day ${i + 1}`;
+  document.documentElement.dataset.endingDay = String(i + 1);
   const u = t / dayLen(i); let h = 0;
   sunMesh.visible = moonMesh.visible = false;
   const arc = (v, m) => { const th = Math.PI - v * Math.PI; m.position.set(DOOR_X + Math.cos(th) * 190, Math.sin(th) * 130 - 6, -300); m.visible = true; return Math.sin(th); };
@@ -412,4 +436,5 @@ function frame(now) {
   renderer.render(scene, camera);
 }
 let hiddenAcc = 0;
+if (S.stocked >= TOTAL && !ending) startEnding();
 requestAnimationFrame(frame);
