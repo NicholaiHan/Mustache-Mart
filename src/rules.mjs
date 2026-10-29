@@ -77,8 +77,8 @@ export const price=(u,l)=>Math.ceil(u.base*u.factor**l);
 export function purchase(s,id){
  const u=UPGRADES.find(x=>x.id===id);if(!u)return false;
  const level=s.levels[id],cost=price(u,level);if(level>=u.max||s.money<cost)return false;
- if(id==='cart'&&!s.levels.ladder)return false;
- if(id==='ladderPlus'&&!s.levels.ladder)return false;
+ if(id==='cart'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
+ if(id==='ladderPlus'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
  s.money-=cost;s.levels[id]++;if(id==='robot')hireRobot(s,cost,false);if(id==='ladder'||id==='ladderUnit')s.ladderInventory.push({kind:id,paid:cost});return true;
 }
 export function payOut(s){const p=s.pending;s.pending=0;s.money+=p;return p;}
