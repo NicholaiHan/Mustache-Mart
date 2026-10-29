@@ -165,6 +165,65 @@ function act(){
  }
  if(manualStock())return;
 }
+function nearestBeltStock(){
+ let best=null,dist=2.7;
+ for(let a=0;a<AISLES;a++){
+  const n=s.belts[s.floor][a];if(!n||!s.beltStock[s.floor][a])continue;
+  const x=aisleX(a)+1.4,z=bayZ(BAYS-n),d=Math.hypot(V.x-x,V.z-z);
+  if(d<dist){dist=d;best={aisle:a,x,z};}
+ }
+ return best;
+}
+function startRobotPlacement(id){
+ placementRobotId=id;show(null);running=true;document.exitPointerLock?.();
+ robotGhost=botAppearance({x:V.x,z:V.z,carry:0,id:-1});
+ robotGhost.scale.setScalar(.9);
+ robotGhost.traverse(o=>{
+  if(o.isMesh){o.material=o.material.clone();o.material.transparent=true;o.material.opacity=.55;o.material.depthWrite=false;}
+ });
+ notify('ROBOT PLACEMENT · Walk to an aisle and LEFT CLICK to install · Escape cancels');
+}
+function completeRobotPlacement(){
+ if(placementRobotId===null)return false;
+ const a=nearestAisle(),bay=nearestBay();
+ if(V.z<11||V.z>91.8||Math.abs(V.x-aisleX(a))>2.4){
+  notify('Walk into an aisle before placing the robot.');return false;
+ }
+ if(!assignRobot(s,placementRobotId,s.floor,a,bay))return false;
+ const id=placementRobotId;placementRobotId=null;
+ if(robotGhost){world.remove(robotGhost);robotGhost=null;}
+ buildWorld();save();
+ notify('Robot #'+id+' installed in aisle '+(a+1)+'. It will use the closest stock source.');
+ return true;
+}
+function cancelPlacement(){
+ if(placementRobotId===null)return false;
+ placementRobotId=null;
+ if(robotGhost){world.remove(robotGhost);robotGhost=null;}
+ notify('Placement canceled. Your purchased robot remains in Mike’s shop.');return true;
+}
+function sellNearby(){
+ let best=null,dist=2.7;
+ for(const l of s.ladders.filter(l=>l.floor===s.floor)){
+  const d=Math.hypot(V.x-l.x,V.z-l.z);
+  if(d<dist){dist=d;best={type:'ladder',id:l.id};}
+ }
+ for(const r of s.robots.filter(r=>r.placed&&r.floor===s.floor)){
+  const d=Math.hypot(V.x-r.x,V.z-r.z);
+  if(d<dist){dist=d;best={type:'robot',id:r.id};}
+ }
+ for(let a=0;a<AISLES;a++){
+  const n=s.belts[s.floor][a];if(!n)continue;
+  const z=bayZ(BAYS-n),d=Math.hypot(V.x-(aisleX(a)+1.4),V.z-z);
+  if(d<dist){dist=d;best={type:'belt',a,seg:n-1};}
+ }
+ if(!best){notify('Walk close to a robot, ladder, or END conveyor segment and press X.');return;}
+ const refund=best.type==='ladder'?sellLadder(s,best.id):best.type==='robot'?sellRobot(s,best.id):sellBelt(s,s.floor,best.a,best.seg);
+ if(!refund){notify('Cannot sell that equipment.');return;}
+ if(best.type==='ladder'&&climbingLadderId===best.id){climbingLadderId=null;V.y=0;V.vy=0;}
+ buildWorld();save();
+ notify('Sold '+best.type+' for '+centsText(refund)+' (half the original purchase price).');
+}
 function pointerRequest(){
  if(!renderer.domElement.requestPointerLock)return;
  try{const result=renderer.domElement.requestPointerLock();if(result?.catch)result.catch(()=>notify('Mouse capture unavailable. Arrow keys still let you look.'));}catch(_){notify('Mouse capture unavailable; use arrow keys to look.');}
@@ -196,6 +255,27 @@ function renderShop(){
    save();renderShop();uiUpdate();
   });
   row.append(info,btn);list.append(row);
+ }
+ if(shopCategory==='tools'){
+  if(s.robots.length){
+   const heading=document.createElement('h3');heading.textContent='Your robots · Placement and resale';list.append(heading);
+   for(const r of s.robots){
+    const item=document.createElement('div');item.className='upgrade';
+    const name=document.createElement('strong');
+    name.textContent='Stocker #'+r.id+' · '+(r.placed?floorLabel(r.floor)+' / Aisle '+(r.aisle+1):'Pending placement');
+    item.append(name);const buttons=document.createElement('div');buttons.className='robotActions';
+    const relocate=document.createElement('button');relocate.textContent=r.placed?'Move / redeploy':'Deploy';
+    relocate.addEventListener('click',()=>startRobotPlacement(r.id));
+    const sell=document.createElement('button');sell.textContent='Sell for '+centsText(Math.floor(r.paid/2));
+    sell.addEventListener('click',()=>{sellRobot(s,r.id);buildWorld();save();renderShop();uiUpdate();});
+    buttons.append(relocate,sell);item.append(buttons);list.append(item);
+   }
+  }
+  if(s.ladderInventory.length){
+   const info=document.createElement('p');info.className='hint';
+   info.textContent=s.ladderInventory.length+' undeployed ladders · L to place · C to climb · X to sell placed ladder';
+   list.append(info);
+  }
  }
 }
 function openElevator(){
