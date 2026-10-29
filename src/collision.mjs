@@ -67,8 +67,11 @@ export function moveWithCollisions(x,z,dx,dz,floor=0,extraBlocked=null){
  let px=x,pz=z;
  for(let i=0;i<parts;i++){
    const nx=px+dx/parts,nz=pz+dz/parts;
-   if(!isBlocked(nx,pz,floor)&&!(extraBlocked&&extraBlocked(nx,pz)))px=nx;
-   if(!isBlocked(px,nz,floor)&&!(extraBlocked&&extraBlocked(px,nz)))pz=nz;
+   // A roaming robot can move into the player. Let the player step OUT of
+   // its footprint instead of trapping them inside an overlapping collider.
+   const insideDynamic=!!(extraBlocked&&extraBlocked(px,pz));
+   if(!isBlocked(nx,pz,floor)&&(!extraBlocked||insideDynamic||!extraBlocked(nx,pz)))px=nx;
+   if(!isBlocked(px,nz,floor)&&(!extraBlocked||insideDynamic||!extraBlocked(px,nz)))pz=nz;
  }
  return {x:px,z:pz};
 }
