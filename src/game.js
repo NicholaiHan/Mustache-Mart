@@ -1,20 +1,21 @@
 import * as THREE from 'three';
 import {
- FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
+ FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
- capacity,walkSpeed,price,purchase,payOut,place,buildBelt,beltCost,incomplete,
+ capacity,walkSpeed,price,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
  floorStocked,itemsPerFloor,remaining,botStep
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
-let s=loadState(localStorage.getItem(SAVE_KEY));
+// Upgrade existing fifteen-floor saves by reindexing their old three-band shelves.
+let s=loadState(localStorage.getItem(SAVE_KEY) || localStorage.getItem('mustacheMartV3'));
 if(location.hash==='#rich')s.money=100000;
 const TEST_ENDING=location.hash==='#ending-test', PREVIEW_ENDING=location.hash==='#ending'||TEST_ENDING;
-const V={x:-5,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
-let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0;
+const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
+let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0,shopCategory='tools';
 let currentFloor=-1,world=null,meshes=[],robotModels=new Map(),beltCrates=[],cartMesh=null,ladderMesh=null,ladder=null;
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
-const NOTE='Earn 1¢ bottom · 2¢ middle · 3¢ top · collect at PAY WINDOW · visit MUSTACHE MIKE';
+const NOTE='Easy shelves: 1¢ · ladder: 2¢ · upgraded ladder: 3¢ · deliveries at the BACK';
 function notify(msg){$('toast').textContent=msg;$('toast').style.opacity='1';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.opacity='0',2700);}
 function save(){try{localStorage.setItem(SAVE_KEY,serialize(s));}catch(err){notify('Could not save: browser storage might be full or unavailable.');}}
 setInterval(save,5000);addEventListener('beforeunload',save);
@@ -26,8 +27,8 @@ function uiUpdate(){
  $('robots').textContent=s.robots.length;
  $('progressText').textContent=s.stocked.toLocaleString()+' / '+TOTAL_ITEMS.toLocaleString()+' items · '+floorLabel(s.floor)+': '+Math.round(floorStocked(s,s.floor)/itemsPerFloor*100)+'%';
  $('progress-bar').style.width=(s.stocked/TOTAL_ITEMS*100)+'%';
- $('objective').textContent=(V.carry===0?'Find the glowing DELIVERY DOCK and hold E to grab products.':
-   'Look at a shelf and hold E to stock. Look up for top shelf (jump, ladder or cart required).')+' '+NOTE;
+ $('objective').textContent=(V.carry===0?'Run all the way to the BACK WAREHOUSE for inventory. Follow the overhead receiving signs.':
+   'Look at a rack and hold E to stock. Upper bays need jumping, a ladder or the extended ladder.')+' '+NOTE;
 }
 const renderer=(()=>{try{return new THREE.WebGLRenderer({antialias:true,powerPreference:'default'});}catch(e){
  $('loading').innerHTML='<div>3D graphics unavailable. Update your browser or try Chrome with hardware acceleration enabled. The game has not loaded.</div>';throw e;
@@ -38,17 +39,19 @@ renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.4;
 document.body.prepend(renderer.domElement);
-const scene=new THREE.Scene();scene.background=new THREE.Color('#a6e4ed');scene.fog=new THREE.Fog('#a6e4ed',75,220);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#d9dfe0');scene.fog=new THREE.Fog('#d9dfe0',75,190);
 const camera=new THREE.PerspectiveCamera(76,innerWidth/innerHeight,.1,1100);camera.rotation.order='YXZ';
 scene.add(camera);
-const skyLight=new THREE.HemisphereLight('#ffffff','#d3aaa1',2.0);scene.add(skyLight);
-const sunlight=new THREE.DirectionalLight('#fff1da',2.0);sunlight.position.set(-30,75,35);scene.add(sunlight);
+const skyLight=new THREE.HemisphereLight('#ffffff','#a7afb6',1.55);scene.add(skyLight);
+const sunlight=new THREE.DirectionalLight('#ffffff',1.1);sunlight.position.set(-30,75,35);scene.add(sunlight);
 const toon=(c,extra={})=>new THREE.MeshToonMaterial({color:c,...extra});
-const baseMat=new THREE.MeshStandardMaterial({color:'#fffded',roughness:.5,metalness:.06});
-const pastel=['#ffa1be','#9fe1dc','#ffe096','#b8b7ff','#aeeda9'];
+const baseMat=new THREE.MeshStandardMaterial({color:'#d9dedf',roughness:.52,metalness:.12});
+const pastel=['#849b92','#83949c','#b5a28b','#9aaba9','#a5a19a'];
 const goods=['SOUP','WATER','WINE','CEREAL','SODA'];
 const FLOOR_W=113,FLOOR_D=114,FRONT=-13,BACK=101;
-const TIER_Y=[.55,1.52,2.52],CHEST_REACH=1.8;
+// Roughly four times taller than the prototype: 13.5m industrial racks.
+const RACK_HEIGHT=13.5,CEILING_Y=16.2;
+const TIER_Y=[.65,2.65,6.9,11.8],CHEST_REACH=1.8;
 const dummy=new THREE.Object3D(),color=new THREE.Color();
 function add(mesh,parent=world){parent.add(mesh);return mesh;}
 function cube(w,h,d,c,parent=world){return add(new THREE.Mesh(new THREE.BoxGeometry(w,h,d),typeof c==='string'||typeof c==='number'?toon(c):c),parent);}
@@ -68,7 +71,10 @@ function textLabel(text,w=3,h=.75,bg='#fffaf0',fg='#302945',font=44){
  const ctx=canvas.getContext('2d');ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
  ctx.strokeStyle='#302945';ctx.lineWidth=12;ctx.strokeRect(0,0,canvas.width,canvas.height);
  ctx.fillStyle=fg;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 '+font+'px system-ui';ctx.fillText(text,256,canvas.height/2,480);
- return new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(canvas),transparent:false,side:THREE.DoubleSide}));
+ const sign=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(canvas),transparent:false,side:THREE.FrontSide}));
+ // Every lettered sign faces the entrance (-Z); its reverse is never mirrored.
+ sign.rotation.y=Math.PI;
+ return sign;
 }
 function clearWorld(){
  if(!world)return;
@@ -182,7 +188,7 @@ function drawProduct(id,slot){
  m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;
 }
 function makeBelt(f,a,segment){
- const group=new THREE.Group();world.add(group);const z=bayZ(segment);
+ const group=new THREE.Group();world.add(group);const z=bayZ(BAYS-1-segment);
  group.position.set(aisleX(a)+1.4,0,z);
  const base=round(.98,.28,2.55,'#667682',group);base.position.y=.25;
  for(let k=0;k<5;k++){
@@ -217,8 +223,8 @@ function makeCart(){
 function makeLadder(){
  if(!ladder||s.levels.cart||ladder.floor!==s.floor)return;
  ladderMesh=new THREE.Group();world.add(ladderMesh);
- for(const x of [-.4,.4]){const post=round(.13,2.3,.13,'#f5ba52',ladderMesh);post.position.set(x,1.2,0);}
- for(let n=0;n<5;n++){const rung=round(.82,.12,.3,'#fff1cf',ladderMesh);rung.position.set(0,.4+n*.39,0);}
+ for(const x of [-.4,.4]){const h=s.levels.ladderPlus?10.6:6.2;const post=round(.13,h,.13,'#d5a844',ladderMesh);post.position.set(x,h/2+.1,0);}
+ for(let n=0;n<(s.levels.ladderPlus?18:10);n++){const rung=round(.82,.12,.3,'#b5bec3',ladderMesh);rung.position.set(0,.42+n*.55,0);}
  ladderMesh.position.set(ladder.x,0,ladder.z);
 }
 function buildWorld(){
@@ -243,16 +249,23 @@ function cellToStock(){
  const a=nearestAisle(),bay=nearestBay();
  if(Math.abs(V.x-aisleX(a))>2.7||Math.abs(V.z-bayZ(bay))>1.75)return -1;
  const faceX=-Math.sin(V.yaw),side=faceX>=0?1:0;
- const tier=V.pitch>.25?2:V.pitch<-.31?0:1;
+ const tier=V.pitch>.78?3:V.pitch>.38?2:V.pitch<-.3?0:1;
  return cellId(s.floor,a,side,bay,tier);
 }
-function upperReach(){return V.y>.56||(ladder&&ladder.floor===s.floor&&nearby(ladder.x,ladder.z,2.8))||(s.levels.cart&&s.cart.floor===s.floor&&nearby(aisleX(s.cart.aisle),s.cart.z,3.6));}
+function isLadderNear(){return ladder&&ladder.floor===s.floor&&nearby(ladder.x,ladder.z,3.2);}
+function isCartNear(){return s.levels.cart&&s.cart.floor===s.floor&&nearby(aisleX(s.cart.aisle),s.cart.z,3.6);}
+function canReach(tier){
+ if(tier===0)return true;
+ if(tier===1)return V.y>.35||isLadderNear()||isCartNear();
+ if(tier===2)return isLadderNear()||isCartNear();
+ return (isLadderNear()&&s.levels.ladderPlus)||isCartNear();
+}
 function manualStock(){
  if(!V.carry)return false;
  const id=cellToStock();
  if(id<0)return false;
  const t=id%TIERS;
- if(t===2&&!upperReach()){notify('TOP SHELF: earn 3¢, but first get jumping shoes, a ladder, or a cart!');return false;}
+ if(!canReach(t)){notify(t===3?'TOP RACK: buy the telescopic ladder extension or mobile cart for 3¢ items!':t===2?'HIGH RACK: a nearby step ladder earns you 2¢ per item!':'That rack needs a jump or a nearby ladder.');return false;}
  const old=s.fill[id],c=place(s,id,false);
  if(!c){notify('That shelf is full. Look for another empty spot.');return false;}
  V.carry--;drawProduct(id,old);
@@ -264,7 +277,7 @@ function act(){
  if(nearby(1.5,-7,4.0)){openShop();return;}
  if(nearby(10,-3,4.0)){const paid=payOut(s);notify(paid?'Collected '+centsText(paid)+' in wages.':'No outstanding wages. Stock products first!');save();return;}
  if(nearby(23,-9,4.4)){openElevator();return;}
- if(nearby(-5,-3,4.3)&&V.carry<capacity(s)){V.carry++;return;}
+ if(nearby(DOCK.x,DOCK.z,4.4)&&V.carry<capacity(s)){V.carry++;return;}
  if(manualStock())return;
 }
 function pointerRequest(){
@@ -274,19 +287,23 @@ function pointerRequest(){
 function show(id){for(const key of ['intro','shop','elevator','end'])$(key).classList.toggle('open',key===id);modal=id;running=!id&&!ending;if(id)document.exitPointerLock?.();}
 function resume(){show(null);running=true;pointerRequest();}
 function openShop(){
- if(!nearby(1.5,-7,4.6)){notify('Find Mustache Mike at his pink counter to buy upgrades.');return;}
+ if(!nearby(1.5,-7,4.6)){notify('Find Mustache Mike at the front customer service counter.');return;}
  show('shop');renderShop();
 }
 function renderShop(){
  $('shopMoney').textContent=centsText(s.money);
+ for(const name of ['tools','economy']){
+  const tab=$('tab-'+name);tab.setAttribute('aria-pressed',String(shopCategory===name));
+  tab.classList.toggle('selected',shopCategory===name);
+ }
  const list=$('shopitems');list.replaceChildren();
- for(const u of UPGRADES){
+ for(const u of UPGRADES.filter(u=>(u.category||'tools')===shopCategory)){
   const lv=s.levels[u.id],cost=price(u,lv),max=lv>=u.max;
   const row=document.createElement('div');row.className='upgrade';
   const info=document.createElement('div'),name=document.createElement('strong'),desc=document.createElement('small');
   name.textContent=u.name+' · Lv '+lv+'/'+u.max;desc.textContent=u.detail;
   info.append(name,desc);const btn=document.createElement('button');
-  btn.textContent=max?'MAXED':centsText(cost);btn.disabled=max||s.money<cost||(u.id==='cart'&&!s.levels.ladder);
+  btn.textContent=max?'MAXED':centsText(cost);btn.disabled=max||s.money<cost||(['cart','ladderPlus'].includes(u.id)&&!s.levels.ladder);
   btn.addEventListener('click',()=>{
    if(!purchase(s,u.id))return;
    if(u.id==='robot'){const r=s.robots[s.robots.length-1];if(r?.floor===s.floor)robotModels.set(r.id,botAppearance(r));}
@@ -304,7 +321,7 @@ function openElevator(){
   btn.textContent=floorLabel(f)+' · '+Math.round(floorStocked(s,f)/itemsPerFloor*100)+'%';btn.disabled=f===s.floor;
   btn.addEventListener('click',()=>{
    s.floor=f;V.x=23;V.z=-5;V.y=V.vy=0;V.carry=0;
-   buildWorld();save();notify('Now working on '+floorLabel(f)+'. Another 7,200 items!');resume();
+   buildWorld();save();notify('Now working on '+floorLabel(f)+'. Another '+itemsPerFloor.toLocaleString()+' items!');resume();
   });list.append(btn);
  }
 }
@@ -312,26 +329,26 @@ function placeLadder(){
  if(!s.levels.ladder){notify('Buy a ladder from Mustache Mike first.');return;}
  if(s.levels.cart){notify('Your ladder was upgraded into an automatic cart.');return;}
  if(V.z<11){notify('Take the ladder into an aisle first.');return;}
- ladder={floor:s.floor,x:V.x,z:V.z};buildWorld();notify('Ladder deployed. Stand beside it and look up to stock the top shelf.');
+ ladder={floor:s.floor,x:V.x,z:V.z};buildWorld();notify(s.levels.ladderPlus?'Extended ladder deployed: 2¢ and 3¢ rack bands unlocked.':'Step ladder deployed: 2¢ bands unlocked. Upgrade it for 3¢ racks.');
 }
 function buildNextBelt(){
  const a=nearestAisle(),n=s.belts[s.floor][a];
- if(Math.abs(V.x-aisleX(a))>2.7||n>=BAYS||Math.abs(V.z-bayZ(n))>4.2){
-  notify('To extend a belt: stand in an aisle by the NEXT unbuilt segment, starting at the front.');return;
+ if(Math.abs(V.x-aisleX(a))>2.7||n>=BAYS||Math.abs(V.z-bayZ(BAYS-1-n))>4.2){
+  notify('To extend a belt: start at REAR RECEIVING and connect sections toward the entrance.');return;
  }
  const cost=beltCost(s,s.floor,a);
  if(!buildBelt(s,s.floor,a,n)){notify('Need '+centsText(cost)+' to build the next conveyor segment.');return;}
- makeBelt(s.floor,a,n);save();notify('Connected segment '+(n+1)+' installed! Robots can collect supplies here.');
+ makeBelt(s.floor,a,n);save();notify('Back-fed conveyor segment '+(n+1)+' connected! Robots can collect here.');
 }
 function updatePrompt(){
  let msg='';
- if(nearby(-5,-3,4.3))msg=V.carry<capacity(s)?'Hold E · Collect 1 product at a time · Warehouse':'Bag full — bring your stock into an aisle';
+ if(nearby(DOCK.x,DOCK.z,4.4))msg=V.carry<capacity(s)?'Hold E · Load product from REAR RECEIVING (one per action)':'Carry capacity reached — return to an aisle';
  else if(nearby(1.5,-7,4.0))msg='E or Q · Talk to Mustache Mike for upgrades';
  else if(nearby(10,-3,4.0))msg='E · Collect '+centsText(s.pending)+' in wages';
  else if(nearby(23,-9,4.4))msg='E or R · Ride elevator to floors 1–15';
  else if(V.z>=11){
    const id=cellToStock();
-   if(id>=0)msg='Hold E · Stock '+['BOTTOM (1¢)','MIDDLE (2¢)','TOP (3¢)'][id%3]+(id%3===2&&!upperReach()?' · REQUIRES JUMP / LADDER / CART':'')+' · B builds conveyor';
+   if(id>=0)msg='Hold E · Stock '+['LOW (1¢)','SECOND (1¢)','LADDER (2¢)','EXTENDED LADDER (3¢)'][id%TIERS]+(canReach(id%TIERS)?'':' · NEEDS A HIGHER ACCESS UPGRADE')+' · B builds conveyor';
    else msg='Look toward a nearby shelf · B build conveyor · L deploy ladder';
  }
  if(msg){$('prompt').hidden=false;$('prompt').textContent=msg;}else $('prompt').hidden=true;
@@ -433,7 +450,12 @@ window.addEventListener('keydown',e=>{
  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
  held[e.code]=true;
  if(e.repeat)return;
- if(e.code==='Escape'){if(modal==='shop'||modal==='elevator')resume();else if(!ending){show('intro');$('play').textContent='Resume shift';}}
+ if(e.code==='Escape'){
+  e.preventDefault();held={};mouseDown=false;actionClock=0;
+  if(modal==='shop'||modal==='elevator'||modal==='intro')resume();
+  else if(!ending){show('intro');$('play').textContent='Resume shift';}
+  return;
+ }
  if(modal||ending)return;
  if(e.code==='KeyQ')openShop();
  if(e.code==='KeyR')openElevator();
@@ -462,6 +484,7 @@ window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camer
 $('play').addEventListener('click',resume);
 $('reset').addEventListener('click',e=>{e.stopPropagation();if(confirm('Erase your new 15-floor save and restart?')){localStorage.removeItem(SAVE_KEY);location.reload();}});
 $('shopClose').addEventListener('click',resume);
+for(const category of ['tools','economy'])$('tab-'+category).addEventListener('click',()=>{shopCategory=category;renderShop();});
 $('elevatorClose').addEventListener('click',resume);
 // Local-only QA controls are enabled solely with the explicit #rich developer URL.
 if(location.hash==='#rich'){
@@ -469,6 +492,7 @@ if(location.hash==='#rich'){
   teleport(x,z){V.x=x;V.z=z;V.y=0;V.vy=0;},
   setLook(yaw,pitch){V.yaw=yaw;V.pitch=pitch;},
   setCarry(count){V.carry=Math.min(capacity(s),Math.max(0,count));},
+  setUpgrade(id,level){if(id in s.levels)s.levels[id]=level;},
   snapshot(){return {floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
  };
 }
