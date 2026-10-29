@@ -38,6 +38,18 @@ const path = require('node:path');
     await page.waitForTimeout(300);
     if (errors.length) throw Error('Browser exceptions: ' + errors.join(' | '));
 
+    // Exercise the actual keyboard-driven shop and confirm progress saves.
+    await page.keyboard.press('q');
+    await page.waitForFunction(() => document.querySelector('#shop')?.style.display === 'flex', undefined, { timeout: 8000 });
+    const shoes = page.locator('#shopList .row').first();
+    await shoes.locator('button').click();
+    const label = await shoes.locator('small').textContent();
+    if (!label.includes('Lv 1/25')) throw Error('Coin purchase did not upgrade movement: ' + label);
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('mustacheMartSave')));
+    if (saved.lv.speed !== 1 || saved.coins >= 10000000) throw Error('Upgrade purchase did not persist in save');
+    await page.locator('#shopClose').click();
+    console.log('PASS: Q shop, coin purchase and local save');
+
     await page.close();
     // A new page is essential: hash-only navigation would not reinitialize the game.
     const endingPage = await context.newPage();
