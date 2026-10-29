@@ -18,7 +18,7 @@ const boxes=[
 ];
 // Real cashier lanes: grounded POS counter, belt housing and bagging areas.
 for(const x of [32,57,70,83]){
- boxes.push({name:'Cashier checkout lane',x,z:1.4,hx:1.73,hz:4.1,floor:0});
+ boxes.push({name:'Cashier checkout lane',x,z:1.7,hx:1.73,hz:3.7,floor:0});
 }
 for(let j=0;j<8;j++){
  boxes.push({name:'Stock pallet '+j,x:30+(j%4)*3.5,z:95+Math.floor(j/4)*3,hx:1.48,hz:1.32});
