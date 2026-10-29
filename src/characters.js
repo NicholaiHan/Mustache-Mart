@@ -1,27 +1,59 @@
 import * as THREE from 'three';
 import {equipmentMaterial,industrialWheel} from './equipment.js';
 // Customer-service robot (Mike) and autonomous worker machines.
-export function createCharacters({add,round,toon,getWorld}){
+export function createCharacters({add,round,toon,textLabel,getWorld}){
 function makeMike(x,z){
+ // MUSTACHE MIKE: a stationary, premium concierge robot, intentionally unlike
+ // wheeled stocker bots. Ceramic chassis, expressively lit face and articulated arms.
  const guy=new THREE.Group();add(guy);
- // Mike is facing the shopper: two clearly visible black dot eyes,
- // a waxed mustache, tidy green apron and a small brass nameplate.
- const torso=round(.98,1.3,.65,'#667f72',guy);torso.position.set(0,1.08,0);
- const apron=round(.73,.92,.08,'#c5cec7',guy);apron.position.set(0,1,.39);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.45,24,18),toon('#d9ad88'));
- head.position.set(0,2.04,0);guy.add(head);
- const cap=new THREE.Mesh(new THREE.SphereGeometry(.46,22,10,0,Math.PI*2,0,Math.PI*.48),toon('#46564b'));
- cap.position.set(0,2.18,0);guy.add(cap);
- const brim=round(.8,.085,.27,'#46564b',guy);brim.position.set(0,2.31,.28);
- for(const sign of [-1,1]){
-  const eye=new THREE.Mesh(new THREE.SphereGeometry(.069,12,10),toon('#202b2c'));
-  eye.position.set(sign*.16,2.12,.445);guy.add(eye);
-  const moustache=new THREE.Mesh(new THREE.SphereGeometry(.18,14,10),toon('#33302e'));
-  moustache.scale.set(1,.47,.62);moustache.position.set(sign*.14,1.89,.435);
-  moustache.rotation.z=sign*.2;guy.add(moustache);
+ const pearl=equipmentMaterial('#e5e9e5',.24,.27);
+ const enamel=equipmentMaterial('#f3efe4',.11,.34);
+ const trim=equipmentMaterial('#687779',.58,.29);
+ const graphite=equipmentMaterial('#17282d',.24,.26);
+ const brass=equipmentMaterial('#bd925e',.55,.3);
+ const mint=new THREE.MeshStandardMaterial({color:'#a7e7de',emissive:'#69d4c3',emissiveIntensity:1.6,roughness:.25});
+ const base=round(1.18,.27,1.0,graphite,guy);base.position.set(0,.15,0);
+ const foot=round(1.04,.31,.84,trim,guy);foot.position.set(0,.43,0);
+ const center=round(.55,.83,.54,graphite,guy);center.position.set(0,.91,0);
+ for(const zoff of [-.24,.24]){
+   const piston=new THREE.Mesh(new THREE.CylinderGeometry(.095,.11,.82,14),trim);
+   piston.position.set(0,1.02,zoff);guy.add(piston);
  }
- const badge=round(.34,.15,.045,'#d5b472',guy);badge.position.set(.23,1.35,.447);
- guy.position.set(x,0,z);
+ const torso=round(1.16,1.37,.78,pearl,guy);torso.position.set(0,1.77,0);
+ const waist=round(.95,.15,.71,brass,guy);waist.position.set(0,1.15,0);
+ const chest=round(.93,.7,.09,enamel,guy);chest.position.set(0,1.83,.4);
+ const inset=round(.67,.25,.055,graphite,guy);inset.position.set(0,1.95,.474);
+ const signal=round(.32,.08,.059,mint,guy);signal.position.set(0,1.99,.514);
+ for(const sign of [-1,1]){
+   const shoulder=new THREE.Mesh(new THREE.SphereGeometry(.24,20,16),trim);
+   shoulder.position.set(sign*.67,2.1,0);guy.add(shoulder);
+   const arm=round(.27,.84,.35,pearl,guy);arm.position.set(sign*.78,1.65,.02);
+   const cuff=round(.3,.12,.38,brass,guy);cuff.position.set(sign*.78,1.28,.02);
+   const hand=round(.29,.28,.37,graphite,guy);hand.position.set(sign*.78,1.1,.02);
+ }
+ const neck=round(.4,.36,.42,graphite,guy);neck.position.set(0,2.57,0);
+ const ring=round(.57,.12,.5,brass,guy);ring.position.set(0,2.68,0);
+ const head=new THREE.Group();head.name='mikeServoHead';guy.add(head);head.position.set(0,2.93,0);
+ const skull=round(1.06,.91,.83,pearl,head);skull.position.set(0,0,0);
+ const brow=round(.91,.14,.89,enamel,head);brow.position.set(0,.39,.01);
+ const face=round(.88,.57,.064,graphite,head);face.position.set(0,-.035,.437);
+ for(const sign of [-1,1]){
+  const socket=new THREE.Mesh(new THREE.SphereGeometry(.12,20,14),equipmentMaterial('#486465',.2,.32));
+  socket.position.set(sign*.19,.06,.486);head.add(socket);
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(.068,20,14),mint);
+  eye.position.set(sign*.19,.06,.588);head.add(eye);
+  const moustache=new THREE.Mesh(new THREE.SphereGeometry(.19,20,12),graphite);
+  moustache.scale.set(1,.32,.5);moustache.position.set(sign*.14,-.175,.535);
+  moustache.rotation.z=sign*.24;head.add(moustache);
+ }
+ const sideLens=round(.1,.18,.32,brass,head);sideLens.position.set(.54,-.12,0);
+ const hairline=round(.77,.085,.08,brass,head);hairline.position.set(0,.4,.32);
+ const badge=round(.63,.2,.055,brass,guy);badge.position.set(0,1.5,.474);
+ const name=textLabel('M I K E',.55,.17,'#e8d1ac','#354146',37,'interior');
+ name.position.set(0,1.51,.515);guy.add(name);
+ const pedestalLight=round(.61,.07,.09,mint,guy);pedestalLight.position.set(0,.43,.45);
+ guy.userData.serviceRobot=true;guy.position.set(x,0,z);
+ return guy;
 }
 
 function botAppearance(r){
