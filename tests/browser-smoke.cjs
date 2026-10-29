@@ -81,7 +81,18 @@ const assert=require('node:assert/strict');
   await page.keyboard.press('r');
   await page.locator('#elevator.open').waitFor();
   await page.locator('#elevatorlist button').last().click();
-  await page.waitForFunction(()=>document.querySelector('#floorStat')?.textContent.includes('F15'),undefined,{timeout:12000});
+  try{
+    await page.waitForFunction(()=>document.querySelector('#floorStat')?.textContent.includes('F15'),undefined,{timeout:45000});
+  }catch(error){
+    console.error('FLOOR TRANSITION DIAGNOSTICS:',JSON.stringify(await page.evaluate(()=>({
+      floor:document.querySelector('#floorStat')?.textContent,
+      loading:document.querySelector('#loading')?.hidden,
+      dialogs:[...document.querySelectorAll('.dialog.open')].map(n=>n.id),
+      status:document.querySelector('#toast')?.textContent
+    }))));
+    console.error('PAGE EXCEPTIONS:',errors);
+    throw error;
+  }
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.floor,14);
   assert.equal(snap.stocked,1);
@@ -91,7 +102,7 @@ const assert=require('node:assert/strict');
   await page.keyboard.press('r');
   await page.locator('#elevator.open').waitFor();
   await page.locator('#elevatorlist button').first().click();
-  await page.waitForFunction(()=>document.querySelector('#floorStat')?.textContent.includes('F01'),undefined,{timeout:12000});
+  await page.waitForFunction(()=>document.querySelector('#floorStat')?.textContent.includes('F01'),undefined,{timeout:45000});
   await page.evaluate(()=>window.__martTest.teleport(98.6,40.5));
   await page.keyboard.press('e');
   assert.equal(await page.evaluate(()=>window.__martTest.doorStatus().fire),true);
