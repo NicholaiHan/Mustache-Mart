@@ -5,6 +5,7 @@ import {createCharacters} from './characters.js';
 import {createEquipment} from './equipment.js';
 import {createDoors} from './doors.js';
 import {createCheckout} from './checkout.js';
+import {ladderHeight,canStockFromHeight} from './ladder.mjs';
 import {moveWithCollisions,isBlocked,blockedEquipment} from './collision.mjs';
 import {cartonTexture} from './textures.js';
 import {
@@ -117,12 +118,7 @@ function nearestLadder(distance=1.8){
 }
 function isLadderNear(){return !!nearestLadder(3.2);}
 function isCartNear(){return s.levels.cart&&s.cart.floor===s.floor&&nearby(aisleX(s.cart.aisle),s.cart.z,3.6);}
-function canReach(tier){
- if(tier===0)return true;
- if(tier===1)return V.y>.35||isCartNear();
- if(tier===2)return V.y>4.0||isCartNear();
- return V.y>8.2||isCartNear();
-}
+function canReach(tier){return canStockFromHeight(tier,V.y,isCartNear());}
 function toggleClimb(){
  if(climbingLadderId!==null){climbingLadderId=null;notify('Released ladder.');return;}
  const l=nearestLadder(1.9);
@@ -410,7 +406,7 @@ function animate(now){
    const l=s.ladders.find(l=>l.id===climbingLadderId&&l.floor===s.floor);
    if(!l){climbingLadderId=null;V.y=0;}
    else{const top=s.levels.ladderPlus?9.45:4.75;
-    V.x=l.x;V.z=l.z;V.vy=0;V.y=Math.max(0,Math.min(top,V.y+forward*Math.min(.3,elapsed)*3.1));
+    V.x=l.x;V.z=l.z;V.vy=0;V.y=ladderHeight(V.y,forward,elapsed,!!s.levels.ladderPlus);
    }
   }else if(forward||side){
    const speed=walkSpeed(s)*(held.ShiftLeft?1.4:1)*dt/Math.hypot(forward,side);
@@ -477,7 +473,7 @@ window.addEventListener('keydown',e=>{
  if(e.code==='KeyC')toggleClimb();
  if(climbingLadderId!==null&&(e.code==='KeyW'||e.code==='KeyS')){
   const top=s.levels.ladderPlus?9.45:4.75;
-  V.y=Math.max(0,Math.min(top,V.y+(e.code==='KeyW'?.56:-.56)));
+  V.y=ladderHeight(V.y,e.code==='KeyW'?1:-1,.56/3.1,!!s.levels.ladderPlus);
  }
  if(e.code==='KeyX')sellNearby();
  if(e.code==='KeyB')buildNextBelt();
