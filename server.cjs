@@ -1,6 +1,6 @@
 'use strict';
 // Offline, loopback-only Mustache Mart preview. No Electron or package install needed.
-// Only three static game assets are exposed, never local files or user information.
+// Only approved static game assets are exposed, never local files or user information.
 const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -11,6 +11,11 @@ const PUBLIC_FILES = new Map([
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
   ['/src/game.js', ['src/game.js', 'text/javascript; charset=utf-8']],
   ['/src/rules.mjs', ['src/rules.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/rendering.js', ['src/rendering.js', 'text/javascript; charset=utf-8']],
+  ['/src/environment.js', ['src/environment.js', 'text/javascript; charset=utf-8']],
+  ['/src/characters.js', ['src/characters.js', 'text/javascript; charset=utf-8']],
+  ['/src/equipment.js', ['src/equipment.js', 'text/javascript; charset=utf-8']],
+  ['/src/doors.js', ['src/doors.js', 'text/javascript; charset=utf-8']],
   ['/vendor/three.module.js', ['vendor/three.module.js', 'text/javascript; charset=utf-8']]
 ]);
 const HEADERS = {
