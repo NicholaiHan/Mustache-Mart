@@ -1,6 +1,6 @@
 // Pure, deterministic first-person collision model (world units are metres).
 // Player radius is shared by player movement and automated collision regression tests.
-import {AISLES,aisleX} from './rules.mjs';
+import {AISLES,BAYS,aisleX,bayZ} from './rules.mjs';
 export const PLAYER_RADIUS=.34;
 const boxes=[
  // Front-of-store physical customer service and payroll counters.
@@ -40,16 +40,35 @@ export function isBlocked(x,z,floor=0,radius=PLAYER_RADIUS){
  if(z-radius < -12.12)return true;
  return false;
 }
+// Moving machines and built conveyor segments are collidable as well.
+// The world state comes from the caller, so the module stays renderer-independent.
+export function blockedEquipment(s,x,z,radius=PLAYER_RADIUS){
+ if(!s)return false;
+ const floor=s.floor;
+ for(let a=0;a<AISLES;a++){
+   const built=s.belts?.[floor]?.[a]||0;
+   for(let segment=0;segment<built;segment++){
+     if(Math.abs(x-(aisleX(a)+1.4))<.54+radius&&Math.abs(z-bayZ(BAYS-1-segment))<1.29+radius)return true;
+   }
+ }
+ for(const bot of s.robots||[]){
+   if(bot.floor===floor&&Math.hypot(x-bot.x,z-bot.z)<.61+radius)return true;
+ }
+ if(s.levels?.cart&&s.cart.floor===floor){
+   if(Math.hypot(x-aisleX(s.cart.aisle),z-s.cart.z)<.84+radius)return true;
+ }
+ return false;
+}
 // Axis-separated movement permits sliding along obstacles without tunneling,
 // even when a fast machine produces a long frame.
-export function moveWithCollisions(x,z,dx,dz,floor=0){
+export function moveWithCollisions(x,z,dx,dz,floor=0,extraBlocked=null){
  const length=Math.hypot(dx,dz);
  const parts=Math.max(1,Math.ceil(length/.24));
  let px=x,pz=z;
  for(let i=0;i<parts;i++){
    const nx=px+dx/parts,nz=pz+dz/parts;
-   if(!isBlocked(nx,pz,floor))px=nx;
-   if(!isBlocked(px,nz,floor))pz=nz;
+   if(!isBlocked(nx,pz,floor)&&!(extraBlocked&&extraBlocked(nx,pz)))px=nx;
+   if(!isBlocked(px,nz,floor)&&!(extraBlocked&&extraBlocked(px,nz)))pz=nz;
  }
  return {x:px,z:pz};
 }
