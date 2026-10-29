@@ -20,11 +20,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8011/#dev** in Chrome or Safari. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.29.3** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+2. Open **http://127.0.0.1:8011/#dev** in Chrome or Safari. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.29.4** and the introduction must list the new cash registers, Mike, ladders and fire exit.
 3. **Development mode** (the `#dev` suffix) gives **at least $500** for testing. Stop the server with **Control+C**.
 4. Port **8011 is deliberately different from 8000**: existing browser saves at port 8000 are still retained, but do not appear automatically at 8011 (browser storage is origin-specific). For continuing the same saved progress after verifying the build, stop the older port-8000 server, then in the downloaded folder run `node server.cjs` and open `http://127.0.0.1:8000/#dev`.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.29.3** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.29.4** is shown.
 
 ## Play on your MacBook
 
@@ -130,3 +130,11 @@ This is still a procedural browser game rather than a fully modeled commercial s
 `tests/first-floor-30.test.cjs` runs **30 different accelerated first-floor game sessions**, each completely filling **9,600 products** on Floor 1 (total **288,000 stocked products**) through production inventory/earnings rules and verifying paid stock, developer opening funds, each shop category, robot purchase/deployment, belt transport/pickup, ladder ascent, 50% resale, automatic workers and cart, save/load, all four checkout colliders, and that finishing Floor 1 alone does **not** unlock the 15-floor entrance.
 
 These are deterministic **accelerated gameplay/rules simulations**, not thirty human-controlled rendered sessions. Separately, Playwright browser smoke tests actually render the first floor and interact with the checkout register, paycheck terminal, Mike, ladders, conveyor belts and red fire exit in Chromium.
+
+## Build 2026.10.29.4: conveyor visualization and structural art
+
+- **Original top-left HUD icons** replace all five phone/OS emoji labels: store, cash, payroll, carrying and robots are custom scalable vector artwork.
+- At **rear receiving** (near the inventory pickup), use **[** and **]** to select an aisle, then press **B** to connect its **first** conveyor segment. Its status panel shows the selected aisle, connected branches and delivered items out of 16. Once the first branch exists, extend it from its **frontmost tip** with B. Sections move in one direction, **toward the entrance**, and production pauses when their endpoint is full.
+- A visible overhead feeder connects receiving to the aisle chutes, with an industrial pickup claw, movement on connected source branches, arrows, frame fasteners, caution guards and belt gearboxes.
+- Shelves include thousands of small **instanced hex-head bolts**, back braces and aisle end guards. Register stations add tactile keypads, scanner windows, receipt paper, tiny flat white mustaches and stainless steel mounting hardware.
+- Saves and the original 15-floor stocking rules remain unchanged.
