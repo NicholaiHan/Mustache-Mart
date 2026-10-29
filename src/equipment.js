@@ -34,7 +34,7 @@ function makeBelt(f,a,segment){
  const guard=round(.06,.16,.44,orange,group);guard.position.set(.54,.67,-.83);
  const crate=round(.59,.37,.48,equipmentMaterial('#bca582',0,.9),group);
  crate.position.set(0,.84,0);
- getBeltCrates().push({crate,segment});
+ getBeltCrates().push({crate,segment,aisle:a});
 }
 function makeCart(){
  if(!s.levels.cart)return;
