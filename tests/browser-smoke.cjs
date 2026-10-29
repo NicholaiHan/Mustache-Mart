@@ -80,7 +80,7 @@ const assert=require('node:assert/strict');
   await page.evaluate(()=>window.__martTest.teleport(23,-9));
   await page.keyboard.press('r');
   await page.locator('#elevator.open').waitFor();
-  await page.locator('#elevatorlist button').last().click();
+  await page.locator('#elevatorlist button').last().click({noWaitAfter:true,timeout:90000});
   try{
     await page.waitForFunction(()=>document.querySelector('#floorStat')?.textContent.includes('F15'),undefined,{timeout:45000});
   }catch(error){
@@ -101,7 +101,7 @@ const assert=require('node:assert/strict');
   await page.evaluate(()=>window.__martTest.teleport(23,-9));
   await page.keyboard.press('r');
   await page.locator('#elevator.open').waitFor();
-  await page.locator('#elevatorlist button').first().click();
+  await page.locator('#elevatorlist button').first().click({noWaitAfter:true,timeout:90000});
   await page.waitForFunction(()=>document.querySelector('#floorStat')?.textContent.includes('F01'),undefined,{timeout:45000});
   await page.evaluate(()=>window.__martTest.teleport(98.6,40.5));
   await page.keyboard.press('e');
