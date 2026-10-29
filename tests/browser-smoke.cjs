@@ -119,6 +119,14 @@ const assert=require('node:assert/strict');
   await page.keyboard.press('x');
   await page.waitForFunction(()=>window.__martTest.snapshot().ladders===0);
   console.log('PASS: separate robot upgrades, real player ladder ascent and 50% ladder resale');
+  await page.evaluate(()=>window.__martTest.teleport(1.5,-4.1));
+  await page.keyboard.press('q');await page.locator('#shop.open').waitFor();
+  await page.locator('#tab-tools').click();
+  await page.locator('#shopitems .upgrade').filter({hasText:'Stocker #'}).first().locator('button').last().click();
+  await page.waitForFunction(()=>window.__martTest.snapshot().robotCount===0);
+  await page.keyboard.press('Escape');
+  console.log('PASS: separately bought robot can be resold for half original price via Mike');
+
 
   await page.evaluate(()=>window.__martTest.teleport(8,89.85));
   await page.keyboard.press('b');await page.waitForTimeout(250);
