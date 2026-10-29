@@ -14,14 +14,33 @@ Based on the original Claude ZIP prototype and upgraded for a much larger store.
 - After every item is stocked, the empty grand opening plays a 20-cycle accelerating
   sunrise/sunset montage, then a red WENT BANKRUPT banner and Thanks for Playing!
 
-## Run locally
+## Play in your browser (no Electron needed)
 
-Requires Node.js 18+.
+Requires Node.js (Node 22 LTS or newer recommended). This is a local developer
+preview and does not publish your game to the internet.
+
+```bash
+npm install --ignore-scripts
+npm run web
+```
+
+Open http://localhost:8000 in Chrome or Safari. Keep Terminal open while playing;
+press Ctrl+C to stop the preview.
+
+## Play as a desktop app
+
+Only use this option if macOS allows the downloaded runtime to run normally.
 
 ```bash
 npm install
 npm start
 ```
+
+If macOS displays **Malware Blocked and Moved to Trash**, do not override XProtect,
+disable Gatekeeper, or restore the blocked executable. Update macOS first and
+only use a current, trusted Electron release, or use the browser preview instead.
+A local Electron development build is not code-signed or notarized for public
+distribution; a future Steam/macOS build needs security review and proper signing.
 
 ## Validate syntax
 
@@ -52,18 +71,3 @@ The original prototype supports `#rich` for 10 million test coins and
 - Saves use localStorage on each machine, not Steam Cloud.
 - The project deliberately avoids reusing assets from other games.
 
-## macOS: Electron failed to install correctly
-
-Newer npm versions may block Electron's required postinstall download until approved.
-If `npm start` reports `Electron failed to install correctly`, run:
-
-```bash
-npm install-scripts approve electron
-npm rebuild electron --foreground-scripts
-npm start
-```
-
-If rebuilding fails, while in the project folder run `rm -rf node_modules/electron`,
-then `npm install --foreground-scripts`, followed by `npm start`.
-The repo explicitly approves the pinned Electron version in `allowScripts`; do not
-use `npm audit fix --force` merely to repair Electron.
