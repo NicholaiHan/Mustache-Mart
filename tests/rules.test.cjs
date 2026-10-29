@@ -49,6 +49,8 @@ test('bots collect supplies and stock shelves, including unvisited floors',()=>{
  const s=r.newState();s.money=300;
  assert.equal(r.purchase(s,'robot'),true);
  assert.equal(s.robots.length,1);
+ assert.equal(s.robots[0].placed,false,'newly bought robot waits for the player to place it');
+ assert.equal(r.assignRobot(s,s.robots[0].id,0,0,18),true);
  for(let i=0;i<1500;i++)r.botStep(s,s.robots[0],.1);
  assert.ok(s.stocked>0,'robot should stock after collecting supplies');
  assert.ok(s.money>0,'robot earnings should be automatic');
