@@ -31,7 +31,12 @@ const assert=require('node:assert/strict');
   console.log('PASS: game renders giant 15-floor store without Electron');
 
   await page.locator('#play').click();
-  await page.evaluate(()=>window.__martTest.teleport(1.5,96));
+  // Actual collision-safe loading position, not inside the receiving counter.
+  await page.evaluate(()=>window.__martTest.teleport(1.5,93.1));
+  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(1.5,93.1)),false);
+  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(1.5,96)),true);
+  const art=path.join(__dirname,'..','test-artifacts');fs.mkdirSync(art,{recursive:true});
+  await page.screenshot({path:path.join(art,'warehouse-receiving.png')});
   await page.keyboard.press('e');
   await page.waitForTimeout(250);
   let snap=await page.evaluate(()=>window.__martTest.snapshot());
@@ -46,16 +51,21 @@ const assert=require('node:assert/strict');
   assert.equal(snap.carry,0);
   console.log('PASS: rear warehouse pickup and reachable lower-rack 1-cent payout');
 
-  await page.evaluate(()=>window.__martTest.teleport(10,-3));
+  await page.evaluate(()=>window.__martTest.teleport(10,-1.3));
+  await page.screenshot({path:path.join(art,'payroll-window.png')});
   await page.keyboard.press('e');await page.waitForTimeout(250);
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.pending,0);
   assert.ok(snap.money>=100001);
-  console.log('PASS: physical pay-window converts unsettled wages into money');
+  assert.equal(await page.locator('#payReceipt').getAttribute('aria-hidden'),'false');
+  assert.equal(await page.locator('#receiptAmount').textContent(),'$0.01');
+  console.log('PASS: physical pay-window converts unsettled wages into money with professional receipt');
 
-  await page.evaluate(()=>window.__martTest.teleport(1.5,-7));
+  await page.evaluate(()=>window.__martTest.teleport(1.5,-4.1));
   await page.keyboard.press('q');
   await page.locator('#shop.open').waitFor();
+  assert.equal(await page.locator('#shopTitle').textContent(),'Mustache Mike');
+  await page.screenshot({path:path.join(art,'mike-upgrades.png')});
   await page.locator('#shopitems .upgrade').first().locator('button').click();
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.levels.capacity,1);
@@ -76,6 +86,13 @@ const assert=require('node:assert/strict');
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.belts[0],1);
   console.log('PASS: player connects the first rear-fed conveyor in an aisle');
+  // Sweep a fast movement into the high-bay rack; it must not tunnel through steel.
+  await page.evaluate(()=>window.__martTest.teleport(8,28));
+  const pos=await page.evaluate(()=>window.__martTest.move(12,0));
+  assert.ok(pos.x<10.5,'rack collision prevents player clipping');
+  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(10,-3.2)),true);
+  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(30,95)),true);
+  console.log('PASS: collision blocks store fixtures, long shelving and pallets');
 
   await page.evaluate(()=>window.__martTest.teleport(23,-9));
   await page.keyboard.press('r');
@@ -104,6 +121,7 @@ const assert=require('node:assert/strict');
   await page.locator('#elevatorlist button').first().click({noWaitAfter:true,timeout:90000});
   await page.waitForFunction(()=>document.querySelector('#floorStat')?.textContent.includes('F01'),undefined,{timeout:45000});
   await page.evaluate(()=>window.__martTest.teleport(98.6,40.5));
+  await page.screenshot({path:path.join(art,'fire-exit.png')});
   await page.keyboard.press('e');
   assert.equal(await page.evaluate(()=>window.__martTest.doorStatus().fire),true);
   await page.keyboard.press('e');
@@ -118,8 +136,8 @@ const assert=require('node:assert/strict');
   await page.keyboard.press('e');
   assert.equal(await page.evaluate(()=>window.__martTest.doorStatus().entrance),true,'E should open after 100%');
   console.log('PASS: Final front entrance is locked until full stock, then E opens it');
-  const dir=path.join(__dirname,'..','test-artifacts');fs.mkdirSync(dir,{recursive:true});
-  await page.screenshot({path:path.join(dir,'floor15.png')});
+  const dir=art;
+  await page.screenshot({path:path.join(dir,'entrance-unlocked.png')});
   console.log('PASS: floor elevator reaches F15 and rebuilds the 3D store');
 
   await page.close();const ending=await context.newPage();
