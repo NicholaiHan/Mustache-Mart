@@ -1,11 +1,12 @@
 {
   "name": "mustache-mart",
-  "version": "0.1.0",
-  "description": "Stock an absurdly large supermarket. Nobody is coming to the grand opening.",
+  "version": "0.2.0",
+  "description": "An absurdly long, colorful, first-person supermarket shelf-stocking simulator.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "check": "node --check main.js && node --check src/game.js"
   },
   "dependencies": {
     "three": "0.160.0"
@@ -15,11 +16,25 @@
     "electron-builder": "24.13.3"
   },
   "build": {
-    "appId": "com.example.mustachemart",
+    "appId": "com.mustachemart.game",
     "productName": "Mustache Mart",
-    "files": ["main.js", "index.html", "src/**/*", "node_modules/three/build/three.module.js"],
-    "win": { "target": "dir" },
-    "mac": { "target": "dir" },
-    "linux": { "target": "dir" }
+    "files": [
+      "main.js",
+      "index.html",
+      "src/**/*",
+      "node_modules/three/build/three.module.js"
+    ],
+    "win": {
+      "target": "dir"
+    },
+    "mac": {
+      "target": "dir"
+    },
+    "linux": {
+      "target": "dir"
+    },
+    "directories": {
+      "output": "dist"
+    }
   }
 }

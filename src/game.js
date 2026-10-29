@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 
 /* ================= TUNING (change these to make the game shorter/longer) ================= */
-const AISLES = 12, UNITS = 60;          // aisles, shelf units per side of each aisle
+const AISLES = 24, UNITS = 100;          // aisles, shelf units per side of each aisle
 const SPACING = 5.4, ULEN = 1.6, Z0 = 6; // aisle spacing, shelf unit length, first shelf z
 const TIERS = 3, COLS = 4, PER = TIERS * COLS; // 12 items per shelf unit
 const UNIT_COUNT = AISLES * 2 * UNITS;
-const TOTAL = UNIT_COUNT * PER;          // 17,280 items to stock
-const X_MIN = -16, X_MAX = 72, Z_MIN = -8, Z_MAX = 108, DOOR_X = 28, DOOR_W = 10, DOOR_H = 5.4, WALL_H = 7;
+const TOTAL = UNIT_COUNT * PER;          // 57,600 items to stock
+const X_MIN = -16, X_MAX = 145, Z_MIN = -8, Z_MAX = 180, DOOR_X = 28, DOOR_W = 10, DOOR_H = 5.4, WALL_H = 7;
 const DAYS = 20, FIRST_DAY_SECONDS = 10, DAY_SPEEDUP = 0.85; // ending sequence
 const SAVE_KEY = 'mustacheMartSave';
 
@@ -19,7 +19,7 @@ const TYPE_NAMES = ['Soup Cans', 'Water Bottles', 'Fancy Wine'];
 const S = { coins: 0, lv: { speed: 0, bag: 0, hands: 0, price: 0, belt: 0, robot: 0, caf: 0 }, fill: new Uint8Array(UNIT_COUNT), stocked: 0 };
 try {
   const raw = localStorage.getItem(SAVE_KEY);
-  if (raw) { const d = JSON.parse(raw); S.coins = d.coins || 0; Object.assign(S.lv, d.lv || {}); (d.fill || []).forEach((v, i) => { if (i < UNIT_COUNT) S.fill[i] = v; }); }
+  if (raw) { const d = JSON.parse(raw); S.coins = d.coins || 0; Object.assign(S.lv, d.lv || {}); (d.fill || []).forEach((v, i) => { if (i < UNIT_COUNT) S.fill[i] = Math.max(0, Math.min(PER, Number(v) || 0)); }); }
 } catch (e) {}
 S.stocked = S.fill.reduce((a, b) => a + b, 0);
 if (location.hash === '#rich') S.coins = 10_000_000;
@@ -54,7 +54,7 @@ const scene = new THREE.Scene();
 const SKY_DAY = new THREE.Color(0x87d7ff), SKY_NIGHT = new THREE.Color(0x0b1030), SKY_DAWN = new THREE.Color(0xff9a5a);
 scene.background = SKY_DAY.clone();
 scene.fog = new THREE.Fog(0x87d7ff, 60, 320);
-const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1500);
+const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1700);
 camera.rotation.order = 'YXZ';
 scene.add(camera);
 
@@ -168,6 +168,7 @@ for (let u = 0; u < UNIT_COUNT; u++) for (let f = 0; f < S.fill[u]; f++) placeIt
 function stockUnit(u) {
   const f = S.fill[u]; if (f >= PER) return false;
   placeItem(u, f); S.fill[u]++; S.stocked++; S.coins += stat.value;
+  if (S.stocked % 100 === 0) save();
   if (S.stocked >= TOTAL) startEnding();
   return true;
 }
@@ -187,7 +188,7 @@ function makeStation(x, z, dock) {
   stations.push({ x, z, g });
 }
 makeStation(-6, 3, true);
-function beltPos(n) { return { x: cx(Math.floor(n / 6)), z: Z0 - 1 + (n % 6) * 16 }; }
+function beltPos(n) { return { x: cx(Math.floor(n / 6)), z: Z0 - 1 + (n % 6) * 26 }; }
 function syncBelts() { while (stations.length - 1 < S.lv.belt) { const p = beltPos(stations.length - 1); makeStation(p.x, p.z, false); } }
 syncBelts();
 
@@ -269,10 +270,17 @@ function doAction() {
 
 /* ================= INPUT ================= */
 const $ = id => document.getElementById(id);
+$('resetSave').addEventListener('click', event => {
+  event.stopPropagation();
+  if (confirm('Erase all saved Mustache Mart progress and restart?')) {
+    localStorage.removeItem(SAVE_KEY);
+    location.reload();
+  }
+});
 addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.code === 'KeyE' && !e.repeat) P.act = 1;
-  if (e.code === 'KeyQ' && !ending) toggleShop();
+  if (e.code === 'KeyQ' && !ending && $('start').style.display === 'none') toggleShop();
   if (e.code === 'KeyF') { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.(); }
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
@@ -363,7 +371,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; tBelt += dt;
 
   while (frontier < UNIT_COUNT && S.fill[frontier] >= PER) frontier++;
-  robots.forEach(r => updateRobot(r, dt));
+  if (!ending) robots.forEach(r => updateRobot(r, dt));
   if (S.lv.robot > robots.length) { /* extra bots beyond 200 still work, invisibly */
     const extra = S.lv.robot - robots.length; hiddenAcc = (typeof hiddenAcc === 'number' ? hiddenAcc : 0) + dt * stat.botRate * extra;
     while (hiddenAcc >= 1) { hiddenAcc -= 1; const u = findIncomplete(frontier); if (u >= 0) stockUnit(u); else break; }
@@ -386,6 +394,13 @@ function frame(now) {
     camera.position.set(P.x, 1.7, P.z); camera.rotation.set(P.pitch, P.yaw, 0);
     hand.scale.setScalar(0.3 + 0.7 * (P.carry / stat.cap)); hand.visible = P.carry > 0;
     $('coins').textContent = Math.floor(S.coins).toLocaleString(); $('carry').textContent = P.carry; $('cap').textContent = stat.cap; $('bots').textContent = S.lv.robot;
+    $('objective').textContent = S.stocked === 0
+      ? 'FIRST SHIFT · Find the yellow DELIVERY DOCK, hold E to fill your box.'
+      : S.stocked < 12
+        ? 'FIRST SHIFT · Carry boxes to the colorful aisles and hold E to stock.'
+        : S.stocked < 100
+          ? 'FIRST SHIFT · Press Q to invest your coins in faster stocking.'
+          : 'OPENING PREP · No empty shelves allowed. Every single item counts.';
     const pc = S.stocked / TOTAL * 100; $('barFill').style.width = pc + '%'; $('barTxt').textContent = `Stocked ${S.stocked.toLocaleString()} / ${TOTAL.toLocaleString()} (${pc.toFixed(1)}%)`;
     const pr = $('prompt'); let msg = '';
     if (P.carry < stat.cap && nearStation()) msg = 'Hold E: grab stock 📦';
