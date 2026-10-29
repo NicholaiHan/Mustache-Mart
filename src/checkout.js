@@ -54,7 +54,7 @@ export function createCheckout({getWorld,getFloor,round,textLabel}){
    fixture(lane,2.05,.12,1.48,steel,.1,1.27,-3.23);
    fixture(lane,.63,.14,.5,dark,-.45,1.39,-3.32); // scanner
    fixture(lane,.52,.7,.13,black,.39,1.79,-3.46); // angled payment screen
-   fixture(lane,.43,.46,.038,display,.39,1.79,-3.385);
+   fixture(lane,.43,.46,.038,display,.39,1.82,-3.548);
    fixture(lane,.12,.23,.18,black,-.46,1.54,-2.89); // handheld scanner cradle
    const keypad=fixture(lane,.32,.07,.39,black,-.46,1.41,-2.83);
    fixture(lane,.26,.038,.09,display,-.46,1.47,-2.94);
@@ -65,7 +65,7 @@ export function createCheckout({getWorld,getFloor,round,textLabel}){
    const scannerGlass=fixture(lane,.41,.02,.28,black,-.45,1.472,-3.34);
    const scanLight=fixture(lane,.26,.02,.03,display,-.45,1.493,-3.38);
    for(let row=0;row<3;row++)
-    fixture(lane,.27,.016,.012,paper,.39,1.83+row*.086,-3.355);
+    fixture(lane,.27,.016,.012,paper,.39,1.83+row*.086,-3.577);
    // Actual flat mustache silhouette on the cash register: not two bulbs.
    const moustachePath=new THREE.Shape();
    moustachePath.moveTo(-.17,.025);
@@ -75,9 +75,9 @@ export function createCheckout({getWorld,getFloor,round,textLabel}){
    moustachePath.bezierCurveTo(-.06,-.05,-.13,-.04,-.17,.025);
    const moustacheBadge=new THREE.Mesh(new THREE.ShapeGeometry(moustachePath),mustache);
    moustacheBadge.position.set(.39,1.59,-3.535);lane.add(moustacheBadge);
-   const registerBezel=fixture(lane,.57,.74,.025,steel,.39,1.79,-3.41);
-   registerBezel.position.z=-3.49;
-   moustacheBadge.position.z=-3.507;
+   for(const dx of [-.256,.256])fixture(lane,.035,.69,.035,steel,.39+dx,1.81,-3.561);
+   for(const dy of [-.32,.32])fixture(lane,.53,.034,.035,steel,.39,1.81+dy,-3.561);
+   moustacheBadge.position.set(.39,1.57,-3.588);
    // Bagging/receipt and checkout light supported by actual hardware.
    fixture(lane,1.3,.11,.87,steel,1.04,1.26,-3.35);
    fixture(lane,.52,.37,.33,body,1.02,1.48,-3.3);
