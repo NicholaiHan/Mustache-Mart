@@ -24,7 +24,7 @@ test('Game UI references correspond to valid IDs',()=>{
  assert.match(html,/Mustache Mike/i);
 });
 test('Only local game assets are accessible and all serve successfully',async()=>{
- for(const a of ['/','/index.html','/src/game.js','/src/rules.mjs','/src/rendering.js','/src/environment.js','/src/characters.js','/src/equipment.js','/src/doors.js','/src/checkout.js','/src/ladder.mjs','/src/collision.mjs','/src/textures.js','/vendor/three.module.js']){
+ for(const a of ['/','/index.html','/build.json','/src/game.js','/src/rules.mjs','/src/rendering.js','/src/environment.js','/src/characters.js','/src/equipment.js','/src/doors.js','/src/checkout.js','/src/ladder.mjs','/src/collision.mjs','/src/textures.js','/vendor/three.module.js']){
   const r=await fetch(base+a);assert.equal(r.status,200,a);
   assert.match(r.headers.get('content-security-policy'),/default-src 'none'/);
   assert.equal(r.headers.get('x-content-type-options'),'nosniff');
@@ -52,4 +52,19 @@ test('Browser scene implements floor access, building and ending',()=>{
  assert.match(game,/stock the entire building before opening/);
  assert.match(game,/WENT BANKRUPT|endingDay/);
  assert.ok(fs.statSync(path.join(root,'vendor/three.module.js')).size>100000);
+});
+
+test('Latest build manifest and Mac launcher contain exactly matching verifiable version',async()=>{
+ const manifest=JSON.parse(fs.readFileSync(path.join(root,'build.json'),'utf8'));
+ assert.equal(manifest.version,'2026.10.29.3');
+ assert.match(html,/UPDATED BUILD · 2026\.10\.29\.3/);
+ assert.match(html,/UPDATED EDITION · BUILD 2026\.10\.29\.3/);
+ const launcher=fs.readFileSync(path.join(root,'PLAY_LATEST_MAC.sh'),'utf8');
+ assert.match(launcher,/PORT:-8011/);
+ assert.match(launcher,/build\.json/);
+ assert.match(launcher,/src\/checkout\.js/);
+ assert.match(launcher,/src\/ladder\.mjs/);
+ const answer=await fetch(base+'/build.json');
+ assert.equal(answer.status,200);
+ assert.equal((await answer.json()).version,manifest.version);
 });
