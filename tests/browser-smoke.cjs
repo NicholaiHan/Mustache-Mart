@@ -11,8 +11,21 @@ const assert=require('node:assert/strict');
   browser=await chromium.launch({headless:true,args:['--enable-webgl','--use-angle=swiftshader']});
   const context=await browser.newContext({viewport:{width:1280,height:800}});
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+  page.on('console',msg=>{if(msg.type()==='error')console.error('BROWSER CONSOLE:',msg.text());});
+  page.on('requestfailed',req=>console.error('BROWSER REQUEST FAILED:',req.url(),req.failure()?.errorText));
   await page.goto(root+'/#rich',{waitUntil:'load'});
-  await page.waitForFunction(()=>document.querySelector('#loading')?.hidden&&document.querySelector('#progressText')?.textContent.includes('108,000'),undefined,{timeout:60000});
+  try{
+    await page.waitForFunction(()=>document.querySelector('#loading')?.hidden&&document.querySelector('#progressText')?.textContent.includes('108,000'),undefined,{timeout:25000});
+  }catch(error){
+    console.error('BROWSER DIAGNOSTICS:',JSON.stringify(await page.evaluate(()=>({
+      loading:document.querySelector('#loading')?.hidden,
+      text:document.querySelector('#loading')?.textContent,
+      progress:document.querySelector('#progressText')?.textContent,
+      canvas:document.querySelector('canvas')?.outerHTML?.slice(0,200)
+    }))));
+    console.error('BROWSER ERRORS:',errors);
+    throw error;
+  }
   assert.equal(await page.locator('canvas').count(),1);
   assert.equal(await page.locator('#intro').isVisible(),true);
   console.log('PASS: game renders giant 15-floor store without Electron');
