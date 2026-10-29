@@ -16,6 +16,7 @@ const PUBLIC_FILES = new Map([
   ['/src/characters.js', ['src/characters.js', 'text/javascript; charset=utf-8']],
   ['/src/equipment.js', ['src/equipment.js', 'text/javascript; charset=utf-8']],
   ['/src/doors.js', ['src/doors.js', 'text/javascript; charset=utf-8']],
+  ['/src/checkout.js', ['src/checkout.js', 'text/javascript; charset=utf-8']],
   ['/src/textures.js', ['src/textures.js', 'text/javascript; charset=utf-8']],
   ['/src/collision.mjs', ['src/collision.mjs', 'text/javascript; charset=utf-8']],
   ['/vendor/three.module.js', ['vendor/three.module.js', 'text/javascript; charset=utf-8']]
