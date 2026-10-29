@@ -36,5 +36,8 @@
     "directories": {
       "output": "dist"
     }
+  },
+  "allowScripts": {
+    "electron@31.7.7": true
   }
 }
