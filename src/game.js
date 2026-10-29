@@ -463,6 +463,15 @@ $('play').addEventListener('click',resume);
 $('reset').addEventListener('click',e=>{e.stopPropagation();if(confirm('Erase your new 15-floor save and restart?')){localStorage.removeItem(SAVE_KEY);location.reload();}});
 $('shopClose').addEventListener('click',resume);
 $('elevatorClose').addEventListener('click',resume);
+// Local-only QA controls are enabled solely with the explicit #rich developer URL.
+if(location.hash==='#rich'){
+ window.__martTest={
+  teleport(x,z){V.x=x;V.z=z;V.y=0;V.vy=0;},
+  setLook(yaw,pitch){V.yaw=yaw;V.pitch=pitch;},
+  setCarry(count){V.carry=Math.min(capacity(s),Math.max(0,count));},
+  snapshot(){return {floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
+ };
+}
 buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();
 if(PREVIEW_ENDING)beginEnding();
 requestAnimationFrame(animate);
