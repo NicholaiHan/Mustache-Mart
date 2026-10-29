@@ -370,7 +370,7 @@ function syncRobots(){
  for(const r of s.robots){
   if(r.placed&&r.floor===s.floor){
    if(!robotModels.has(r.id))robotModels.set(r.id,botAppearance(r));
-   const obj=robotModels.get(r.id);obj.visible=true;obj.position.set(r.x,.04*Math.sin(performance.now()/230+r.id),r.z);
+   const obj=robotModels.get(r.id);obj.visible=true;obj.position.set(r.x,(s.levels.robotLift?0:(r.liftY||0))+.04*Math.sin(performance.now()/230+r.id),r.z);
    const body=obj.getObjectByName('liftBody');
    if(body)body.position.y=r.liftY||0;
    const jack=obj.getObjectByName('liftingJack');
