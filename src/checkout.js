@@ -59,9 +59,9 @@ export function createCheckout({getWorld,getFloor,round,textLabel}){
    fixture(lane,.4,.035,.27,paper,1.02,1.7,-3.25);
    fixture(lane,.1,3.25,.1,steel,-.81,2.81,-3.35);
    fixture(lane,.85,.53,.21,black,-.82,4.52,-3.35);
-   const number=textLabel('LANE '+String(i+1).padStart(2,'0'),.78,.35,'#2a4441','#d9f0df',39,'interior');
+   const number=textLabel('LANE '+String(i+1).padStart(2,'0'),.78,.35,'#2a4441','#d9f0df',39,'entrance');
    number.position.set(-.82,4.54,-3.22);lane.add(number);
-   const closed=textLabel('PAYMENT  /  CARD  /  RECEIPT',2.85,.45,'#d5ddd6','#394c45',28,'interior');
+   const closed=textLabel('PAYMENT  /  CARD  /  RECEIPT',2.85,.45,'#d5ddd6','#394c45',28,'entrance');
    closed.position.set(0,1.62,2.85);lane.add(closed);
    const items=[];
    for(let j=0;j<3;j++){
