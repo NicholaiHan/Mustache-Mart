@@ -1,0 +1,37 @@
+name: Vendor browser runtime
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/vendor-three.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Download pinned Three.js without executing package scripts
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Copy browser module into repository
+        run: |
+          mkdir -p vendor
+          cp node_modules/three/build/three.module.js vendor/three.module.js
+          test -s vendor/three.module.js
+          node --check vendor/three.module.js
+      - name: Commit browser module
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add vendor/three.module.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Vendor pinned Three.js module for installation-free Mac play"
+            git push
+          fi
