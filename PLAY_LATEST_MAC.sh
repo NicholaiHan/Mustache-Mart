@@ -15,7 +15,7 @@ PORT="${PORT:-8011}"
 echo ""
 echo "MUSTACHE MART - UPDATED BUILD ${VERSION}"
 echo "Correct folder: $PWD"
-echo "Checkouts, service robot Mike, ladders, conveyors, fire exit, and $500 dev funds"
+echo 'Checkouts, service robot Mike, ladders, conveyors, fire exit, and $500 dev funds'
 echo "Open http://127.0.0.1:${PORT}/#dev"
 echo "Control+C to close the server."
 echo ""
