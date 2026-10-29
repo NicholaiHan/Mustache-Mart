@@ -62,8 +62,8 @@ const TIER_Y=[.65,2.65,6.9,11.8],CHEST_REACH=1.8;
 const dummy=new THREE.Object3D(),color=new THREE.Color();
 
 const {add,cube,roundedGeo,round,textLabel,clearWorld}=createRendering({getWorld:()=>world,scene,toon});
-const {makeMike,botAppearance}=createCharacters({add,round,toon,getWorld:()=>world});
-const {buildShell,buildService,buildShelves,drawProduct}=createEnvironment({
+const {makeMike,botAppearance}=createCharacters({add,round,toon,textLabel,getWorld:()=>world});
+const {buildShell,buildService,buildShelves,drawProduct,getMike}=createEnvironment({
  s,scene,add,cube,round,roundedGeo,textLabel,toon,dummy,color,goods,pastel,
  FLOOR_W,FLOOR_D,CEILING_Y,RACK_HEIGHT,TIER_Y,makeMike
 });
