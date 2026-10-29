@@ -32,6 +32,11 @@ jobs:
           node --check server.cjs
           node --check src/game.js
           node --check src/rules.mjs
+          node --check src/rendering.js
+          node --check src/environment.js
+          node --check src/characters.js
+          node --check src/equipment.js
+          node --check src/doors.js
           node --check vendor/three.module.js
       - name: Test offline asset loading and local-only security
         run: node --test tests/*.test.cjs
