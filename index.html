@@ -104,17 +104,36 @@ button:active:not(:disabled){transform:translateY(1px)}
  padding:8px 12px;border-radius:7px;margin:8px 0;font-weight:800}
 @media(max-width:700px){#buildChip{top:130px;max-width:45vw;font-size:10px}#buildIntro{font-size:13px}}
 
+
+/* Five original game-specific SVG pictograms; no OS/phone emoji glyphs. */
+#stats .hudStat{display:flex;align-items:center;gap:9px;min-height:49px;padding:6px 11px;background:#f6f8f3eF;white-space:nowrap;border:1px solid #a4b7ae}
+#stats .hudIcon{display:block;width:35px;height:35px;flex:none}
+.hudIcon .iconPlate{fill:#e2ede5;stroke:#8da69a;stroke-width:.8}
+.hudIcon .iconInk{stroke:#294f48}
+.hudStat:nth-child(2) .iconPlate{fill:#f7ecd4;stroke:#d0ac6b}
+.hudStat:nth-child(2) .iconInk{stroke:#805b2b}
+.hudStat:nth-child(3) .iconPlate{fill:#e4eaf0;stroke:#8eabb8}
+.hudStat:nth-child(3) .iconInk{stroke:#3b6578}
+.hudStat:nth-child(4) .iconPlate{fill:#eee8dd;stroke:#c9b28d}
+.hudStat:nth-child(4) .iconInk{stroke:#7a5d3c}
+.hudStat:nth-child(5) .iconPlate{fill:#e9e8f2;stroke:#a8a1bd}
+.hudStat:nth-child(5) .iconInk{stroke:#5e557b}
+.hudStat .statReading{display:flex;flex-direction:column;line-height:1.2;gap:3px}
+.hudStat .statReading small{font-size:9px;letter-spacing:.12em;color:#667d73;font-weight:900}
+.hudStat .statReading>span{font-variant-numeric:tabular-nums;font-size:14px;font-weight:850;color:#233c35}
+@media(max-width:700px){#stats .hudStat{gap:5px;padding:4px 6px;min-height:36px}#stats .hudIcon{width:25px;height:25px}#stats .statReading small{font-size:8px}#stats .statReading>span{font-size:11px}}
+
 </style>
 </head>
 <body>
 <div id="loading"><div>🥸 Loading all 15 floors of Mustache Mart…</div></div>
 <div id="hud" hidden>
-  <div id="stats">
-    <span class="pill">🏬 <span id="floorStat">F01 / F15</span></span>
-    <span class="pill">💰 <span id="money">$0.00</span></span>
-    <span class="pill">🧾 Payday: <span id="pending">$0.00</span></span>
-    <span class="pill">📦 <span id="carry">0 / 1</span></span>
-    <span class="pill">🤖 <span id="robots">0</span></span>
+  <div id="stats" aria-label="Game progress and resources">
+    <span class="pill hudStat"><svg class="hudIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><rect x=".45" y=".45" width="23.1" height="23.1" rx="6.3" class="iconPlate"/><g class="iconInk" fill="none" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10 6.4 4h11.2l2.4 6"/><path d="M3 10h18v3.5a2.3 2.3 0 0 1-4.5.65 2.3 2.3 0 0 1-4.5 0 2.3 2.3 0 0 1-4.5 0 2.3 2.3 0 0 1-4.5-.65Z"/><path d="M5.5 15.8V21h13v-5.2M10 21v-5.2h4V21"/></g></svg><span class="statReading"><small>FLOOR</small><span id="floorStat">F01 / F15</span></span></span>
+    <span class="pill hudStat"><svg class="hudIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><rect x=".45" y=".45" width="23.1" height="23.1" rx="6.3" class="iconPlate"/><g class="iconInk" fill="none" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="3.2"/><path d="M6 9h1.4M16.6 15H18M12 10v4M10.9 10.8h2.2"/></g></svg><span class="statReading"><small>BALANCE</small><span id="money">$0.00</span></span></span>
+    <span class="pill hudStat"><svg class="hudIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><rect x=".45" y=".45" width="23.1" height="23.1" rx="6.3" class="iconPlate"/><g class="iconInk" fill="none" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v17l-3-1.5-3 1.5-3-1.5L6 20Z"/><path d="M9 8h6M9 11h6M9 14h2.5"/><circle cx="15.5" cy="15.1" r="1.7"/></g></svg><span class="statReading"><small>WAGES</small><span id="pending">$0.00</span></span></span>
+    <span class="pill hudStat"><svg class="hudIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><rect x=".45" y=".45" width="23.1" height="23.1" rx="6.3" class="iconPlate"/><g class="iconInk" fill="none" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="m3.4 8.4 8.6-4.5 8.6 4.5v8L12 21l-8.6-4.6Z"/><path d="M3.4 8.4 12 13l8.6-4.6M12 13v8M8 6.1l8.6 4.6M16.6 10.7v4"/></g></svg><span class="statReading"><small>CARRYING</small><span id="carry">0 / 1</span></span></span>
+    <span class="pill hudStat"><svg class="hudIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><rect x=".45" y=".45" width="23.1" height="23.1" rx="6.3" class="iconPlate"/><g class="iconInk" fill="none" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="4.1" y="7.5" width="15.8" height="12" rx="3"/><path d="M12 4v3.5M9.7 4h4.6M7.2 20.5h9.6M2 12h2M20 12h2"/><rect x="6.8" y="10.1" width="10.4" height="5.8" rx="1.4"/><path d="M9.2 12.9h.2M14.6 12.9h.2M9.7 17.5c1 .9 3.6.9 4.6 0"/></g></svg><span class="statReading"><small>ROBOTS</small><span id="robots">0</span></span></span>
   </div>
   <div class="pill" id="objective">Collect a can from the delivery dock, then stock the nearest shelf.</div>
   <div id="buildChip">UPDATED BUILD · 2026.10.29.3</div>
