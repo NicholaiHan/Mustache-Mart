@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {polishedTileTexture,matteWallTexture,productTexture,cartonTexture} from './textures.js';
 import {AISLES,BAYS,TIERS,SLOTS,CELLS_PER_FLOOR,DOCK,aisleX,bayZ,decode,floorLabel} from './rules.mjs';
 // Architecture, walls, supermarket service counters, shelves, products.
 // The factory owns shelf rendering buffers so other systems never modify them directly.
@@ -18,32 +19,15 @@ function buildShell(){
  const theme=pastel[s.floor%pastel.length];
  scene.background.set('#d8ddda');scene.fog.color.set('#d8ddda');
  // Fine pale ceramic tiles with subtle grout and material variation.
- const fc=document.createElement('canvas');fc.width=fc.height=256;
- const ctx=fc.getContext('2d');
- ctx.fillStyle='#d6d4cd';ctx.fillRect(0,0,256,256);
- for(let row=0;row<4;row++)for(let col=0;col<4;col++){
-  const shade=(row*7+col*3)%3;
-  ctx.fillStyle=['#e6e6e0','#e9e9e3','#e2e4e0'][shade];
-  ctx.fillRect(col*64+2,row*64+2,60,60);
- }
- ctx.strokeStyle='#c6c8c4';ctx.lineWidth=1;
- for(let p=0;p<=256;p+=64){ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,256);ctx.stroke();}
- const tiles=new THREE.CanvasTexture(fc);tiles.wrapS=tiles.wrapT=THREE.RepeatWrapping;
- tiles.repeat.set(FLOOR_W/6,FLOOR_D/6);
- const ground=add(new THREE.Mesh(new THREE.PlaneGeometry(FLOOR_W,FLOOR_D),new THREE.MeshStandardMaterial({map:tiles,roughness:.9})));
- ground.rotation.x=-Math.PI/2;ground.position.set(46.5,0,44);
+ const tiles=polishedTileTexture();
+ const floorMaterial=new THREE.MeshStandardMaterial({map:tiles,roughness:.83,metalness:.035,bumpMap:tiles,bumpScale:.009});
+ const ground=add(new THREE.Mesh(new THREE.PlaneGeometry(FLOOR_W,FLOOR_D),floorMaterial));
+ ground.rotation.x=-Math.PI/2;ground.position.set(46.5,0,44);ground.receiveShadow=true;
  const ceiling=cube(FLOOR_W,.28,FLOOR_D,'#e8e8e4');ceiling.position.set(46.5,CEILING_Y,44);
  // Lightly textured industrial wall coating and physical door apertures.
  // A single solid panel is never placed behind either interactive door.
- const plaster=document.createElement('canvas');plaster.width=plaster.height=256;
- const pc=plaster.getContext('2d');pc.fillStyle='#d9ddda';pc.fillRect(0,0,256,256);
- for(let i=0;i<4400;i++){
-   const n=(i*181+37)%65536,x=n%256,y=(i*53+Math.floor(i/256)*19)%256;
-   pc.fillStyle=i%3?'#d4d8d5':'#e1e4e1';pc.fillRect(x,y,1+(i%3),1+(i%2));
- }
- const wallTex=new THREE.CanvasTexture(plaster);wallTex.wrapS=wallTex.wrapT=THREE.RepeatWrapping;
- wallTex.repeat.set(7,1.2);
- const wallMat=new THREE.MeshStandardMaterial({map:wallTex,roughness:.94,metalness:0});
+ const wallTex=matteWallTexture();
+ const wallMat=new THREE.MeshStandardMaterial({map:wallTex,roughness:.91,metalness:.012,bumpMap:wallTex,bumpScale:.011});
  const wallSegment=(x,z,w,d,h=CEILING_Y,y=CEILING_Y/2)=>{
    const body=cube(w,h,d,wallMat);body.position.set(x,y,z);
    if(h===CEILING_Y){
@@ -119,7 +103,7 @@ function buildShell(){
   const x=30+(j%4)*3.5,z=95+Math.floor(j/4)*3.0;
   const pallet=round(2.7,.22,2.4,'#9d8264');pallet.position.set(x,.14,z);
   for(let a=0;a<2;a++)for(let b=0;b<2;b++)for(let level=0;level<2;level++){
-   const box=round(1.1,.75,.95,['#b39d7c','#b7a98b','#afa38d'][(j+a+b)%3]);
+   const box=round(1.1,.75,.95,new THREE.MeshStandardMaterial({map:cartonTexture(),roughness:.89}));
    box.position.set(x+(a-.5)*1.15,.64+level*.78,z+(b-.5)*1.07);
    const tape=cube(.09,.77,.99,'#e1d9c4');tape.position.copy(box.position);tape.position.y+=.02;
   }
@@ -222,7 +206,7 @@ function buildShelves(){
  }
  const maxForType=Math.ceil(AISLES/5)*2*BAYS*TIERS*SLOTS;
  meshes=Array.from({length:5},(_,i)=>{
-   const m=add(new THREE.InstancedMesh(itemGeometry(i),toon('#ffffff'),maxForType));
+   const m=add(new THREE.InstancedMesh(itemGeometry(i),new THREE.MeshStandardMaterial({map:productTexture(i),metalness:.05,roughness:.57}),maxForType));
    m.count=0;m.frustumCulled=false;return m;
  });
  for(let i=s.floor*CELLS_PER_FLOOR;i<(s.floor+1)*CELLS_PER_FLOOR;i++){
@@ -237,7 +221,7 @@ function drawProduct(id,slot){
  dummy.rotation.set(0,(slot+id)*1.14%6.28,0);dummy.scale.set(1,1,1);dummy.updateMatrix();
  m.setMatrixAt(idx,dummy.matrix);
  const palettes=[['#9f5948','#b56b51','#b47d54'],['#72909c','#91a5aa','#b6c8c8'],['#805654','#5e745d','#68617a'],['#bd9f6d','#b59e75','#9d866b'],['#8b9c86','#a26d60','#79919b']];
- m.setColorAt(idx,color.set(palettes[aisle%5][slot%3]));
+ m.setColorAt(idx,color.set(['#ffffff','#e5eeeb','#d7e4e0'][slot%3]));
  m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;
 }
 
