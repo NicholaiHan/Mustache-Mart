@@ -32,7 +32,7 @@ const assert=require('node:assert/strict');
 
   await page.locator('#play').click();
   // Actual collision-safe loading position, not inside the receiving counter.
-  await page.evaluate(()=>window.__martTest.teleport(1.5,93.1));
+  await page.evaluate(()=>{window.__martTest.teleport(1.5,93.1);window.__martTest.setLook(Math.PI,-.07);});
   assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(1.5,93.1)),false);
   assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(1.5,96)),true);
   const art=path.join(__dirname,'..','test-artifacts');fs.mkdirSync(art,{recursive:true});
@@ -51,7 +51,7 @@ const assert=require('node:assert/strict');
   assert.equal(snap.carry,0);
   console.log('PASS: rear warehouse pickup and reachable lower-rack 1-cent payout');
 
-  await page.evaluate(()=>window.__martTest.teleport(10,-1.3));
+  await page.evaluate(()=>{window.__martTest.teleport(10,-1.3);window.__martTest.setLook(0,-.07);});
   await page.screenshot({path:path.join(art,'payroll-window.png')});
   await page.keyboard.press('e');await page.waitForTimeout(250);
   snap=await page.evaluate(()=>window.__martTest.snapshot());
@@ -120,14 +120,14 @@ const assert=require('node:assert/strict');
   await page.locator('#elevator.open').waitFor();
   await page.locator('#elevatorlist button').first().click({noWaitAfter:true,timeout:90000});
   await page.waitForFunction(()=>document.querySelector('#floorStat')?.textContent.includes('F01'),undefined,{timeout:45000});
-  await page.evaluate(()=>window.__martTest.teleport(98.6,40.5));
+  await page.evaluate(()=>{window.__martTest.teleport(98.6,40.5);window.__martTest.setLook(-Math.PI/2,0);});
   await page.screenshot({path:path.join(art,'fire-exit.png')});
   await page.keyboard.press('e');
   assert.equal(await page.evaluate(()=>window.__martTest.doorStatus().fire),true);
   await page.keyboard.press('e');
   assert.equal(await page.evaluate(()=>window.__martTest.doorStatus().fire),false);
   console.log('PASS: Fire Exit opens and closes by E, revealing brick wall');
-  await page.evaluate(()=>window.__martTest.teleport(46.5,-8.3));
+  await page.evaluate(()=>{window.__martTest.teleport(46.5,-8.3);window.__martTest.setLook(0,0);});
   await page.keyboard.press('e');
   assert.equal(await page.evaluate(()=>window.__martTest.doorStatus().entrance),false,'must stay locked below 100%');
   await page.evaluate(()=>window.__martTest.setCompletion(true));
