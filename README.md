@@ -18,22 +18,22 @@ Based on the original Claude ZIP prototype and upgraded for a much larger store.
 
 Requires Node.js 18+.
 
-\`\`\`bash
+```bash
 npm install
 npm start
-\`\`\`
+```
 
 ## Validate syntax
 
-\`\`\`bash
+```bash
 npm run check
-\`\`\`
+```
 
 ## Desktop builds
 
-\`\`\`bash
+```bash
 npm run dist
-\`\`\`
+```
 
 Electron Builder is configured for unpacked desktop output. Build on each target OS
 when practical and test each generated build. A build is **not** a published Steam
@@ -41,8 +41,8 @@ release: Steam distribution requires a Steamworks account, Steam Direct onboardi
 application setup, store assets, builds uploaded via SteamPipe, and Valve review.
 
 ## Developer shortcuts
-The original prototype supports \`#rich\` for 10 million test coins and
-\`#ending\` to preview the ending. These are debugging shortcuts, not achievements.
+The original prototype supports `#rich` for 10 million test coins and
+`#ending` to preview the ending. These are debugging shortcuts, not achievements.
 
 ## Notes
 - This is a playable prototype, not a content-complete commercial release.
