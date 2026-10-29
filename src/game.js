@@ -20,7 +20,7 @@ if(location.hash==='#rich')s.money=100000;
 const TEST_ENDING=location.hash==='#ending-test', PREVIEW_ENDING=location.hash==='#ending'||TEST_ENDING;
 const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
 let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0,shopCategory='tools';
-let doorInteractionHeld=false;
+let doorInteractionHeld=false,ignoreMouseUntil=0;
 let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],cartMesh=null,ladderMesh=null,ladder=null;
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
 let receiptTimeout=0,payrollTransactions=0;
@@ -337,12 +337,21 @@ window.addEventListener('blur',()=>{held={};mouseDown=false;doorInteractionHeld=
 window.addEventListener('mousemove',e=>{
  if(!running||modal)return;
  if(document.pointerLockElement===renderer.domElement||e.buttons===1){
-   V.yaw-=e.movementX*.0024;V.pitch=Math.max(-1.25,Math.min(1.25,V.pitch-e.movementY*.0024));
+  // Ignore a browser's synthetic pointer recenter jump and bound subsequent deltas.
+  if(performance.now()<ignoreMouseUntil)return;
+  const dx=Math.max(-90,Math.min(90,e.movementX));
+  const dy=Math.max(-90,Math.min(90,e.movementY));
+  V.yaw-=dx*.0024;
+  V.pitch=Math.max(-1.25,Math.min(1.25,V.pitch-dy*.0024));
  }
 });
 renderer.domElement.addEventListener('mousedown',()=>{if(!modal){mouseDown=true;actionClock=0;act();}});
 window.addEventListener('mouseup',()=>{mouseDown=false;doorInteractionHeld=false;});
 document.addEventListener('pointerlockchange',()=>{
+ if(document.pointerLockElement===renderer.domElement){
+  ignoreMouseUntil=performance.now()+160;
+  return;
+ }
  if(!ending&&!modal&&document.pointerLockElement!==renderer.domElement){
   // Arrow-key fallback still works, without bypassing browser permissions.
   notify('Mouse released. Use arrow keys to look or click to recapture.');
