@@ -21,6 +21,14 @@ let s=loadState(localStorage.getItem(SAVE_KEY) || localStorage.getItem('mustache
 // Explicit opt-in dev mode: restore at least $500 in test cash without touching normal saves.
 const DEV_MODE=location.hash==='#rich'||location.hash==='#dev';
 if(DEV_MODE)s.money=Math.max(s.money,50000);
+if(DEV_MODE){const banner=document.getElementById('devBanner');if(banner)banner.style.display='block';}
+fetch('./build.json',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(new Error('build manifest missing')))
+.then(build=>{
+ const label='UPDATED BUILD · '+build.version;
+ const chip=document.getElementById('buildChip');if(chip)chip.textContent=label;
+ const intro=document.getElementById('buildIntro');
+ if(intro)intro.firstChild.textContent='UPDATED EDITION · BUILD '+build.version+' ';
+}).catch(()=>{const chip=document.getElementById('buildChip');if(chip)chip.textContent='BUILD MANIFEST NOT FOUND';});
 const TEST_ENDING=location.hash==='#ending-test', PREVIEW_ENDING=location.hash==='#ending'||TEST_ENDING;
 const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
 let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0,shopCategory='tools';
