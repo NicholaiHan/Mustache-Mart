@@ -37,6 +37,8 @@ jobs:
           node --check src/characters.js
           node --check src/equipment.js
           node --check src/doors.js
+          node --check src/checkout.js
+          node --check src/ladder.mjs
           node --check src/collision.mjs
           node --check src/textures.js
           node --check vendor/three.module.js
