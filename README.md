@@ -88,3 +88,21 @@ These are real in-game interactions, not just decorative door mockups.
 ## Prototype limitations
 
 This is still a procedural browser game rather than a fully modeled commercial simulator. There is no physics-based conveyor transport network with arbitrary corners or junctions, full-length manual endurance test, native notarized macOS app, or published Steam build. A passing CI test is useful evidence, not a 100% guarantee across every browser, Mac model, or playthrough. Progress remains local to your browser.
+
+
+## First-floor visual & functional improvement (October 29, 2026)
+
+- **Four real-looking cashier lanes, Floor 1 only:** animated checkout conveyors, solid grounded belt frames, scanner and monitor, card-payment terminal, receipt hardware, hanging lane number, bagging area and a **tiny white mustache on each register casing**. Interact with E by the terminal; customer payments are reserved for the grand opening (there are no simulated shoppers prior to opening).
+- **Mustache Mike now stands behind his customer-service desk** rather than in front. The desk has a visible fascia, countertop, glass-free customer approach, fixed overhead shop signage, and point-of-sale display.
+- **Payroll window is one cohesive physical assembly:** glass frame, fixed signage/header, nearby back panel, solid counter, printer and staff-service signage. No disconnected floating backdrop.
+- **The sole red FIRE EXIT remains interactive with E on the Floor 1 back-left wall, around x=-9.5, z=85.** Opening it reveals brickwork, not a route outdoors.
+- **Ladders are physically climbable:** stand near a placed ladder, press **E or C** to grab it, hold W/S to climb or descend (extension unlocks the 3¢ upper band), and press C to release. L still deploys an owned ladder, X sells a deployed ladder for half its purchase cost.
+- **Actual inventory conveyors** continue to transport and accumulate stock; pick delivered items up with E or let robots choose a nearby supplied belt.
+- **Explicit development mode gives at least $500 in your account** at startup: open `http://127.0.0.1:8000/#dev` (or the older `#rich` alias). This means **50,000 cents**, applies only when you deliberately use a development URL, and never reduces an already higher saved balance. It does not affect normal mode.
+- **Four cashier lane colliders are on Floor 1 only**; they do not obstruct higher levels.
+
+### Verification
+
+`tests/first-floor-30.test.cjs` runs **30 different accelerated first-floor game sessions**, each completely filling **9,600 products** on Floor 1 (total **288,000 stocked products**) through production inventory/earnings rules and verifying paid stock, developer opening funds, each shop category, robot purchase/deployment, belt transport/pickup, ladder ascent, 50% resale, automatic workers and cart, save/load, all four checkout colliders, and that finishing Floor 1 alone does **not** unlock the 15-floor entrance.
+
+These are deterministic **accelerated gameplay/rules simulations**, not thirty human-controlled rendered sessions. Separately, Playwright browser smoke tests actually render the first floor and interact with the checkout register, paycheck terminal, Mike, ladders, conveyor belts and red fire exit in Chromium.
