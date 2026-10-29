@@ -53,7 +53,7 @@ export function blockedEquipment(s,x,z,radius=PLAYER_RADIUS){
    }
  }
  for(const bot of s.robots||[]){
-   if(bot.floor===floor&&Math.hypot(x-bot.x,z-bot.z)<.61+radius)return true;
+   if(bot.placed&&bot.floor===floor&&Math.hypot(x-bot.x,z-bot.z)<.61+radius)return true;
  }
  if(s.levels?.cart&&s.cart.floor===floor){
    if(Math.hypot(x-aisleX(s.cart.aisle),z-s.cart.z)<.84+radius)return true;
