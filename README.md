@@ -59,6 +59,31 @@ To test source/economy locally (no npm install necessary):
 
 Developer testing: add **#rich** to the URL for testing coins, or **#ending-test** to preview the ending quickly.
 
+
+## Modular game architecture
+
+The original monolithic game source has been separated into focused modules while keeping `src/game.js` as the entrypoint:
+
+| File | Responsibility |
+| --- | --- |
+| `src/game.js` | Input, movement, menus, gameplay orchestration and final cinematic |
+| `src/rendering.js` | GPU geometry helpers, one-sided signs and graphics resource cleanup |
+| `src/environment.js` | Textured walls, ceiling, store architecture, stock shelves, Mike's counter, payroll and receiving |
+| `src/characters.js` | Robotic shopkeeper Mike and autonomous mustached workers |
+| `src/equipment.js` | Conveyor sections, carts, ladder equipment and industrial materials |
+| `src/doors.js` | Animated fire exit, brick obstruction and final entrance sliding doors |
+| `src/rules.mjs` | Core economy, inventory counts, robot stocking, upgrades and save migration |
+| `server.cjs` | Local-only Mac browser asset server with explicit allowlist |
+
+### New doors and winning condition
+
+- **Fire exit on Floor 1:** One red door, labeled FIRE EXIT. Approach it on the right side of the store around aisle 10, then press E to swing it open or closed. Behind it is a brick wall.
+- **Main entrance on Floor 1:** The front doors stay locked until **all 144,000 products** have been placed. Press E before 100% to see the message that the building must be stocked first.
+- **Manually trigger the finale:** When you reach 100%, visit the front entrance and press E to slide open the doors. That action, not merely filling the last shelf, starts the 20-day grand-opening cinematic.
+- The walls have physical openings for both doors rather than coincident wall polygons, with layered plaster textures, steel trims and detailed customer-service/receiving stations.
+
+These are real in-game interactions, not just decorative door mockups.
+
 ## Prototype limitations
 
 This is still a procedural browser game rather than a fully modeled commercial simulator. There is no physics-based conveyor transport network with arbitrary corners or junctions, full-length manual endurance test, native notarized macOS app, or published Steam build. A passing CI test is useful evidence, not a 100% guarantee across every browser, Mac model, or playthrough. Progress remains local to your browser.
