@@ -367,7 +367,11 @@ function syncRobots(){
  for(const r of s.robots){
   if(r.placed&&r.floor===s.floor){
    if(!robotModels.has(r.id))robotModels.set(r.id,botAppearance(r));
-   const obj=robotModels.get(r.id);obj.visible=true;obj.position.set(r.x,(r.liftY||0)+.04*Math.sin(performance.now()/230+r.id),r.z);
+   const obj=robotModels.get(r.id);obj.visible=true;obj.position.set(r.x,.04*Math.sin(performance.now()/230+r.id),r.z);
+   const body=obj.getObjectByName('liftBody');
+   if(body)body.position.y=r.liftY||0;
+   const jack=obj.getObjectByName('liftingJack');
+   if(jack){jack.scale.y=1+(r.liftY||0);jack.position.y=.98+(r.liftY||0)*.5;}
    const crate=obj.getObjectByName('crate');if(crate)crate.visible=r.carry>0;
   }else if(robotModels.has(r.id)){const obj=robotModels.get(r.id);obj.visible=false;robotModels.delete(r.id);}
  }
