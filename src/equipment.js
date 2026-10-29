@@ -15,7 +15,7 @@ export function industrialWheel(parent,x,y,z,r=.26){
  cylinder(r*.16,.19,equipmentMaterial('#c77a34',.25,.4),parent,x,y,z,Math.PI/2);
 }
 
-export function createEquipment({s,round,getWorld,getLadder,getBeltCrates,getFeedCrates}){
+export function createEquipment({s,round,getWorld,getLadder,getBeltCrates,getFeedCrates,setClawVisual}){
 function makeBelt(f,a,segment){
  const group=new THREE.Group();getWorld().add(group);
  group.position.set(aisleX(a)+1.4,0,bayZ(BAYS-1-segment));
@@ -87,12 +87,14 @@ function makeReceivingSystem(){
  const upright=round(.18,3.8,.18,steel,loader);upright.position.set(0,1.9,0);
  const beam=round(2.5,.18,.21,yellow,loader);beam.position.set(.94,3.73,0);
  const slide=round(.42,.26,.35,steel,loader);slide.position.set(1.85,3.5,0);
+ loader.userData.jaws=[];
  for(const x of [1.65,2.05]){
-  const jaw=round(.14,.82,.19,steel,loader);jaw.position.set(x,2.86,0);
+  const jaw=round(.14,.82,.19,steel,loader);jaw.position.set(x,2.86,0);loader.userData.jaws.push(jaw);
   const tip=round(.19,.12,.22,dark,loader);tip.position.set(x,2.42,0);
  }
  const controller=round(.57,.48,.27,dark,loader);controller.position.set(-.2,1.62,-.15);
  const lamp=round(.24,.15,.085,green,loader);lamp.position.set(-.2,1.69,.025);
+ if(setClawVisual)setClawVisual(loader);
  return root;
 }
 function makeCart(){
