@@ -2,6 +2,30 @@
 
 A first-person supermarket stocking and automation prototype with **15 huge floors, 144,000 products, industrial-style metal racks, and a more realistic, muted supermarket interior**. Built in Three.js. Mac users can play it safely through a local browser rather than the previously blocked Electron runtime.
 
+## Guaranteed latest-version setup (copy/paste for Mac)
+
+**Do not use an old downloaded `mustache-mart.zip`, old Electron app, or previously extracted folder.** The obsolete small ZIP has been removed from GitHub. The complete game is always in the live `main` branch archive.
+
+1. Copy the **whole** block below into Terminal. It downloads the current complete game, checks the ZIP, keeps the former folder under a dated backup name, and runs the new copy on **port 8011** so any old server on 8000 cannot interfere:
+
+```bash
+cd "$HOME/Desktop" || exit
+curl --fail --location --retry 3 "https://github.com/NicholaiHan/Mustache-Mart/archive/refs/heads/main.zip" --output Mustache-Mart-CURRENT.zip
+unzip -tq Mustache-Mart-CURRENT.zip >/dev/null || exit
+if [ -d Mustache-Mart-main ]; then
+  mv Mustache-Mart-main "Mustache-Mart-previous-$(date +%Y%m%d-%H%M%S)"
+fi
+unzip -oq Mustache-Mart-CURRENT.zip
+cd Mustache-Mart-main || exit
+bash PLAY_LATEST_MAC.sh
+```
+
+2. Open **http://127.0.0.1:8011/#dev** in Chrome or Safari. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.29.3** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+3. **Development mode** (the `#dev` suffix) gives **at least $500** for testing. Stop the server with **Control+C**.
+4. Port **8011 is deliberately different from 8000**: existing browser saves at port 8000 are still retained, but do not appear automatically at 8011 (browser storage is origin-specific). For continuing the same saved progress after verifying the build, stop the older port-8000 server, then in the downloaded folder run `node server.cjs` and open `http://127.0.0.1:8000/#dev`.
+
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.29.3** is shown.
+
 ## Play on your MacBook
 
 1. Download the **full latest repository ZIP**: https://github.com/NicholaiHan/Mustache-Mart/archive/refs/heads/main.zip
