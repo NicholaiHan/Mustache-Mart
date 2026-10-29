@@ -4,6 +4,7 @@ import {createEnvironment} from './environment.js';
 import {createCharacters} from './characters.js';
 import {createEquipment} from './equipment.js';
 import {createDoors} from './doors.js';
+import {createCheckout} from './checkout.js';
 import {moveWithCollisions,isBlocked,blockedEquipment} from './collision.mjs';
 import {cartonTexture} from './textures.js';
 import {
@@ -16,7 +17,9 @@ import {
 const $=id=>document.getElementById(id);
 // Upgrade existing fifteen-floor saves by reindexing their old three-band shelves.
 let s=loadState(localStorage.getItem(SAVE_KEY) || localStorage.getItem('mustacheMartV3'));
-if(location.hash==='#rich')s.money=100000;
+// Explicit opt-in dev mode: restore at least $500 in test cash without touching normal saves.
+const DEV_MODE=location.hash==='#rich'||location.hash==='#dev';
+if(DEV_MODE)s.money=Math.max(s.money,50000);
 const TEST_ENDING=location.hash==='#ending-test', PREVIEW_ENDING=location.hash==='#ending'||TEST_ENDING;
 const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
 let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0,shopCategory='tools';
@@ -83,11 +86,12 @@ const {makeBelt,makeCart,makeLadder}=createEquipment({
  s,round,getWorld:()=>world,getBeltCrates:()=>beltCrates
 });
 const doors=createDoors({getWorld:()=>world,getFloor:()=>s.floor,round,cube,textLabel});
+const checkout=createCheckout({getWorld:()=>world,getFloor:()=>s.floor,round,textLabel});
 function buildWorld(){
  clearWorld(world);
  world=new THREE.Group();scene.add(world);
  currentFloor=s.floor;beltCrates=[];cartMesh=null;ladderMesh=null;robotModels=new Map();robotGhost=null;
- buildShell();buildService();buildShelves();doors.build();
+ buildShell();buildService();buildShelves();doors.build();checkout.build();
  for(let a=0;a<AISLES;a++)for(let segment=0;segment<s.belts[s.floor][a];segment++)makeBelt(s.floor,a,segment);
  for(const robot of s.robots)if(robot.placed&&robot.floor===s.floor)robotModels.set(robot.id,botAppearance(robot));
  cartMesh=makeCart();
@@ -156,6 +160,11 @@ function act(){
   }
   return;
  }
+ const register=checkout.nearest(V.x,V.z);
+ if(register>=0){
+   notify('CHECKOUT '+String(register+1).padStart(2,'0')+' · Card terminal powered; customer payments begin at the grand opening.');
+   return;
+ }
  if(nearby(1.5,-7,4.0)){openShop();return;}
  if(nearby(10,-3,4.0)){const paid=payOut(s);if(paid)showPayReceipt(paid);else notify('Your payroll balance is currently $0.00. Stock more products to earn wages.');save();return;}
  if(nearby(23,-9,4.4)){openElevator();return;}
@@ -165,6 +174,11 @@ function act(){
   if(source){takeBelt(s,s.floor,source.aisle);V.carry++;notify('Picked up one delivered conveyor product.');return;}
  }
  if(manualStock())return;
+ // With empty hands, E is an accessible alternative to C for gripping a ladder.
+ if(!V.carry&&(climbingLadderId!==null||nearestLadder(1.9))){
+   if(doorInteractionHeld)return;
+   doorInteractionHeld=true;toggleClimb();return;
+ }
 }
 function nearestBeltStock(){
  let best=null,dist=2.7;
@@ -313,11 +327,12 @@ function updatePrompt(){
  let msg='';
  if(placementRobotId!==null)msg='ROBOT #'+placementRobotId+' · WALK to the aisle · LEFT CLICK to deploy · ESC cancel';
  else if(climbingLadderId!==null)msg='CLIMBING · W up · S down · C release · Hold E to stock';
- else if(nearestLadder(1.8))msg='C · Climb ladder · X sell for half purchase price';
+ else if(nearestLadder(1.8))msg='E or C · Grab ladder · Hold W to climb / S to descend · X sell';
  else if(nearestBeltStock())msg='E · Take conveyor stock · X sell LAST segment';
  else if(doors.nearFire(V.x,V.z))msg='E · '+(doors.isFireOpen()?'Close':'Open')+' FIRE EXIT (brick wall behind)';
  else if(doors.nearEntrance(V.x,V.z))
    msg=canOpenStore(s)?'E · Unlock the grand opening and slide open the doors':'E · You have to stock the building before opening';
+ else if(checkout.nearest(V.x,V.z)>=0)msg='E · Check cashier terminal · Checkout belts active · Customer payments begin on opening';
  else if(nearby(DOCK.x,DOCK.z,4.4))msg=V.carry<capacity(s)?'Hold E · Load product from REAR RECEIVING (one per action)':'Carry capacity reached — return to an aisle';
  else if(nearby(1.5,-7,4.0))msg='E or Q · Talk to Mustache Mike for upgrades';
  else if(nearby(10,-3,4.0))msg='E · Collect '+centsText(s.pending)+' in wages';
@@ -432,6 +447,7 @@ function animate(now){
   // Completion alone does NOT trigger the ending. Open the front doors with E.
  }
  doors.update(dt);
+ checkout.update(now/1000);
  if(ending)endingTick(elapsed);
  if(robotGhost&&placementRobotId!==null){
   const a=placementSpot?.aisle??nearestAisle(),b=placementSpot?.bay??nearestBay();
@@ -513,7 +529,7 @@ $('shopClose').addEventListener('click',resume);
 for(const category of ['tools','economy'])$('tab-'+category).addEventListener('click',()=>{shopCategory=category;renderShop();});
 $('elevatorClose').addEventListener('click',resume);
 // Local-only QA controls are enabled solely with the explicit #rich developer URL.
-if(location.hash==='#rich'){
+if(DEV_MODE){
  window.__martTest={
   teleport(x,z){V.x=x;V.z=z;V.y=0;V.vy=0;},
   setLook(yaw,pitch){V.yaw=yaw;V.pitch=pitch;},
@@ -523,7 +539,7 @@ if(location.hash==='#rich'){
   doorStatus(){return {fire:doors.isFireOpen(),entrance:doors.isEntranceOpen()};},
   checkBlocked(x,z){return isBlocked(x,z,s.floor)||blockedEquipment(s,x,z);},
    move(dx,dz){const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));V.x=next.x;V.z=next.z;return next;},
-   snapshot(){return {x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
+   snapshot(){return {devMode:DEV_MODE,checkoutCount:s.floor===0?4:0,x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
  };
 }
 buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();
