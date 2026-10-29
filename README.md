@@ -51,3 +51,19 @@ The original prototype supports `#rich` for 10 million test coins and
 - Robot helpers autonomously travel to and fill incomplete shelves.
 - Saves use localStorage on each machine, not Steam Cloud.
 - The project deliberately avoids reusing assets from other games.
+
+## macOS: Electron failed to install correctly
+
+Newer npm versions may block Electron's required postinstall download until approved.
+If `npm start` reports `Electron failed to install correctly`, run:
+
+```bash
+npm install-scripts approve electron
+npm rebuild electron --foreground-scripts
+npm start
+```
+
+If rebuilding fails, while in the project folder run `rm -rf node_modules/electron`,
+then `npm install --foreground-scripts`, followed by `npm start`.
+The repo explicitly approves the pinned Electron version in `allowScripts`; do not
+use `npm audit fix --force` merely to repair Electron.
