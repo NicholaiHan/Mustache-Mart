@@ -65,6 +65,8 @@ test('30 accelerated complete full-building runs preserve 144,000 items, wages, 
      assert.ok(r.purchase(s,upgrade),'cannot purchase '+upgrade+' in run '+run);
    }
    const worker=s.robots[0];
+   assert.equal(worker.placed,false);
+   assert.equal(r.assignRobot(s,worker.id,0,0,18),true);
    for(let t=0;t<500;t++)r.botStep(s,worker,.1);
    assert.ok(s.stocked>1,'working robot must have stocked after a simulated shift');
    const orderShift=(run*479)%r.TOTAL_CELLS;
@@ -94,6 +96,7 @@ test('working robots follow open rear crosswalk instead of phasing through shelf
  const r=rules,c=collision,st=r.newState();
  st.money=500;assert.equal(r.purchase(st,'robot'),true);
  const bot=st.robots[0];
+ assert.equal(r.assignRobot(st,bot.id,0,0,18),true);
  for(let i=0;i<2600;i++){
    r.botStep(st,bot,.1);
    assert.equal(c.isBlocked(bot.x,bot.z),false,'robot cannot traverse a solid shelf or pallet');
