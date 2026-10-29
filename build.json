@@ -1,6 +1,6 @@
 {
-  "version": "2026.10.29.3",
-  "name": "First Floor + Robotics Complete",
+  "version": "2026.10.29.4",
+  "name": "Conveyor Routing + Structural Detail",
   "build_date": "2026-10-29",
   "includes": [
     "Robot Mike with white eyes and mustache",
@@ -12,6 +12,10 @@
     "Half-price robot, ladder and belt resale",
     "Single FIRE EXIT on first-floor back-left wall",
     "Grand-opening door locked until all 15 floors stocked",
-    "$500 opt-in development funds at /#dev"
+    "$500 opt-in development funds at /#dev",
+    "Five original illustrated HUD status icons",
+    "Physical rear gantry and conveyor direction markings",
+    "Hex-fastened reinforced shelving and more detailed checkout registers",
+    "Bracket keys choose which aisle the receiving claw feeds"
   ]
 }
