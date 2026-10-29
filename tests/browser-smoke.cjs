@@ -25,7 +25,7 @@ const path = require('node:path');
     await page.goto(base + '/#rich', { waitUntil: 'load' });
     await page.waitForFunction(() =>
       document.querySelector('#barTxt')?.textContent.includes('57,600'),
-      { timeout: 45000 }
+      undefined, { timeout: 45000 }
     );
     if (!await page.locator('canvas').count()) throw Error('3D game canvas was not created');
     if (!await page.locator('#start').isVisible()) throw Error('Start screen missing');
@@ -38,16 +38,21 @@ const path = require('node:path');
     await page.waitForTimeout(300);
     if (errors.length) throw Error('Browser exceptions: ' + errors.join(' | '));
 
-    await page.goto(base + '/#ending-test', { waitUntil: 'load' });
-    await page.waitForFunction(() => document.querySelector('#bank')?.classList.contains('show'), {
-      timeout: 20000
-    });
-    const ending = await page.locator('#tape').textContent();
-    const thanks = await page.locator('#thanks').textContent();
+    await page.close();
+    // A new page is essential: hash-only navigation would not reinitialize the game.
+    const endingPage = await context.newPage();
+    endingPage.on('pageerror', e => errors.push(e.message));
+    await endingPage.goto(base + '/#ending-test', { waitUntil: 'load' });
+    await endingPage.waitForFunction(() =>
+      document.querySelector('#bank')?.classList.contains('show'),
+      undefined, { timeout: 20000 }
+    );
+    const ending = await endingPage.locator('#tape').textContent();
+    const thanks = await endingPage.locator('#thanks').textContent();
     if (!ending.includes('WENT BANKRUPT') || !thanks.includes('Thanks for Playing!')) {
       throw Error('Incorrect ending: ' + ending + ' / ' + thanks);
     }
-    await page.screenshot({ path: path.join(dir, 'ending.png') });
+    await endingPage.screenshot({ path: path.join(dir, 'ending.png') });
     if (errors.length) throw Error('Browser exceptions: ' + errors.join(' | '));
     console.log('PASS: 20-cycle ending reaches WENT BANKRUPT and Thanks for Playing');
     await context.close();
