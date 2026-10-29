@@ -216,6 +216,7 @@ export function robotSource(s,r){
 }
 export function botStep(s,r,dt){
  if(!r.placed||dt<=0)return -1;
+ if(r.phase==='supply')r.liftY=Math.max(0,(r.liftY||0)-dt*5);
  if(incomplete(s,r.floor,0)<0){
   const f=nextRobotFloor(s);if(f<0)return -1;
   r.floor=f;r.x=aisleX(r.aisle??0);r.z=REAR_CROSSWALK;
