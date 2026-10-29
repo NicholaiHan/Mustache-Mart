@@ -19,6 +19,7 @@ You do not need npm install, Electron, a Steam account, or any changes to macOS 
 ## New gameplay
 
 - **Realistic store styling:** stainless and steel rack structures, muted stock colors, neutral tile floors, ceiling ducts, long fluorescent lights, rear pallets, and visible warehouse receiving areas.
+- **Industrial equipment polish:** rounded off-white mustached robots with dark visors, individual rubber wheels, orange utility details, and a redesigned powered stocking cart with mechanical lift and safety rails. Conveyor sections have rollers, metal guards and structural feet. Inspired by smooth industrial utility equipment while keeping the supermarket setting.
 - **One-sided signage:** labels face their intended approach direction; from behind, they are not mirrored or readable backward.
 - **Mustache Mike:** front-facing customer service clerk, two distinct dark dot eyes, mustache, store uniform and apron.
 - **Tall shelves:** shelf structures are approximately 13.5 world units high—about four times the original shelf height.
