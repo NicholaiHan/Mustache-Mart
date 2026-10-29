@@ -4,7 +4,7 @@ import {createEnvironment} from './environment.js';
 import {createCharacters} from './characters.js';
 import {createEquipment} from './equipment.js';
 import {createDoors} from './doors.js';
-import {moveWithCollisions,isBlocked} from './collision.mjs';
+import {moveWithCollisions,isBlocked,blockedEquipment} from './collision.mjs';
 import {cartonTexture} from './textures.js';
 import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
@@ -295,7 +295,7 @@ function animate(now){
    const speed=walkSpeed(s)*(held.ShiftLeft?1.4:1)*dt/Math.hypot(forward,side);
    const dx=(-Math.sin(V.yaw)*forward+Math.cos(V.yaw)*side)*speed;
    const dz=(-Math.cos(V.yaw)*forward-Math.sin(V.yaw)*side)*speed;
-   const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor);
+   const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));
    V.x=next.x;V.z=next.z;
   }
   V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0)V.vy=0;
@@ -374,8 +374,8 @@ if(location.hash==='#rich'){
   setUpgrade(id,level){if(id in s.levels)s.levels[id]=level;},
   setCompletion(value){s.fill.fill(value?SLOTS:0);s.stocked=value?TOTAL_ITEMS:0;},
   doorStatus(){return {fire:doors.isFireOpen(),entrance:doors.isEntranceOpen()};},
-  checkBlocked(x,z){return isBlocked(x,z,s.floor);},
-   move(dx,dz){const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor);V.x=next.x;V.z=next.z;return next;},
+  checkBlocked(x,z){return isBlocked(x,z,s.floor)||blockedEquipment(s,x,z);},
+   move(dx,dz){const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));V.x=next.x;V.z=next.z;return next;},
    snapshot(){return {x:V.x,z:V.z,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
  };
 }
