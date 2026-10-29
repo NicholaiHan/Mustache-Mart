@@ -395,7 +395,7 @@ function animate(now){
    const l=s.ladders.find(l=>l.id===climbingLadderId&&l.floor===s.floor);
    if(!l){climbingLadderId=null;V.y=0;}
    else{const top=s.levels.ladderPlus?9.45:4.75;
-    V.x=l.x;V.z=l.z;V.vy=0;V.y=Math.max(0,Math.min(top,V.y+forward*dt*2.3));
+    V.x=l.x;V.z=l.z;V.vy=0;V.y=Math.max(0,Math.min(top,V.y+forward*Math.min(.3,elapsed)*3.1));
    }
   }else if(forward||side){
    const speed=walkSpeed(s)*(held.ShiftLeft?1.4:1)*dt/Math.hypot(forward,side);
@@ -459,6 +459,10 @@ window.addEventListener('keydown',e=>{
  if(e.code==='KeyR')openElevator();
  if(e.code==='KeyL')placeLadder();
  if(e.code==='KeyC')toggleClimb();
+ if(climbingLadderId!==null&&(e.code==='KeyW'||e.code==='KeyS')){
+  const top=s.levels.ladderPlus?9.45:4.75;
+  V.y=Math.max(0,Math.min(top,V.y+(e.code==='KeyW'?.56:-.56)));
+ }
  if(e.code==='KeyX')sellNearby();
  if(e.code==='KeyB')buildNextBelt();
  if(e.code==='KeyE'){actionClock=0;act();}
