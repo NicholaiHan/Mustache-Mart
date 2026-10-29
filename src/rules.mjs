@@ -122,3 +122,24 @@ export function botStep(s,r,dt){
  }
  return -1;
 }
+
+// Cart stocking obeys the same 4-band economics as player and robot stocking.
+export function cartStep(s,dt){
+ if(!s.levels.cart||remaining(s)<=0)return -1;
+ const c=s.cart;
+ c.z+=dt*(.28+s.levels.cartSpeed*.14);
+ if(c.z>bayZ(BAYS-1)+1.4){
+  c.z=bayZ(0);c.aisle=(c.aisle+1)%AISLES;
+  if(c.aisle===0)c.floor=(c.floor+1)%FLOORS;
+ }
+ c.acc+=dt*(.15+s.levels.cartSpeed*.09);
+ if(c.acc>=1){
+  c.acc-=1;
+  const bay=Math.max(0,Math.min(BAYS-1,Math.round((c.z-13)/2.65)));
+  for(const tier of [3,2,1,0])for(const side of [0,1]){
+   const id=cellId(c.floor,c.aisle,side,bay,tier);
+   if(s.fill[id]<SLOTS&&place(s,id,true))return id;
+  }
+ }
+ return -1;
+}
