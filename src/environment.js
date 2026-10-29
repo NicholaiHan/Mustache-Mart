@@ -15,6 +15,17 @@ function itemGeometry(type){
  ];
  return new THREE.LatheGeometry(shapes[type].map(([r,y])=>new THREE.Vector2(r,y)),16);
 }
+function contactShadow(x,z,w,d,opacity=.18){
+ const c=document.createElement('canvas');c.width=c.height=128;
+ const ctx=c.getContext('2d'),grad=ctx.createRadialGradient(64,64,10,64,64,61);
+ grad.addColorStop(0,'rgba(18,30,28,.65)');
+ grad.addColorStop(1,'rgba(18,30,28,0)');
+ ctx.fillStyle=grad;ctx.fillRect(0,0,128,128);
+ const tex=new THREE.CanvasTexture(c);
+ const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
+ const shadow=add(new THREE.Mesh(new THREE.PlaneGeometry(w,d),mat));
+ shadow.rotation.x=-Math.PI/2;shadow.position.set(x,.018,z);
+}
 function buildShell(){
  const theme=pastel[s.floor%pastel.length];
  scene.background.set('#d8ddda');scene.fog.color.set('#d8ddda');
@@ -67,6 +78,16 @@ function buildShell(){
   const notice=textLabel(z===12?'SAFETY FIRST':z===44?'AISLE EQUIPMENT':'RECEIVING AHEAD',3.3,.55,'#e7e8df','#44554f',34,'interior');
   notice.position.set(101.9,3.8,z);notice.rotation.y=-Math.PI/2;add(notice);
  }
+ // Ceiling infrastructure: sprinkler mains, segmented cable trays and diffuse luminaires.
+ for(const x of [5,51,95]){
+   const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.087,.087,107,10),
+     new THREE.MeshStandardMaterial({color:'#74878a',metalness:.58,roughness:.41}));
+   pipe.rotation.x=Math.PI/2;pipe.position.set(x,CEILING_Y-1.45,44);add(pipe);
+   for(let z=7;z<98;z+=11){
+      const valve=new THREE.Mesh(new THREE.CylinderGeometry(.17,.17,.1,12),new THREE.MeshStandardMaterial({color:'#b88e54',metalness:.58,roughness:.37}));
+      valve.position.set(x,CEILING_Y-1.54,z);add(valve);
+   }
+ }
  for(let z=-4;z<100;z+=18){
   const beam=cube(110,.35,.55,'#9aa4a3');beam.position.set(46.5,CEILING_Y-.58,z);
   for(let x=-3;x<102;x+=10){
@@ -112,6 +133,12 @@ function buildShell(){
  for(let z=91;z<98;z+=2.2){
   const stripe=cube(4,.02,.22,'#d9be6d');stripe.position.set(1.5,.035,z);
  }
+ // Ground decals are raised slightly off the tile surface to avoid z-fighting.
+ for(let z=5;z<88;z+=16){
+   const marker=textLabel('RECEIVING  ↑',2.8,.56,'#d7d4b3','#485b52',33,'interior');
+   marker.rotation.x=-Math.PI/2;marker.rotation.y=0;marker.position.set(1.5,.042,z);
+   add(marker);
+ }
  const receiver=textLabel('GOODS RECEIVING  •  LOAD HERE',7,.9,'#d8c088','#303a3a',43);
  receiver.position.set(DOCK.x,4.4,94.4);add(receiver);
 }
@@ -123,6 +150,9 @@ function addKiosk(x,z,name,accent,facing='interior'){
 }
 function buildService(){
  addKiosk(DOCK.x,DOCK.z,'WAREHOUSE PICKUP','#c9b080','entrance');
+ contactShadow(10,-3.2,6.6,3.5,.24);
+ contactShadow(1.5,-9,5.6,3.8,.2);
+ contactShadow(DOCK.x,DOCK.z,5.5,4.2,.25);
  const payBack=round(5.6,3.6,.24,'#536363');payBack.position.set(10,2.8,-8.5);
  const counter=round(5.1,1.18,2.05,'#dddcd5');counter.position.set(10,.59,-3.2);
  const workTop=round(5.32,.13,2.18,'#7e8988');workTop.position.set(10,1.24,-3.2);
@@ -134,6 +164,21 @@ function buildService(){
  const terminal=round(.74,.47,.12,'#303b40');terminal.position.set(9.2,1.56,-3.05);
  const screen=round(.5,.27,.03,new THREE.MeshBasicMaterial({color:'#92c4b6'}));screen.position.set(9.2,1.6,-2.97);
  const documents=round(.78,.035,.43,'#f4f2e8');documents.position.set(10.9,1.35,-2.96);
+ // Printer, receipt roll, ledger, terminal frame, and a small queue barrier.
+ const printer=round(.64,.35,.58,'#e2e5e1');printer.position.set(11.45,1.49,-3.25);
+ const printed=round(.41,.02,.28,'#f9f8ee');printed.position.set(11.45,1.7,-3.04);
+ for(const x of [6.75,13.25]){
+   const post=new THREE.Mesh(new THREE.CylinderGeometry(.075,.085,.94,14),new THREE.MeshStandardMaterial({color:'#9ba5a1',metalness:.62,roughness:.3}));
+   post.position.set(x,.47,-.5);add(post);
+   const foot=new THREE.Mesh(new THREE.CylinderGeometry(.21,.21,.09,16),new THREE.MeshStandardMaterial({color:'#465655',metalness:.46,roughness:.45}));
+   foot.position.set(x,.045,-.5);add(foot);
+ }
+ const rope=round(6.5,.055,.05,'#6f847b');rope.position.set(10,.81,-.5);
+ const payLogo=textLabel('PAYROLL VERIFIED  |  STAFF ONLY',4.3,.59,'#3d5c53','#f3f4ee',31,'interior');
+ payLogo.position.set(10,3.65,-8.2);add(payLogo);
+ const clipboard=round(.44,.67,.045,'#c4b394');clipboard.position.set(13.1,1.7,-3.95);
+ const notebook=textLabel('MM  /  001',.38,.14,'#eae2c8','#343f37',27,'interior');
+ notebook.position.set(13.1,1.74,-3.916);add(notebook);
  addKiosk(1.5,-9,'MUSTACHE MIKE','#c8c2b6','interior');
  mikeModel=makeMike(1.5,-7.1);
  const elevator=round(5.1,6.5,.6,'#71888c');elevator.position.set(23,3.25,-11.4);
@@ -145,6 +190,20 @@ function buildService(){
  for(let shelf=1;shelf<4;shelf++){const r=round(4.5,.11,1.2,'#c2c7c0');r.position.set(7.7,shelf*.98,96.4);}
  const dockTerminal=round(.85,1.1,.52,'#7a8b8c');dockTerminal.position.set(3.7,.59,95.8);
  const dockScreen=round(.64,.43,.08,new THREE.MeshBasicMaterial({color:'#accfbd'}));dockScreen.position.set(3.7,.95,95.49);
+ // Receiving workstation: hanging rack structure, scanners, pallet jack and boxes.
+ const jack=new THREE.Group();add(jack);jack.position.set(10.7,0,94.1);
+ for(const off of [-.55,.55]){
+   const tine=round(.19,.11,2.1,'#b88c4e',jack);tine.position.set(off,.18,.35);
+   const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.145,.145,.15,16),
+     new THREE.MeshStandardMaterial({color:'#273035',roughness:.92}));
+   wheel.rotation.z=Math.PI/2;wheel.position.set(off,.13,1.26);jack.add(wheel);
+ }
+ const jackHandle=round(.15,1.4,.13,'#566969',jack);jackHandle.position.set(0,.78,-.84);
+ const grip=round(.67,.11,.13,'#263a3e',jack);grip.position.set(0,1.52,-.84);
+ const scanner=round(.15,.37,.26,'#32454b');scanner.position.set(4,.99,95.1);
+ const scannerLight=round(.1,.052,.15,new THREE.MeshBasicMaterial({color:'#7fe6bb'}));scannerLight.position.set(4,1.2,95.02);
+ const dataPanel=textLabel('SCAN  |  VERIFY  |  DISPATCH',4.0,.48,'#3c5652','#e5ecdf',31,'entrance');
+ dataPanel.position.set(7.1,4.4,95.2);add(dataPanel);
  const receivingLabel=textLabel('INVENTORY  /  RECEIVING',5.4,.77,'#dfd9c4','#414d48',39,'entrance');receivingLabel.position.set(DOCK.x,5.7,94.35);add(receivingLabel);
  const entranceSign=textLabel('CUSTOMER SERVICE   |   PAYROLL',8.2,.76,'#e5e5db','#475752',39,'interior');
  entranceSign.position.set(9,4.65,-11.7);add(entranceSign);
