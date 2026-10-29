@@ -92,6 +92,14 @@ function botAppearance(r){
  }
  const crate=round(.45,.33,.39,equipmentMaterial('#b89e79',0,.75),b);
  crate.position.set(0,1.55,-.16);crate.name='crate';
+ // Keep the wheels and ground chassis fixed while the upper robot ascends.
+ const liftBody=new THREE.Group();liftBody.name='liftBody';
+ for(const part of [...b.children])if(part.position.y>.58){
+  b.remove(part);liftBody.add(part);
+ }
+ b.add(liftBody);
+ const liftingJack=round(.16,1,.16,trim,b);liftingJack.name='liftingJack';
+ liftingJack.position.set(0,.98,.12);
  b.position.set(r.x,0,r.z);return b;
 }
 
