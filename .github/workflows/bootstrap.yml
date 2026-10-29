@@ -1,0 +1,35 @@
+name: Bootstrap Mustache Mart source
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mustache-mart.zip'
+      - '.github/workflows/bootstrap.yml'
+      - 'scripts/enhance.py'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack original game and apply improvements
+        run: |
+          unzip -oq mustache-mart.zip
+          cp -a mustache-mart/. ./
+          rm -rf mustache-mart
+          if [ -f scripts/enhance.py ]; then python3 scripts/enhance.py; fi
+          node --check main.js
+          node --check src/game.js
+          npm install --ignore-scripts --no-audit --no-fund
+          npm run test --if-present
+      - name: Commit playable source files
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'Expand Mustache Mart into playable game source'
+            git push
+          fi
