@@ -154,14 +154,22 @@ function buildService(){
  contactShadow(10,-3.2,6.6,3.5,.24);
  contactShadow(1.5,-9,5.6,3.8,.2);
  contactShadow(DOCK.x,DOCK.z,5.5,4.2,.25);
- const payBack=round(5.6,3.6,.24,'#536363');payBack.position.set(10,2.8,-8.5);
+ // Payroll enclosure is fixed directly behind its transaction glass,
+ // not several metres back as a floating backdrop.
+ const payBack=round(5.6,3.6,.24,'#536363');payBack.position.set(10,2.95,-4.95);
+ const payFloor=round(5.7,.14,2.7,'#576d6c');payFloor.position.set(10,.09,-3.95);
  const counter=round(5.1,1.18,2.05,'#dddcd5');counter.position.set(10,.59,-3.2);
  const workTop=round(5.32,.13,2.18,'#7e8988');workTop.position.set(10,1.24,-3.2);
  const glassMat=new THREE.MeshStandardMaterial({color:'#b8d1d3',transparent:true,opacity:.24,metalness:.1,roughness:.12,depthWrite:false});
  const glass=cube(4.95,1.8,.06,glassMat);glass.position.set(10,2.65,-3.89);
  for(const x of [7.5,12.5]){const stanchion=round(.1,2.24,.17,'#657477');stanchion.position.set(x,2.56,-3.89);}
- const windowSign=textLabel('PAYROLL  /  STAFF SERVICES',4.8,.69,'#dce4dd','#33443d',37,'interior');
- windowSign.position.set(10,4.1,-3.75);add(windowSign);
+ // Real framed transaction glass with a header and sign fixed to its fascia.
+ for(const y of [1.57,3.63]){
+  const rail=round(5.12,.11,.18,'#697878');rail.position.set(10,y,-3.87);
+ }
+ const payHeader=round(5.45,.71,.28,'#344e4a');payHeader.position.set(10,4.02,-3.86);
+ const windowSign=textLabel('PAY WINDOW   /   PAYROLL',4.95,.54,'#344e4a','#f1f3ea',36,'interior');
+ windowSign.position.set(10,4.05,-3.69);add(windowSign);
  const terminal=round(.74,.47,.12,'#303b40');terminal.position.set(9.2,1.56,-3.05);
  const screen=round(.5,.27,.03,new THREE.MeshBasicMaterial({color:'#92c4b6'}));screen.position.set(9.2,1.6,-2.97);
  const documents=round(.78,.035,.43,'#f4f2e8');documents.position.set(10.9,1.35,-2.96);
@@ -175,13 +183,26 @@ function buildService(){
    foot.position.set(x,.045,-.5);add(foot);
  }
  const rope=round(6.5,.055,.05,'#6f847b');rope.position.set(10,.81,-.5);
- const payLogo=textLabel('PAYROLL VERIFIED  |  STAFF ONLY',4.3,.59,'#3d5c53','#f3f4ee',31,'interior');
- payLogo.position.set(10,3.65,-8.2);add(payLogo);
+ const payLogo=textLabel('STAFF SERVICES   •   VERIFIED PAYROLL',4.55,.4,'#536963','#f3f4ee',28,'interior');
+ payLogo.position.set(10,4.55,-4.69);add(payLogo);
  const clipboard=round(.44,.67,.045,'#c4b394');clipboard.position.set(13.1,1.7,-3.95);
  const notebook=textLabel('MM  /  001',.38,.14,'#eae2c8','#343f37',27,'interior');
  notebook.position.set(13.1,1.74,-3.916);add(notebook);
- addKiosk(1.5,-9,'MUSTACHE MIKE','#c8c2b6','interior');
- mikeModel=makeMike(1.5,-7.1);
+ // Mike stands BEHIND his own desk: customers interact from the open aisle.
+ const mikeDesk=round(4.5,1.16,1.82,'#e3e5df');mikeDesk.position.set(1.5,.58,-8.65);
+ const mikeTop=round(4.75,.15,2.08,'#7b8985');mikeTop.position.set(1.5,1.235,-8.65);
+ const mikeFront=round(4.1,.64,.055,'#3e5b56');mikeFront.position.set(1.5,.76,-7.715);
+ const mikeBadge=textLabel('MUSTACHE MIKE   /   CONCIERGE',3.85,.48,'#3e5b56','#f2f1e8',31,'interior');
+ mikeBadge.position.set(1.5,.79,-7.673);add(mikeBadge);
+ for(const x of [-.6,3.6]){
+  const post=round(.14,2.56,.19,'#6b7b76');post.position.set(x,2.58,-8.84);
+ }
+ const nameHousing=round(4.9,.78,.36,'#364a47');nameHousing.position.set(1.5,3.96,-8.78);
+ const nameSign=textLabel('MUSTACHE MIKE  •  CUSTOMER SERVICE',4.58,.53,'#364a47','#f2f3e8',32,'interior');
+ nameSign.position.set(1.5,3.96,-8.566);add(nameSign);
+ const deskTerminal=round(.72,.41,.22,'#28373b');deskTerminal.position.set(2.66,1.49,-8.82);
+ const deskGlow=round(.54,.23,.03,new THREE.MeshBasicMaterial({color:'#aad9ce'}));deskGlow.position.set(2.66,1.51,-8.683);
+ mikeModel=makeMike(1.5,-10.48);
  const elevator=round(5.1,6.5,.6,'#71888c');elevator.position.set(23,3.25,-11.4);
  const seam=round(.09,6.1,.12,'#3b484e');seam.position.set(23,3.25,-11.03);
  const upper=round(5.6,.35,.7,'#404c50');upper.position.set(23,6.48,-11.34);
