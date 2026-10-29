@@ -112,3 +112,12 @@ test('built conveyors and moving robots have physical player collision',()=>{
  assert.equal(c.isBlocked(escape.x,escape.z),false);
  assert.ok(Math.hypot(escape.x-bot.x,escape.z-bot.z)>.3,'player must be able to step away from overlapping robot');
 });
+
+test('the self-driving lift can stock the 3-cent top tier, not just low and middle racks',()=>{
+ const r=rules,st=r.newState();
+ st.levels.cart=1;st.cart.acc=.99;st.cart.z=13;st.cart.aisle=0;st.cart.floor=0;
+ const id=r.cartStep(st,.1);
+ assert.equal(r.decode(id).tier,3);
+ assert.equal(st.fill[id],1);
+ assert.equal(st.money,3);
+});
