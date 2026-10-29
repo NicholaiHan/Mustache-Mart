@@ -1,0 +1,65 @@
+name: Offline browser verification (macOS and Linux)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'src/**'
+      - 'vendor/**'
+      - 'server.cjs'
+      - 'main.js'
+      - 'package.json'
+      - 'tests/**'
+      - '.github/workflows/browser-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  static:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JS parsing without installing dependencies
+        run: |
+          node --check main.js
+          node --check server.cjs
+          node --check src/game.js
+          node --check vendor/three.module.js
+      - name: Test offline asset loading and local-only security
+        run: node --test tests/smoke.test.cjs
+
+  browser:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install test browser separately (never installs Electron)
+        run: npm --prefix .browser-tests install --no-save --ignore-scripts --no-audit --no-fund playwright@1.56.1
+      - name: Install Chromium browser for tests
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            ./.browser-tests/node_modules/.bin/playwright install --with-deps chromium
+          else
+            ./.browser-tests/node_modules/.bin/playwright install chromium
+          fi
+      - name: Test real game launch and bankruptcy ending
+        run: NODE_PATH="$PWD/.browser-tests/node_modules" node tests/browser-smoke.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: game-screenshots-${{ matrix.os }}
+          path: test-artifacts/
+          if-no-files-found: ignore
