@@ -415,7 +415,8 @@ function updateEnding(dt) {
 const fwd = new THREE.Vector3(); let last = performance.now(), tBelt = 0;
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.min(0.05, (now - last) / 1000); last = now; tBelt += dt;
+  const elapsed = Math.max(0, (now - last) / 1000);
+  const dt = Math.min(0.05, elapsed); last = now; tBelt += dt;
 
   while (frontier < UNIT_COUNT && S.fill[frontier] >= PER) frontier++;
   if (!ending) robots.forEach(r => updateRobot(r, dt));
@@ -459,7 +460,8 @@ function frame(now) {
     else if (P.carry === 0) msg = 'Out of stock! Find a delivery belt 🛞';
     pr.style.display = msg ? 'block' : 'none'; pr.textContent = msg;
   }
-  updateEnding(dt);
+  // Cinematic time must use real elapsed time, even when a slow GPU drops frames.
+  updateEnding(elapsed);
   renderer.render(scene, camera);
 }
 let hiddenAcc = 0;
