@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {equipmentMaterial,industrialWheel} from './equipment.js';
 // Customer-service robot (Mike) and autonomous worker machines.
-export function createCharacters({add,round,toon,textLabel,getWorld}){
+export function createCharacters({s,add,round,toon,textLabel,getWorld}){
 function makeMike(x,z){
  // MUSTACHE MIKE: a stationary, premium concierge robot, intentionally unlike
  // wheeled stocker bots. Ceramic chassis, expressively lit face and articulated arms.
@@ -81,6 +81,15 @@ function botAppearance(r){
  }
  const light=round(.26,.08,.12,orange,b);light.position.set(0,1.84,-.07);
  const hatch=round(.55,.07,.44,trim,b);hatch.position.set(0,1.31,.13);
+ if(s.levels.robotLift){
+  // Compact motorized scissor lift; only the robots have this mechanism.
+  for(const side of [-1,1]){
+   const mast=round(.085,1.26,.1,trim,b);mast.position.set(side*.29,1.5,.34);
+   const actuator=round(.1,.66,.1,orange,b);actuator.position.set(side*.29,1.7,.4);
+  }
+  const platform=round(.77,.09,.7,shell,b);platform.position.set(0,2.13,.06);
+  const caution=round(.66,.065,.12,orange,b);caution.position.set(0,2.21,-.26);
+ }
  const crate=round(.45,.33,.39,equipmentMaterial('#b89e79',0,.75),b);
  crate.position.set(0,1.55,-.16);crate.name='crate';
  b.position.set(r.x,0,r.z);return b;
