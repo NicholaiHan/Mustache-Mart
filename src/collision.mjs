@@ -4,10 +4,10 @@ import {AISLES,BAYS,aisleX,bayZ} from './rules.mjs';
 export const PLAYER_RADIUS=.34;
 const boxes=[
  // Front-of-store physical customer service and payroll counters.
- {name:'Mike service counter',x:1.5,z:-9,hx:2.3,hz:1.43},
- {name:'Mike concierge chassis',x:1.5,z:-7.05,hx:.53,hz:.48},
+ {name:'Mike service counter',x:1.5,z:-8.65,hx:2.37,hz:1.07},
+ {name:'Mike concierge chassis',x:1.5,z:-10.48,hx:.53,hz:.51},
  {name:'Payroll counter',x:10,z:-3.2,hx:2.75,hz:1.2},
- {name:'Payroll back wall',x:10,z:-8.5,hx:2.85,hz:.26},
+ {name:'Payroll back wall',x:10,z:-4.95,hx:2.85,hz:.26},
  {name:'Elevator housing',x:23,z:-11.4,hx:2.75,hz:.47},
  // Receiving desk, terminal, racking and pallets are solid.
  {name:'Receiving loading counter',x:1.5,z:96,hx:2.35,hz:1.47},
@@ -16,6 +16,10 @@ const boxes=[
  {name:'Receiving shutter',x:17,z:100.2,hx:5.6,hz:.24},
  {name:'Pallet jack',x:10.7,z:94.1,hx:.8,hz:1.3}
 ];
+// Real cashier lanes: grounded POS counter, belt housing and bagging areas.
+for(const x of [32,57,70,83]){
+ boxes.push({name:'Cashier checkout lane',x,z:1.4,hx:1.73,hz:4.1,floor:0});
+}
 for(let j=0;j<8;j++){
  boxes.push({name:'Stock pallet '+j,x:30+(j%4)*3.5,z:95+Math.floor(j/4)*3,hx:1.48,hz:1.32});
 }
@@ -35,7 +39,7 @@ export function isBlocked(x,z,floor=0,radius=PLAYER_RADIUS){
      if(dx+radius>2.56&&dx-radius<4.25)return true;
    }
  }
- for(const b of boxes)if(overlaps(x,z,b,radius))return true;
+ for(const b of boxes)if((b.floor===undefined||b.floor===floor)&&overlaps(x,z,b,radius))return true;
  // Sliding entrance glass is a physical boundary before or after opening.
  // Do not let the player walk outside before the game ends.
  if(z-radius < -12.12)return true;
