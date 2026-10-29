@@ -21,14 +21,15 @@ You do not need npm install, Electron, a Steam account, or any changes to macOS 
 - **Realistic store styling:** stainless and steel rack structures, muted stock colors, neutral tile floors, ceiling ducts, long fluorescent lights, rear pallets, and visible warehouse receiving areas.
 - **Industrial equipment polish:** rounded off-white mustached robots with dark visors, individual rubber wheels, orange utility details, and a redesigned powered stocking cart with mechanical lift and safety rails. Conveyor sections have rollers, metal guards and structural feet. Inspired by smooth industrial utility equipment while keeping the supermarket setting.
 - **One-sided signage:** labels face their intended approach direction; from behind, they are not mirrored or readable backward.
-- **Mustache Mike:** front-facing customer service clerk, two distinct dark dot eyes, mustache, store uniform and apron.
+- **Mustache Mike:** a unique, full robotic concierge with bright white eyes and a white mustache. Unlike small stocker robots, he has a premium service chassis and mechanical arms.
 - **Tall shelves:** shelf structures are approximately 13.5 world units high—about four times the original shelf height.
-- **Four shelf heights:** lowest racks and second band earn **1¢**, stepladder-height racks earn **2¢**, and the highest, telescopic-ladder-height racks earn **3¢**. Jumping reaches the second band. A nearby ladder (L) reaches the third band. Buy the telescopic ladder extension to reach the fourth band. An upgraded moving cart can also provide high access.
+- **Four shelf heights:** two low bands earn **1¢**, the third earns **2¢**, and the top band **3¢**. Press **L** to place a portable ladder in an aisle, **C** to grip the ladder, and hold **W/S** to physically climb/descend. A telescopic extension makes the fourth band reachable. The self-driving ladder cart can also stock the top band.
 - **Backroom inventory:** the delivery stock is now near the **rear wall (x=1.5, z=96)**, straight down the long store from Mike's counter, making early manual trips lengthy. Running shoes, carrying upgrades, conveyors and robots become valuable.
 - **Manual payroll:** take your stocking earnings back to the **PAY WINDOW** near the front until automatic payroll is unlocked.
 - **Two shopkeeper categories:** **Equipment & Automation** and **Economy Contracts**. The new **$50 Canned Goods Supercontract** multiplies all canned-goods rewards by **3×**. Water partnerships, high-shelf bonuses, and automation-profit bonuses are also available.
-- **Custom conveyor sections:** install the next connected segment using B, starting from the **rear receiving area** toward the entrance. Robots use connected segments as nearby stock collection points.
-- **Robots and carts:** mustached robots restock individual empty cells and continue running on floors the player is not currently visiting; the self-driving cart slowly works along aisles.
+- **Working conveyors:** build sequential rear-to-front sections with **B**. Products are transported over time and accumulate at the connected end; both the player (E to collect) and robots can remove delivered stock. Robots compare available belt endpoints with the warehouse dock and choose the closest available supply.
+- **Separately purchasable robots and robot upgrades:** buy each **Mustache Stocker Bot** at Mike's. After purchase, walk toward an aisle or aim the unlocked cursor at an aisle floor and **left-click** to deploy the translucent ghost. Bots prefer nearby empty spaces and fetch inventory from the nearest available stocked conveyor endpoint or warehouse receiving. **Robot Espresso** upgrades robot movement/stocking speed; **Motorized Robot Ladder** allows mobile high-shelf lifting. Without it, robots can only climb the player's installed ladders (not deploy their own). Robot selling and repositioning are available in Mike's store.
+- **Equipment resale:** stand beside a placed ladder, worker robot, or the exposed last conveyor section and press **X** to sell it for **half of its original purchase price**. Mike's robot management cards also offer individual robot sales and relocation. Belt segments must be removed from the delivery end backward to keep the pipeline connected.
 - **Save migration:** the game automatically migrates existing fifteen-floor v3 saves into four-tier v4 saves. Previous saves remain under their original browser storage keys as backups.
 
 ## Controls
@@ -38,9 +39,9 @@ You do not need npm install, Electron, a Steam account, or any changes to macOS 
 | WASD | Walk |
 | Mouse / arrow keys | Look around (aim up for tall racks) |
 | Shift | Sprint |
-| E or mouse click | Pick up inventory, stock, collect wages, interact |
+| E or mouse click | Pick up inventory (warehouse or conveyor), stock, collect wages, interact |
 | Space | Jump after buying shoes |
-| L | Set a step ladder in the aisle |
+| L | Place an owned portable ladder in the aisle |\n| C | Grip/release a ladder; W climbs and S descends while attached |\n| X | Sell a nearby robot, deployed ladder, or the last belt segment at 50% refund |\n| Left click while placing a robot | Deploy the translucent robot preview at the selected aisle spot |
 | B | Add the next connected belt segment, starting from the back |
 | Q | Open Mike's store when standing nearby |
 | R | Choose an elevator floor when nearby |
