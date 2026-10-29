@@ -10,8 +10,10 @@ function makeMike(x,z){
  const enamel=equipmentMaterial('#f3efe4',.11,.34);
  const trim=equipmentMaterial('#687779',.58,.29);
  const graphite=equipmentMaterial('#17282d',.24,.26);
+ const white=equipmentMaterial('#f8faf7',.04,.32);
  const brass=equipmentMaterial('#bd925e',.55,.3);
  const mint=new THREE.MeshStandardMaterial({color:'#a7e7de',emissive:'#69d4c3',emissiveIntensity:1.6,roughness:.25});
+ const eyeWhite=new THREE.MeshBasicMaterial({color:'#ffffff'});
  const base=round(1.18,.27,1.0,graphite,guy);base.position.set(0,.15,0);
  const foot=round(1.04,.31,.84,trim,guy);foot.position.set(0,.43,0);
  const center=round(.55,.83,.54,graphite,guy);center.position.set(0,.91,0);
@@ -40,9 +42,9 @@ function makeMike(x,z){
  for(const sign of [-1,1]){
   const socket=new THREE.Mesh(new THREE.SphereGeometry(.12,20,14),equipmentMaterial('#486465',.2,.32));
   socket.position.set(sign*.19,.06,.486);head.add(socket);
-  const eye=new THREE.Mesh(new THREE.SphereGeometry(.068,20,14),mint);
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(.068,20,14),eyeWhite);
   eye.position.set(sign*.19,.06,.588);head.add(eye);
-  const moustache=new THREE.Mesh(new THREE.SphereGeometry(.19,20,12),graphite);
+  const moustache=new THREE.Mesh(new THREE.SphereGeometry(.19,20,12),white);
   moustache.scale.set(1,.32,.5);moustache.position.set(sign*.14,-.175,.535);
   moustache.rotation.z=sign*.24;head.add(moustache);
  }
