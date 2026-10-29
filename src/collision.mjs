@@ -13,7 +13,8 @@ const boxes=[
  {name:'Receiving loading counter',x:1.5,z:96,hx:2.35,hz:1.47},
  {name:'Receiving terminal',x:3.7,z:95.8,hx:.5,hz:.4},
  {name:'Receiving warehouse rack',x:7.7,z:96.4,hx:2.35,hz:.75},
- {name:'Receiving shutter',x:17,z:100.2,hx:5.6,hz:.24}
+ {name:'Receiving shutter',x:17,z:100.2,hx:5.6,hz:.24},
+ {name:'Pallet jack',x:10.7,z:94.1,hx:.8,hz:1.3}
 ];
 for(let j=0;j<8;j++){
  boxes.push({name:'Stock pallet '+j,x:30+(j%4)*3.5,z:95+Math.floor(j/4)*3,hx:1.48,hz:1.32});
