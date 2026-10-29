@@ -9,7 +9,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,botStep
+ floorStocked,itemsPerFloor,remaining,canOpenStore,botStep
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -123,7 +123,7 @@ function act(){
  if(doors.nearEntrance(V.x,V.z)){
   if(doorInteractionHeld)return;
   doorInteractionHeld=true;
-  if(s.stocked<TOTAL_ITEMS){notify('You have to stock the entire building before opening.');return;}
+  if(!canOpenStore(s)){notify('You have to stock the entire building before opening.');return;}
   if(doors.openEntrance()){
     notify('The building is fully stocked. Opening for the grand opening!');
     setTimeout(()=>beginEnding(),1350);
@@ -200,7 +200,7 @@ function updatePrompt(){
  let msg='';
  if(doors.nearFire(V.x,V.z))msg='E · '+(doors.isFireOpen()?'Close':'Open')+' FIRE EXIT (brick wall behind)';
  else if(doors.nearEntrance(V.x,V.z))
-   msg=s.stocked>=TOTAL_ITEMS?'E · Unlock the grand opening and slide open the doors':'E · You have to stock the building before opening';
+   msg=canOpenStore(s)?'E · Unlock the grand opening and slide open the doors':'E · You have to stock the building before opening';
  else if(nearby(DOCK.x,DOCK.z,4.4))msg=V.carry<capacity(s)?'Hold E · Load product from REAR RECEIVING (one per action)':'Carry capacity reached — return to an aisle';
  else if(nearby(1.5,-7,4.0))msg='E or Q · Talk to Mustache Mike for upgrades';
  else if(nearby(10,-3,4.0))msg='E · Collect '+centsText(s.pending)+' in wages';
