@@ -123,6 +123,14 @@ button:active:not(:disabled){transform:translateY(1px)}
 .hudStat .statReading>span{font-variant-numeric:tabular-nums;font-size:14px;font-weight:850;color:#233c35}
 @media(max-width:700px){#stats .hudStat{gap:5px;padding:4px 6px;min-height:36px}#stats .hudIcon{width:25px;height:25px}#stats .statReading small{font-size:8px}#stats .statReading>span{font-size:11px}}
 
+
+/* Live receiving gantry dispatch panel: mechanical flow, not decorative filler. */
+#routingStatus{position:absolute;left:14px;bottom:87px;background:rgba(26,48,47,.96);color:#dcefe6;
+ border:1px solid #89ad9d;border-left:5px solid #d4ab6b;border-radius:7px;padding:10px 14px;
+ font-size:12px;letter-spacing:.026em;font-weight:800;max-width:min(650px,90vw);
+ box-shadow:0 10px 30px #10252270;z-index:4}
+#routingStatus[hidden]{display:none}
+
 </style>
 </head>
 <body>
@@ -141,9 +149,10 @@ button:active:not(:disabled){transform:translateY(1px)}
   <div id="prompt" class="pill" hidden></div>
   <div id="toast"></div>
   <div id="payReceipt" role="status" aria-live="polite" aria-hidden="true"><div class="eyebrow">PAYROLL / TRANSACTION APPROVED</div><div class="amount" id="receiptAmount">$0.00</div><div class="line"><span>PAY WINDOW · STAFF WAGES</span><span id="receiptNumber">#0001</span></div><div class="foot">MUSTACHE MART · THANK YOU FOR YOUR SERVICE</div></div>
+  <div id="routingStatus" hidden aria-live="polite">INVENTORY → CLAW → AISLE 01</div>
   <div id="pickupStatus" hidden>RECEIVING / PRODUCTS READY · HOLD E TO LOAD</div>
   <div id="progress"><span id="progressText">0 / 144,000 stocked</span><div id="progress-track"><div id="progress-bar"></div></div></div>
-  <div class="pill" id="help">WASD move · Mouse look · E interact · L place ladder · C climb · B conveyor · X sell · Click deploy robot · Esc pause</div>
+  <div class="pill" id="help">WASD move · Mouse look · E interact · L place ladder · C climb · B conveyor · [ / ] choose receiving aisle · X sell · Click deploy robot · Esc pause</div>
 </div>
 <div class="dialog open" id="intro">
   <div class="panel">
