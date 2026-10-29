@@ -1,64 +1,63 @@
-# Mustache Mart 🥸
-## Fifteen Floors of Regret
+# Mustache Mart — Fifteen Floors of Regret
 
-A deliberately overlong, pastel-colored, first-person supermarket stocking game, now with connected conveyor segments and autonomous mustached robots. This is a playable prototype, not a published Steam title.
+A first-person supermarket stocking and automation prototype with **15 huge floors, 144,000 products, industrial-style metal racks, and a more realistic, muted supermarket interior**. Built in Three.js. Mac users can play it safely through a local browser rather than the previously blocked Electron runtime.
 
-### Play on your Mac (no Electron, no npm install)
+## Play on your MacBook
 
-1. Download the entire latest repository from:
-   https://github.com/NicholaiHan/Mustache-Mart/archive/refs/heads/main.zip
-2. Extract it, then move the Mustache-Mart-main folder to your Desktop. Do not run the old mustache-mart.zip file inside the repository.
-3. Open Terminal and run:
+1. Download the **full latest repository ZIP**: https://github.com/NicholaiHan/Mustache-Mart/archive/refs/heads/main.zip
+2. Extract the ZIP. Move the **Mustache-Mart-main** folder to your Desktop. Keep the old downloaded ZIP as a backup or rename the older extracted folder.
+3. Open Terminal and enter these commands one line at a time:
 
        cd ~/Desktop/Mustache-Mart-main
        node server.cjs
 
-4. Visit http://127.0.0.1:8000 in Chrome or Safari. Keep Terminal open to play; Control+C stops the local server.
+4. Open **http://127.0.0.1:8000** in Safari or Chrome. Leave Terminal open.
+5. Stop the local server with **Control+C** in Terminal.
 
-Node.js must already be installed (you have it if you played the prior browser build). Do not restore the Electron app that macOS previously identified as malware, and do not override Apple's security systems.
+You do not need npm install, Electron, a Steam account, or any changes to macOS security settings. Do not restore an Electron app that macOS blocked.
 
-### Progression
+## New gameplay
 
-- Fifteen accessible elevator floors, each with ten aisles, totaling 108,000 products.
-- Start carrying **one can at a time**. Stocking a bottom shelf earns 1¢, middle 2¢, and top 3¢. High shelves require purchased jumping shoes or a ladder/cart.
-- Take your wages to the PAY WINDOW near the delivery dock to get spendable money.
-- Find Mustache Mike at his pink counter for carrying capacity, speed, jumping shoes, ladder, mobile stocking cart, cart motors, mustached robots, robot speed boosts, and automatic payroll.
-- Build a connected conveyor yourself by standing at the next unbuilt belt segment inside an aisle and pressing B, starting at the aisle entrance. Robots can collect supplies from connected belts.
-- Bots seek missing shelf products, restock using the dock or belts, and work on other floors while you're away. The mobile ladder cart slowly moves down aisles and fills shelves.
-- Progress saves to this browser automatically. The previous prototype's save remains separate; this version starts a new game.
+- **Realistic store styling:** stainless and steel rack structures, muted stock colors, neutral tile floors, ceiling ducts, long fluorescent lights, rear pallets, and visible warehouse receiving areas.
+- **One-sided signage:** labels face their intended approach direction; from behind, they are not mirrored or readable backward.
+- **Mustache Mike:** front-facing customer service clerk, two distinct dark dot eyes, mustache, store uniform and apron.
+- **Tall shelves:** shelf structures are approximately 13.5 world units high—about four times the original shelf height.
+- **Four shelf heights:** lowest racks and second band earn **1¢**, stepladder-height racks earn **2¢**, and the highest, telescopic-ladder-height racks earn **3¢**. Jumping reaches the second band. A nearby ladder (L) reaches the third band. Buy the telescopic ladder extension to reach the fourth band. An upgraded moving cart can also provide high access.
+- **Backroom inventory:** the delivery stock is now near the **rear wall (x=1.5, z=96)**, straight down the long store from Mike's counter, making early manual trips lengthy. Running shoes, carrying upgrades, conveyors and robots become valuable.
+- **Manual payroll:** take your stocking earnings back to the **PAY WINDOW** near the front until automatic payroll is unlocked.
+- **Two shopkeeper categories:** **Equipment & Automation** and **Economy Contracts**. The new **$50 Canned Goods Supercontract** multiplies all canned-goods rewards by **3×**. Water partnerships, high-shelf bonuses, and automation-profit bonuses are also available.
+- **Custom conveyor sections:** install the next connected segment using B, starting from the **rear receiving area** toward the entrance. Robots use connected segments as nearby stock collection points.
+- **Robots and carts:** mustached robots restock individual empty cells and continue running on floors the player is not currently visiting; the self-driving cart slowly works along aisles.
+- **Save migration:** the game automatically migrates existing fifteen-floor v3 saves into four-tier v4 saves. Previous saves remain under their original browser storage keys as backups.
 
-### Controls
+## Controls
 
 | Key | Action |
 | --- | --- |
 | WASD | Walk |
-| Mouse or arrow keys | Look |
+| Mouse / arrow keys | Look around (aim up for tall racks) |
 | Shift | Sprint |
-| Hold E / click | Pick up, stock, interact |
-| Space | Jump (after buying spring-loaded shoes) |
-| L | Deploy your step ladder |
-| B | Place next connected conveyor segment |
-| Q | Open shop (near Mustache Mike) |
-| R | Select floor (near elevator) |
-| Esc | Pause, exit menu or release mouse |
-| Control+C in Terminal | Stop server |
+| E or mouse click | Pick up inventory, stock, collect wages, interact |
+| Space | Jump after buying shoes |
+| L | Set a step ladder in the aisle |
+| B | Add the next connected belt segment, starting from the back |
+| Q | Open Mike's store when standing nearby |
+| R | Choose an elevator floor when nearby |
+| Escape | Close Mike's shop, the elevator menu, or the pause dialogue |
+| Control+C in Terminal | Stop the game server |
 
-Look upward to stock the 3¢ top shelf, straight ahead for the middle, and downward for the bottom.
+## Verification
 
-### Test results
+Automated CI tests on macOS 15 and Linux check the game's core economy, 1¢ / 2¢ / 3¢ tier rewards, $50 canned-goods contract, legacy-save conversion, bot automation, local-only server file restrictions, and actual headless Chromium gameplay (pickup, pay window, shopkeeper purchases, Escape, backroom conveyor, 15th floor and ending).
 
-Automated GitHub Actions jobs run on macOS 15 and Ubuntu, checking static source, local-only file serving, core economy rules, and actual Chromium gameplay. Browser tests cover pickup and stocking, wages, buying an upgrade, connected conveyor placement, visiting floor 15 and the bankruptcy ending.
+To test source/economy locally (no npm install necessary):
 
-Local check without installing npm packages:
-
+    node --check src/game.js
+    node --check src/rules.mjs
     node --test tests/*.test.cjs
 
-Developer testing: append #rich to the browser address to get bonus coins; #ending-test previews the ending quickly.
+Developer testing: add **#rich** to the URL for testing coins, or **#ending-test** to preview the ending quickly.
 
-### End of the game
+## Prototype limitations
 
-After all shelves are filled, nobody comes to the grand opening. Twenty sunrise/sunset cycles accelerate until WENT BANKRUPT appears, followed by Thanks for Playing!
-
-### Limitations
-
-Floors currently share a procedural layout with changing palettes; this is not fifteen uniquely modeled departments. Conveyors provide connected supply pickup points, not a physics-based transport network with turns and junctions. Robot routing is scripted and simple. There is no finished native Mac/Steam release or Apple-notarized executable. Fully finishing all 108,000 products and testing every possible Mac hardware configuration remain outstanding. Automated tests do not provide a 100% safety guarantee.
+This is still a procedural browser game rather than a fully modeled commercial simulator. There is no physics-based conveyor transport network with arbitrary corners or junctions, full-length manual endurance test, native notarized macOS app, or published Steam build. A passing CI test is useful evidence, not a 100% guarantee across every browser, Mac model, or playthrough. Progress remains local to your browser.
