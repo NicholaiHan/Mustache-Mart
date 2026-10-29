@@ -308,7 +308,11 @@ function buildNextBelt(){
 }
 function updatePrompt(){
  let msg='';
- if(doors.nearFire(V.x,V.z))msg='E · '+(doors.isFireOpen()?'Close':'Open')+' FIRE EXIT (brick wall behind)';
+ if(placementRobotId!==null)msg='ROBOT #'+placementRobotId+' · WALK to the aisle · LEFT CLICK to deploy · ESC cancel';
+ else if(climbingLadderId!==null)msg='CLIMBING · W up · S down · C release · Hold E to stock';
+ else if(nearestLadder(1.8))msg='C · Climb ladder · X sell for half purchase price';
+ else if(nearestBeltStock())msg='E · Take conveyor stock · X sell LAST segment';
+ else if(doors.nearFire(V.x,V.z))msg='E · '+(doors.isFireOpen()?'Close':'Open')+' FIRE EXIT (brick wall behind)';
  else if(doors.nearEntrance(V.x,V.z))
    msg=canOpenStore(s)?'E · Unlock the grand opening and slide open the doors':'E · You have to stock the building before opening';
  else if(nearby(DOCK.x,DOCK.z,4.4))msg=V.carry<capacity(s)?'Hold E · Load product from REAR RECEIVING (one per action)':'Carry capacity reached — return to an aisle';
@@ -361,9 +365,9 @@ function tickCart(dt){
 }
 function syncRobots(){
  for(const r of s.robots){
-  if(r.floor===s.floor){
+  if(r.placed&&r.floor===s.floor){
    if(!robotModels.has(r.id))robotModels.set(r.id,botAppearance(r));
-   const obj=robotModels.get(r.id);obj.position.set(r.x,.08*Math.sin(performance.now()/230+r.id),r.z);
+   const obj=robotModels.get(r.id);obj.visible=true;obj.position.set(r.x,(r.liftY||0)+.04*Math.sin(performance.now()/230+r.id),r.z);
    const crate=obj.getObjectByName('crate');if(crate)crate.visible=r.carry>0;
   }else if(robotModels.has(r.id)){const obj=robotModels.get(r.id);obj.visible=false;robotModels.delete(r.id);}
  }
@@ -380,15 +384,21 @@ function animate(now){
   const turn=(held.ArrowLeft?1:0)-(held.ArrowRight?1:0);
   V.yaw+=turn*dt*1.7;V.pitch=Math.max(-1.25,Math.min(1.25,V.pitch+((held.ArrowUp?1:0)-(held.ArrowDown?1:0))*dt));
   const forward=(held.KeyW?1:0)-(held.KeyS?1:0),side=(held.KeyD?1:0)-(held.KeyA?1:0);
-  if(forward||side){
+  if(climbingLadderId!==null){
+   const l=s.ladders.find(l=>l.id===climbingLadderId&&l.floor===s.floor);
+   if(!l){climbingLadderId=null;V.y=0;}
+   else{const top=s.levels.ladderPlus?9.45:4.75;
+    V.x=l.x;V.z=l.z;V.vy=0;V.y=Math.max(0,Math.min(top,V.y+forward*dt*2.3));
+   }
+  }else if(forward||side){
    const speed=walkSpeed(s)*(held.ShiftLeft?1.4:1)*dt/Math.hypot(forward,side);
    const dx=(-Math.sin(V.yaw)*forward+Math.cos(V.yaw)*side)*speed;
    const dz=(-Math.cos(V.yaw)*forward-Math.sin(V.yaw)*side)*speed;
    const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));
    V.x=next.x;V.z=next.z;
   }
-  V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0)V.vy=0;
-  if(held.Space&&s.levels.jump&&V.y===0)V.vy=5.4;
+  if(climbingLadderId===null){V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0)V.vy=0;}
+  if(climbingLadderId===null&&held.Space&&s.levels.jump&&V.y===0)V.vy=5.4;
   if(held.KeyE||mouseDown){actionClock+=dt;while(actionClock>=.32){actionClock-=.32;act();if(modal)break;}}else actionClock=0;
  }
  if(!ending&&running){
@@ -397,6 +407,7 @@ function animate(now){
   hand.visible=V.carry>0;hand.scale.setScalar(.45+Math.min(1,V.carry/capacity(s))*.55);
  }
  if(!ending){
+  advanceBelts(s,dt);
   for(const r of s.robots){
    const prevTarget=r.target,prevCount=prevTarget>=0?s.fill[prevTarget]:-1;
    const id=botStep(s,r,dt);
@@ -405,11 +416,17 @@ function animate(now){
   tickCart(dt);
   if(s.levels.cart&&cartMesh){cartMesh.visible=s.cart.floor===s.floor;if(cartMesh.visible)cartMesh.position.set(aisleX(s.cart.aisle),0,s.cart.z);}
   syncRobots();
-  for(const b of beltCrates)b.crate.position.z=((now*.00065+b.segment*.27)%2.0)-1;
+  for(const b of beltCrates){
+   const n=s.belts[s.floor][b.aisle],stored=s.beltStock[s.floor][b.aisle];
+   b.crate.visible=stored>0||s.beltTimers[s.floor][b.aisle]>0;
+   b.crate.position.z=(((now*.001+b.segment*.27)%2.25)-1.1);
+   if(b.segment===n-1&&stored>0)b.crate.position.z=0;
+  }
   // Completion alone does NOT trigger the ending. Open the front doors with E.
  }
  doors.update(dt);
  if(ending)endingTick(elapsed);
+ if(robotGhost&&placementRobotId!==null){robotGhost.position.set(aisleX(nearestAisle()),0,bayZ(nearestBay()));robotGhost.visible=V.z>=11&&V.z<=92;}
  if(!modal){updatePrompt();}
  if(now-savingAt>260){uiUpdate();savingAt=now;}
  renderer.render(scene,camera);
@@ -420,6 +437,7 @@ window.addEventListener('keydown',e=>{
  if(e.repeat)return;
  if(e.code==='Escape'){
   e.preventDefault();held={};mouseDown=false;actionClock=0;
+  if(cancelPlacement())return;
   if(modal==='shop'||modal==='elevator'||modal==='intro')resume();
   else if(!ending){show('intro');$('play').textContent='Resume shift';}
   return;
@@ -428,6 +446,8 @@ window.addEventListener('keydown',e=>{
  if(e.code==='KeyQ')openShop();
  if(e.code==='KeyR')openElevator();
  if(e.code==='KeyL')placeLadder();
+ if(e.code==='KeyC')toggleClimb();
+ if(e.code==='KeyX')sellNearby();
  if(e.code==='KeyB')buildNextBelt();
  if(e.code==='KeyE'){actionClock=0;act();}
 });
@@ -444,7 +464,7 @@ window.addEventListener('mousemove',e=>{
   V.pitch=Math.max(-1.25,Math.min(1.25,V.pitch-dy*.0024));
  }
 });
-renderer.domElement.addEventListener('mousedown',()=>{if(!modal){mouseDown=true;actionClock=0;act();}});
+renderer.domElement.addEventListener('mousedown',()=>{if(!modal){if(placementRobotId!==null){completeRobotPlacement();return;}mouseDown=true;actionClock=0;act();}});
 window.addEventListener('mouseup',()=>{mouseDown=false;doorInteractionHeld=false;});
 document.addEventListener('pointerlockchange',()=>{
  if(document.pointerLockElement===renderer.domElement){
