@@ -52,7 +52,7 @@ The cashier checkout module creates four animated POS belts solely on Floor 1, e
 30 accelerated first-floor runs in `tests/first-floor-30.test.cjs` cover all 9,600 products each (**288,000 first-floor placements**) plus payroll, purchase, robot placement, automation, ladder height, conveyors, physical checkout collisions, equipment resale and persistence. They are not rendered 30-times-through browser playthroughs. The browser smoke test separately exercises actual WebGL interactions and visual screenshots. First-floor completion properly leaves the main entrance locked until all fifteen floors are complete.
 
 
-## October 30 — Physical logistics update (build 2026.10.30.3)
+## October 30 — Physical logistics update (build 2026.10.30.4)
 
 **No generated conveyor inventory.** The previous `advanceBelts()` manufactured stock when a conveyor section existed. It now cannot do so: an independently purchased and player-installed item claw must be within reach of a connected belt and an inventory source (the receiving dock or a pallet-jack drop-off pile). Each successful pickup consumes one stock unit from a pile or moves one unit from the warehouse and adds exactly one to the belt. Source exhaustion and 16-item belt capacity stop intake. Old version-4 saves migrate with previously generated conveyor stock cleared, preserving shelves, upgrades, money, robots and ladders.
 
@@ -62,10 +62,16 @@ The cashier checkout module creates four animated POS belts solely on Floor 1, e
 
 **Tests.** Mac and Linux source/regression test suites include thirty accelerated complete Floor-1 simulations processing 288,000 shelf placements combined, plus thirty accelerated complete 15-floor simulations. New regressions check no-free-stock belts, installed claws sourcing from pallet piles, stock-preserving right turns, all six pallet capacities, save/load of piles/claws/routes and the motorized platform's absence of auto-stocking. Browser walkthroughs run separately and may have longer GPU-related runtimes; check the current GitHub Actions run for final results.
 
-## Build 2026.10.30.3 — Rendering and Mike interaction checks
+## Build 2026.10.30.4 — Rendering and Mike interaction checks
 
 Removed the always-visible 98-metre overhead receiving gantry and second dark beam, and restyled the help/prompt/routing overlays from long black bars to compact light labels. Mike now opens with E, not by mouse click or Q. Closing the shop via its own button requests pointer lock synchronously in the trusted click event; Escape may require one new user click under browser security restrictions, with an explicit indicator. Expanded the browser regression to check E-only dialogue, click nonactivation, and recapture after the close button. Added store detail and digital LED face geometry; source syntax and CI checks cover regressions.
 
-## Build 2026.10.30.3 — Payroll geometry regression
+## Build 2026.10.30.4 — Payroll geometry regression
 
 Front-wall inner face z=-12.45. Payroll fascia center z=-12.30 depth .35, so rear face is -12.475 (intersects the plaster); transaction counter center z=-11.48 depth 2.12, so rear face is -12.54 (also intersects plaster). The E interaction point moved to x=10, z=-8.38, along with its physical collision footprint and graphical-payroll test. Static source checks and rendered browser tests run on GitHub Actions.
+
+## Build 2026.10.30.4 — Backpressure & real carton conservation
+
+Created `beltItems[floor][aisle][segment]` with an enforced capacity of **three**, and replaced aisle-wide generator/transport with atomic one-hop flow. Claws check nearby warehouse/pallet stock and their receiving segment; blocked pickup consumes no inventory. Missing next sections and full next sections stall physical goods in place. The renderer draws exactly one mesh per occupied item (up to three), freezing when blocked. Player and robot pickup query actual occupied segment locations. Save migration preserves legitimate overflow as a pallet pile and discards historical auto-generated stock without installed claws.
+
+Added dedicated unit regressions for absent/full upstream and downstream, blocked crane inventory consumption, right-hand junction capacity, save restoration and 30 deterministic randomized first-floor congestion sessions; each verifies per-segment maximum and conservation. A browser smoke regression checks three-carton visual state and stopping with no forward segment.
