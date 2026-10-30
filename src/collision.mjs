@@ -14,7 +14,7 @@ const boxes=[
  {name:'Receiving terminal',x:3.7,z:95.8,hx:.5,hz:.4},
  {name:'Receiving warehouse rack',x:7.7,z:96.4,hx:2.35,hz:.75},
  {name:'Receiving shutter',x:17,z:100.2,hx:5.6,hz:.24},
- {name:'Pallet jack',x:10.7,z:94.1,hx:.8,hz:1.3}
+ {name:'Receiving storage stand',x:10.7,z:96.4,hx:.25,hz:.27}
 ];
 // Real cashier lanes: grounded POS counter, belt housing and bagging areas.
 for(const x of [32,57,70,83]){
@@ -56,6 +56,8 @@ export function blockedEquipment(s,x,z,radius=PLAYER_RADIUS){
      if(Math.abs(x-(aisleX(a)+1.4))<.54+radius&&Math.abs(z-bayZ(BAYS-1-segment))<1.29+radius)return true;
    }
  }
+ // Pallet jack is a moving solid for pedestrians, but drivers can exit freely.
+ if(s.pallet&&s.pallet.floor===floor&&!s.pallet.driving&&Math.hypot(x-s.pallet.x,z-s.pallet.z)<.65+radius)return true;
  for(const bot of s.robots||[]){
    if(bot.placed&&bot.floor===floor&&Math.hypot(x-bot.x,z-bot.z)<.61+radius)return true;
  }
