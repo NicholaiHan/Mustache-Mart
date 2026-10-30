@@ -51,12 +51,16 @@ function makeBelt(f,a,segment){
  const motor=round(.22,.28,.42,dark,group);motor.position.set(.69,.44,.85);
  const guard=round(.075,.18,.44,orange,group);guard.position.set(.56,.66,-.86);
  const axle=round(.065,.18,.13,steel,group);axle.position.set(.71,.58,.62);
- const crate=round(.59,.37,.48,equipmentMaterial('#bca582',0,.9),group);
- crate.position.set(0,.87,0);
- const tape=round(.056,.382,.49,light,group);tape.position.set(.02,.875,0);
- // Tape follows the moving carton, rather than hovering on the conveyor.
- crate.add(tape);tape.position.set(0,0,.03);
- getBeltCrates().push({crate,segment,aisle:a});
+ // Three physically distinct stock positions per segment. All start hidden:
+ // a conveyor is NEVER decorated with fake products when it is empty.
+ const cardboard=equipmentMaterial('#bca582',0,.9);
+ for(let slot=0;slot<3;slot++){
+  const crate=round(.59,.37,.48,cardboard,group);
+  crate.position.set(0,.87,.78-slot*.78);
+  crate.visible=false;
+  const tape=round(.056,.382,.49,light,crate);tape.position.set(0,0,.03);
+  getBeltCrates().push({crate,segment,aisle:a,slot});
+ }
  return group;
 }
 function makeReceivingSystem(){
