@@ -131,6 +131,24 @@ button:active:not(:disabled){transform:translateY(1px)}
  box-shadow:0 10px 30px #10252270;z-index:4}
 #routingStatus[hidden]{display:none}
 
+
+/* Retail-floor UI: no long black help/prompt bars covering the game. */
+#help{bottom:16px;right:14px;max-width:min(500px,42vw);padding:7px 10px;
+ background:rgba(247,249,243,.89);color:#35483f;border:1px solid #b2c1b3;
+ border-radius:8px;box-shadow:0 3px 13px #21352826;font-size:11px;line-height:1.45}
+#prompt{background:rgba(247,249,244,.95);color:#2b493f;border:1px solid #a3b8a8;
+ padding:9px 15px;box-shadow:0 4px 17px #21372f29;max-width:min(610px,85vw);
+ font-size:13px;font-weight:700;line-height:1.4}
+#routingStatus{background:rgba(246,248,242,.94);color:#2b4d40;
+ border:1px solid #8cad9b;border-left:4px solid #bf9e69;border-radius:6px;
+ box-shadow:0 3px 13px #253e3326;font-size:11px;max-width:min(475px,87vw)}
+#lookPrompt{position:absolute;left:50%;top:57%;transform:translateX(-50%);pointer-events:none;
+ background:rgba(246,248,242,.91);color:#30483e;border:1px solid #839e8e;
+ padding:9px 13px;border-radius:7px;font-size:12px;font-weight:800;text-align:center;
+ box-shadow:0 6px 20px #1f382b24}
+#lookPrompt[hidden]{display:none}
+@media(max-width:760px){#help{max-width:90vw;font-size:10px}#prompt{bottom:105px}}
+
 </style>
 </head>
 <body>
@@ -146,13 +164,14 @@ button:active:not(:disabled){transform:translateY(1px)}
   <div class="pill" id="objective">Collect a can from the delivery dock, then stock the nearest shelf.</div>
   <div id="buildChip">UPDATED BUILD · 2026.10.30.1</div>
   <div id="crosshair"></div>
+  <div id="lookPrompt" hidden>CLICK ON THE GAME TO RESTORE MOUSE LOOK</div>
   <div id="prompt" class="pill" hidden></div>
   <div id="toast"></div>
   <div id="payReceipt" role="status" aria-live="polite" aria-hidden="true"><div class="eyebrow">PAYROLL / TRANSACTION APPROVED</div><div class="amount" id="receiptAmount">$0.00</div><div class="line"><span>PAY WINDOW · STAFF WAGES</span><span id="receiptNumber">#0001</span></div><div class="foot">MUSTACHE MART · THANK YOU FOR YOUR SERVICE</div></div>
   <div id="routingStatus" hidden aria-live="polite">INVENTORY → CLAW → AISLE 01</div>
   <div id="pickupStatus" hidden>RECEIVING / PRODUCTS READY · HOLD E TO LOAD</div>
   <div id="progress"><span id="progressText">0 / 144,000 stocked</span><div id="progress-track"><div id="progress-bar"></div></div></div>
-  <div class="pill" id="help">WASD move · Mouse look · E interact · L place ladder · C climb · B conveyor · [ / ] choose receiving aisle · X sell · Click deploy robot · Esc pause</div>
+  <div class="pill" id="help">WASD move · Mouse look · E talk to Mike / interact · L place ladder · C climb · B conveyor · [ / ] choose receiving aisle · X sell · Click deploy robot · Esc pause</div>
 </div>
 <div class="dialog open" id="intro">
   <div class="panel">
@@ -162,7 +181,7 @@ button:active:not(:disabled){transform:translateY(1px)}
     </div>
     <div id="devBanner">DEVELOPMENT MODE · $500 minimum testing funds enabled</div>
     <p><strong>15 floors. 144,000 products. One grand opening.</strong><br>The inventory warehouse is all the way at the BACK of the store. Begin by carrying a single can through long aisles. Earn 1¢ on lower racks, 2¢ using a step ladder and 3¢ with the telescopic ladder extension. Collect pay at the front window, then visit Mustache Mike for tools and economy contracts.</p>
-    <p class="hint">WASD to walk · E to collect / stock · mouse or arrow keys to aim · Q near Mike for upgrades · R at elevator · B to extend rear-fed conveyor · Space to jump (upgrade) · L to place a ladder · C to climb, W/S to move up/down · X to sell equipment · Buy a robot at Mike's, walk into an aisle and left-click to deploy.</p>
+    <p class="hint">WASD to walk · E to collect / stock · mouse or arrow keys to aim · E near Mike for upgrades · R at elevator · B to extend rear-fed conveyor · Space to jump (upgrade) · L to place a ladder · C to climb, W/S to move up/down · X to sell equipment · Buy a robot at Mike's, walk into an aisle and left-click to deploy.</p>
     <button id="play">Start your shift</button> <button id="reset">Reset this game's saved progress</button>
     <p class="hint">Your progress stays in this browser on this Mac. The game uses only locally stored assets and does not need Electron.</p>
   </div>
