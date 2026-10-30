@@ -29,7 +29,7 @@ export const UPGRADES=[
 export function cellId(f,a,side,bay,tier){return ((((f*AISLES+a)*2+side)*BAYS+bay)*TIERS+tier);}
 export function decode(id){const tier=id%TIERS;id=Math.floor(id/TIERS);const bay=id%BAYS;id=Math.floor(id/BAYS);const side=id%2;id=Math.floor(id/2);return {floor:Math.floor(id/AISLES),aisle:id%AISLES,side,bay,tier};}
 const limit=(v,max)=>Number.isFinite(Number(v))?Math.max(0,Math.min(max,Math.floor(Number(v)))):0;
-export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{floor:0,aisle:0,z:13,acc:0},cursor:Array(FLOORS).fill(0)};}
+export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},cursor:Array(FLOORS).fill(0)};}
 export function loadState(text){
  const s=newState();if(!text)return s;
  try{
@@ -78,7 +78,7 @@ export function loadState(text){
  s.robotNextId=Math.max(limit(d.robotNextId,1000000)||1,...s.robots.map(r=>r.id+1));
  while(s.robots.length<s.levels.robot)hireRobot(s,250,true);
  s.levels.robot=s.robots.length;
- const c=d.cart||{};s.cart={floor:limit(c.floor,FLOORS-1),aisle:limit(c.aisle,AISLES-1),z:Math.max(11,Math.min(94,Number(c.z)||13)),acc:0};
+ const c=d.cart||{};s.cart={floor:limit(c.floor,FLOORS-1),aisle:limit(c.aisle,AISLES-1),z:Math.max(11,Math.min(94,Number(c.z)||13)),acc:0,liftHeight:Math.max(0,Math.min(10,Number(c.liftHeight)||0)),mounted:false};
  }catch(_){return newState();}
  return s;
 }
@@ -343,23 +343,28 @@ export function botStep(s,r,dt){
  return -1;
 }
 
-// Cart stocking obeys the same 4-band economics as player and robot stocking.
-export function cartStep(s,dt){
- if(!s.levels.cart||remaining(s)<=0)return -1;
+// Motorized platform ladder: a player-controlled vehicle, never an auto-stocker.
+// The upright platform can be raised while occupied and driven with WASD while
+// elevated; movement is clamped to a clear aisle and checks static obstacles in game.
+export function drivePlatform(s,forward,side,dt,canTravel=null){
+ if(!s.levels.cart||!s.cart.mounted||dt<=0)return false;
  const c=s.cart;
- c.z+=dt*(.28+s.levels.cartSpeed*.14);
- if(c.z>bayZ(BAYS-1)+1.4){
-  c.z=bayZ(0);c.aisle=(c.aisle+1)%AISLES;
-  if(c.aisle===0)c.floor=(c.floor+1)%FLOORS;
- }
- c.acc+=dt*(.15+s.levels.cartSpeed*.09);
- if(c.acc>=1){
-  c.acc-=1;
-  const bay=Math.max(0,Math.min(BAYS-1,Math.round((c.z-13)/2.65)));
-  for(const tier of [3,2,1,0])for(const side of [0,1]){
-   const id=cellId(c.floor,c.aisle,side,bay,tier);
-   if(s.fill[id]<SLOTS&&place(s,id,true))return id;
-  }
- }
- return -1;
+ const speed=1.4+s.levels.cartSpeed*.31;
+ const nx=aisleX(c.aisle)+Math.max(-1,Math.min(1,side))*dt*speed;
+ const nz=c.z-Math.max(-1,Math.min(1,forward))*dt*speed;
+ // A motorized lifting platform stays aligned with its aisle and cannot float
+ // sideways into the racks. Horizontal WASD input is reserved for future
+ // cross-aisle transitions; at the rear crosswalk it may choose another aisle.
+ let targetAisle=c.aisle;
+ if(c.z>92&&Math.abs(side)>0.2){targetAisle=Math.max(0,Math.min(AISLES-1,c.aisle+Math.sign(side)));}
+ if(nz<bayZ(0)-1||nz>94)return false;
+ if(canTravel&&!canTravel(aisleX(targetAisle),nz))return false;
+ c.aisle=targetAisle;c.z=nz;
+ return true;
 }
+export function liftPlatform(s,up,dt){
+ if(!s.levels.cart||!s.cart.mounted)return 0;
+ s.cart.liftHeight=Math.max(0,Math.min(9.6,s.cart.liftHeight+Math.max(-1,Math.min(1,up))*dt*3.5));
+ return s.cart.liftHeight;
+}
+export function cartStep(){return -1;} // Legacy API: no autonomous shelf stocking.
