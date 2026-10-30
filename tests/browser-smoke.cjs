@@ -81,7 +81,10 @@ const assert=require('node:assert/strict');
 
 
   await page.evaluate(()=>window.__martTest.teleport(1.5,-4.1));
-  await page.keyboard.press('q');
+  // Pointing/clicking at Mike is NOT a dialogue command.
+  await page.mouse.click(634,407);
+  assert.equal(await page.locator('#shop').evaluate(el=>el.classList.contains('open')),false,'Mike must not open from click');
+  await page.keyboard.press('e');
   await page.locator('#shop.open').waitFor();
   assert.equal(await page.locator('#shopTitle').textContent(),'Mustache Mike');
   await page.screenshot({path:path.join(art,'mike-upgrades.png')});
@@ -92,17 +95,21 @@ const assert=require('node:assert/strict');
   await page.locator('#shopitems .upgrade').first().locator('button').click();
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.levels.soupTriple,1,'the $50 can contract should be purchasable');
-  await page.keyboard.press('Escape');
+  // Closing from the actual shop button is a trusted click activation:
+  // pointer lock should return right away, with no multi-second mouse freeze.
+  await page.locator('#shopClose').click();
   await page.waitForFunction(()=>!document.querySelector('#shop').classList.contains('open'));
-  console.log('PASS: Mike buys carrying upgrade + $50 canned-goods 3x contract; Escape closes dialogue');
-  await page.keyboard.press('q');
+  await page.waitForFunction(()=>document.pointerLockElement===document.querySelector('canvas'),undefined,{timeout:6000});
+  assert.equal(await page.locator('#lookPrompt').isVisible(),false);
+  console.log('PASS: E-only Mike interaction, click does not open dialogue, shop close instantly restores mouse look');
+  await page.keyboard.press('e');
   await page.locator('#shop.open').waitFor();
   await page.keyboard.press('Escape');
   await page.waitForFunction(()=>!document.querySelector('#shop').classList.contains('open'));
 
   // Purchased robots are NOT automatically active: left click an aisle position.
   await page.evaluate(()=>window.__martTest.teleport(1.5,-4.1));
-  await page.keyboard.press('q');
+  await page.keyboard.press('e');
   await page.locator('#shop.open').waitFor();
   await page.locator('#tab-tools').click();
   await page.locator('#shopitems .upgrade').filter({hasText:'Mustache Stocker Bot'}).first().locator('button').first().click();
@@ -116,7 +123,7 @@ const assert=require('node:assert/strict');
   console.log('PASS: Mike sells an independent robot, click-to-place activates it in chosen aisle');
 
   await page.evaluate(()=>window.__martTest.teleport(1.5,-4.1));
-  await page.keyboard.press('q');await page.locator('#shop.open').waitFor();
+  await page.keyboard.press('e');await page.locator('#shop.open').waitFor();
   await page.locator('#tab-tools').click();
   await page.locator('#shopitems .upgrade').filter({hasText:'Robot Espresso'}).first().locator('button').first().click();
   await page.locator('#shopitems .upgrade').filter({hasText:'Motorized Robot Ladder'}).first().locator('button').first().click();
@@ -139,7 +146,7 @@ const assert=require('node:assert/strict');
   await page.waitForFunction(()=>window.__martTest.snapshot().ladders===0);
   console.log('PASS: separate robot upgrades, E-to-grab real player ladder ascent and 50% ladder resale');
   await page.evaluate(()=>window.__martTest.teleport(1.5,-4.1));
-  await page.keyboard.press('q');await page.locator('#shop.open').waitFor();
+  await page.keyboard.press('e');await page.locator('#shop.open').waitFor();
   await page.locator('#tab-tools').click();
   await page.locator('#shopitems .upgrade').filter({hasText:'Stocker #'}).first().locator('button').last().click();
   await page.waitForFunction(()=>window.__martTest.snapshot().robotCount===0);
