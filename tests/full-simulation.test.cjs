@@ -118,13 +118,15 @@ test('built conveyors and moving robots have physical player collision',()=>{
  assert.ok(Math.hypot(escape.x-bot.x,escape.z-bot.z)>.3,'player must be able to step away from overlapping robot');
 });
 
-test('the self-driving lift can stock the 3-cent top tier, not just low and middle racks',()=>{
- const r=rules,st=r.newState();
- st.levels.cart=1;st.cart.acc=.99;st.cart.z=13;st.cart.aisle=0;st.cart.floor=0;
- const id=r.cartStep(st,.1);
- assert.equal(r.decode(id).tier,3);
- assert.equal(st.fill[id],1);
- assert.equal(st.money,3);
+test('motorized ladder is player-driven rather than a free automated stocker',()=>{
+ const r=rules,st=r.newState();st.levels.cart=1;
+ st.cart.mounted=true;st.cart.z=60;
+ assert.equal(r.cartStep(st,10),-1);
+ assert.equal(st.stocked,0);
+ assert.equal(r.liftPlatform(st,1,3),9.6);
+ assert.equal(r.drivePlatform(st,1,0,.5),true);
+ assert.ok(st.cart.z<60);
+ assert.equal(st.money,0);
 });
 
 test('existing v4 saves relocate receiving-dock bots out of solid pickup counter',()=>{
