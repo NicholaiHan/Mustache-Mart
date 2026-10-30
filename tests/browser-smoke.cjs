@@ -61,7 +61,7 @@ const assert=require('node:assert/strict');
   assert.equal(snap.carry,0);
   console.log('PASS: rear warehouse pickup and reachable lower-rack 1-cent payout');
 
-  await page.evaluate(()=>{window.__martTest.teleport(10,-1.3);window.__martTest.setLook(0,-.07);});
+  await page.evaluate(()=>{window.__martTest.teleport(10,-8.38);window.__martTest.setLook(0,-.07);});
   await page.screenshot({path:path.join(art,'payroll-window.png')});
   await page.keyboard.press('e');await page.waitForTimeout(250);
   snap=await page.evaluate(()=>window.__martTest.snapshot());
@@ -190,7 +190,7 @@ const assert=require('node:assert/strict');
   await page.evaluate(()=>window.__martTest.teleport(8,28));
   const pos=await page.evaluate(()=>window.__martTest.move(12,0));
   assert.ok(pos.x<10.5,'rack collision prevents player clipping');
-  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(10,-3.2)),true);
+  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(10,-11.48)),true);
   assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(30,95)),true);
   console.log('PASS: collision blocks store fixtures, long shelving and pallets');
 
