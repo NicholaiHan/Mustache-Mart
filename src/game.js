@@ -148,7 +148,7 @@ function manualStock(){
  // Shelves becoming full unlocks the entrance; the player decides when to open it.
  return true;
 }
-function act(){
+function act(source='keyboard'){
  if(modal||ending||placementRobotId!==null)return;
  if(doors.nearFire(V.x,V.z)){
   if(doorInteractionHeld)return;
@@ -171,7 +171,12 @@ function act(){
    notify('CHECKOUT '+String(register+1).padStart(2,'0')+' · Card terminal powered; customer payments begin at the grand opening.');
    return;
  }
- if(nearby(1.5,-7,4.0)){openShop();return;}
+ if(nearby(1.5,-7,4.0)){
+  // Clicking is used for robot placement / picking up inventory. Mike's
+  // dialogue should only respond to the universal E interaction key.
+  if(source==='keyboard')openShop();
+  return;
+ }
  if(nearby(10,-3,4.0)){const paid=payOut(s);if(paid)showPayReceipt(paid);else notify('Your payroll balance is currently $0.00. Stock more products to earn wages.');save();return;}
  if(nearby(23,-9,4.4)){openElevator();return;}
  if(nearby(DOCK.x,DOCK.z,4.4)&&V.carry<capacity(s)){V.carry++;return;}
@@ -298,10 +303,25 @@ function pointerRequest(){
  if(!renderer.domElement.requestPointerLock)return;
  try{const result=renderer.domElement.requestPointerLock();if(result?.catch)result.catch(()=>notify('Mouse capture unavailable. Arrow keys still let you look.'));}catch(_){notify('Mouse capture unavailable; use arrow keys to look.');}
 }
-function show(id){for(const key of ['intro','shop','elevator','end'])$(key).classList.toggle('open',key===id);modal=id;running=!id&&!ending;if(id)document.exitPointerLock?.();}
-function resume(){show(null);running=true;pointerRequest();}
+function show(id){
+ for(const key of ['intro','shop','elevator','end'])$(key).classList.toggle('open',key===id);
+ modal=id;running=!id&&!ending;
+ if(id)document.exitPointerLock?.();
+}
+function resume(){
+ // Close dialogue, clear the old held interaction keys and restore focus.
+ // The shop Close button invokes this in the same trusted click activation,
+ // so browsers can immediately grant pointer lock.
+ show(null);held={};mouseDown=false;actionClock=0;doorInteractionHeld=false;
+ ignoreMouseUntil=0;
+ renderer.domElement.tabIndex=0;
+ renderer.domElement.focus({preventScroll:true});
+ pointerRequest();
+}
 function openShop(){
  if(!nearby(1.5,-7,4.6)){notify('Find Mustache Mike at the front customer service counter.');return;}
+ // No mouse click interaction: E only, consistent with payroll / checkout.
+ held.KeyE=false;mouseDown=false;actionClock=0;
  show('shop');renderShop();
 }
 function renderShop(){
@@ -503,7 +523,7 @@ function animate(now){
   }
   if(climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted){V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0)V.vy=0;}
   if(climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted&&held.Space&&s.levels.jump&&V.y===0)V.vy=5.4;
-  if(!s.pallet.driving&&(held.KeyE||mouseDown)){actionClock+=dt;while(actionClock>=.32){actionClock-=.32;act();if(modal)break;}}else actionClock=0;
+  if(!s.pallet.driving&&(held.KeyE||mouseDown)){actionClock+=dt;while(actionClock>=.32){actionClock-=.32;act(held.KeyE?'keyboard':'mouse');if(modal)break;}}else actionClock=0;
  }
  if(!ending&&running){
   // Render the current floor; background robot simulation advances on every floor.
@@ -592,7 +612,7 @@ window.addEventListener('keydown',e=>{
   return;
  }
  if(modal||ending)return;
- if(e.code==='KeyQ')openShop();
+ // Mustache Mike is interacted with using E, not a click or Q shortcut.
  if(e.code==='KeyR'&&!s.pallet.driving&&!s.cart.mounted)openElevator();
  if(e.code==='KeyL')placeLadder();
  if(e.code==='KeyC')toggleClimb();
@@ -608,7 +628,7 @@ window.addEventListener('keydown',e=>{
  if(e.code==='KeyU')handlePalletCargo();
  if(e.code==='KeyK')installClaw();
  if(e.code==='KeyZ')turnBelt();
- if(e.code==='KeyE'&&!s.pallet.driving&&!s.cart.mounted){actionClock=0;act();}
+ if(e.code==='KeyE'&&!s.pallet.driving&&!s.cart.mounted){e.preventDefault();actionClock=0;act('keyboard');}
 });
 window.addEventListener('keyup',e=>{held[e.code]=false;if(e.code==='KeyE')doorInteractionHeld=false;});
 window.addEventListener('blur',()=>{held={};mouseDown=false;doorInteractionHeld=false;actionClock=0;});
@@ -636,16 +656,23 @@ window.addEventListener('mousemove',e=>{
   V.pitch=Math.max(-1.25,Math.min(1.25,V.pitch-dy*.0024));
  }
 });
-renderer.domElement.addEventListener('mousedown',()=>{if(!modal){if(placementRobotId!==null){completeRobotPlacement();return;}mouseDown=true;actionClock=0;act();}});
+renderer.domElement.addEventListener('mousedown',()=>{
+ if(modal)return;
+ if(placementRobotId!==null){completeRobotPlacement();return;}
+ // Clicking Mike must NOT open the dialogue or consume a stocking action.
+ if(nearby(1.5,-7,4.0)){if(document.pointerLockElement!==renderer.domElement)pointerRequest();return;}
+ if(document.pointerLockElement!==renderer.domElement){pointerRequest();return;}
+ mouseDown=true;actionClock=0;act('mouse');
+});
 window.addEventListener('mouseup',()=>{mouseDown=false;doorInteractionHeld=false;});
 document.addEventListener('pointerlockchange',()=>{
  if(document.pointerLockElement===renderer.domElement){
-  ignoreMouseUntil=performance.now()+160;
+  ignoreMouseUntil=performance.now()+24;
   return;
  }
  if(!ending&&!modal&&document.pointerLockElement!==renderer.domElement){
   // Arrow-key fallback still works, without bypassing browser permissions.
-  notify('Mouse released. Use arrow keys to look or click to recapture.');
+  notify('Mouse released · click the game once to restore mouse look.');
  }
 });
 renderer.domElement.addEventListener('click',()=>{if(running)pointerRequest();});
