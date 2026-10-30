@@ -2,6 +2,7 @@
 export const FLOORS=15, AISLES=10, BAYS=30, TIERS=4, SLOTS=4;
 export const CELLS_PER_FLOOR=AISLES*2*BAYS*TIERS, TOTAL_CELLS=FLOORS*CELLS_PER_FLOOR, TOTAL_ITEMS=TOTAL_CELLS*SLOTS;
 export const CENTS=[1,1,2,3], SAVE_KEY='mustacheMartV4';
+export const BELT_CAPACITY=3, BELT_MOVE_SECONDS=.85, CLAW_PICK_SECONDS=1.45;
 export const aisleX=a=>8+a*10, bayZ=b=>13+b*2.65;
 export const DOCK={x:1.5,z:96};
 export const floorLabel=f=>'F'+String(f+1).padStart(2,'0');
@@ -29,7 +30,7 @@ export const UPGRADES=[
 export function cellId(f,a,side,bay,tier){return ((((f*AISLES+a)*2+side)*BAYS+bay)*TIERS+tier);}
 export function decode(id){const tier=id%TIERS;id=Math.floor(id/TIERS);const bay=id%BAYS;id=Math.floor(id/BAYS);const side=id%2;id=Math.floor(id/2);return {floor:Math.floor(id/AISLES),aisle:id%AISLES,side,bay,tier};}
 const limit=(v,max)=>Number.isFinite(Number(v))?Math.max(0,Math.min(max,Math.floor(Number(v)))):0;
-export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},cursor:Array(FLOORS).fill(0)};}
+export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},cursor:Array(FLOORS).fill(0)};}
 export function loadState(text){
  const s=newState();if(!text)return s;
  try{
@@ -48,7 +49,7 @@ export function loadState(text){
   for(let i=0;i<s.belts[f][a];i++)s.beltReceipts[f][a].push(limit(d.beltReceipts?.[f]?.[a]?.[i]??(12+Math.floor(i*1.3)),100000));
   // Version-4 belts generated stock without input. Reset legacy phantom stock:
   // all new deliveries must originate at a placed claw.
-  s.beltStock[f][a]=Array.isArray(d.claws)?limit(d.beltStock?.[f]?.[a],16):0;
+  s.beltStock[f][a]=Array.isArray(d.claws)?limit(d.beltStock?.[f]?.[a],BAYS*BELT_CAPACITY):0;
   for(let i=0;i<s.belts[f][a];i++)s.beltDirection[f][a][i]=limit(d.beltDirection?.[f]?.[a]?.[i],3);
   const t=Number(d.beltTimers?.[f]?.[a]);s.beltTimers[f][a]=Number.isFinite(t)?Math.max(0,Math.min(30,t)):0;
  }
@@ -58,6 +59,30 @@ export function loadState(text){
  s.clawNextId=Math.max(limit(d.clawNextId,1000000)||1,...s.claws.map(c=>c.id+1));
  s.clawInventory=Array.isArray(d.clawInventory)?d.clawInventory.slice(0,40).map(x=>({paid:limit(x.paid,100000)})):[];
  s.stockPiles=Array.isArray(d.stockPiles)?d.stockPiles.slice(0,150).map(p=>({floor:limit(p.floor,FLOORS-1),aisle:limit(p.aisle,AISLES-1),x:Number(p.x)||aisleX(limit(p.aisle,AISLES-1)),z:Number(p.z)||bayZ(0),count:limit(p.count,100000)})).filter(p=>p.count>0):[];
+ // Preserve existing valid belt inventory when migrating old aisle totals:
+ // fill frontmost physical segments with at most three each. If an old
+ // single-segment line held more than three, store overflow as a pickup pile
+ // beside that line rather than losing any earned packages.
+ for(let floor=0;floor<FLOORS;floor++)for(let aisle=0;aisle<AISLES;aisle++){
+  const n=s.belts[floor][aisle];
+  if(!n){s.beltStock[floor][aisle]=0;continue;}
+  if(Array.isArray(d.beltItems)){
+   for(let seg=0;seg<n;seg++)
+    s.beltItems[floor][aisle][seg]=limit(d.beltItems?.[floor]?.[aisle]?.[seg],BELT_CAPACITY);
+  }else{
+   let oldStock=s.beltStock[floor][aisle];
+   for(let seg=n-1;seg>=0&&oldStock>0;seg--){
+    const count=Math.min(BELT_CAPACITY,oldStock);
+    s.beltItems[floor][aisle][seg]=count;oldStock-=count;
+   }
+   if(oldStock)s.stockPiles.push({
+    floor,aisle,x:aisleX(aisle)+2.1,z:bayZ(BAYS-n),count:oldStock
+   });
+  }
+  s.beltStock[floor][aisle]=s.beltItems[floor][aisle].reduce((sum,v)=>sum+v,0);
+ }
+ s.beltFlowTimer=Number.isFinite(d.beltFlowTimer)?
+    Math.max(0,Math.min(BELT_MOVE_SECONDS,Number(d.beltFlowTimer))):0;
  const p=d.pallet||{};
  s.pallet={floor:limit(p.floor,FLOORS-1),x:Number.isFinite(p.x)?p.x:DOCK.x+4,z:Number.isFinite(p.z)?p.z:DOCK.z-3,load:limit(p.load,itemsPerAisle),yaw:Number.isFinite(p.yaw)?p.yaw:0,driving:false};
  s.ladderInventory=Array.isArray(d.ladderInventory)?d.ladderInventory.filter(i=>['ladder','ladderUnit'].includes(i.kind)).slice(0,40).map(i=>({kind:i.kind,paid:limit(i.paid,100000)})):[];
@@ -82,7 +107,7 @@ export function loadState(text){
  }catch(_){return newState();}
  return s;
 }
-export function serialize(s){return JSON.stringify({version:4,money:s.money,pending:s.pending,floor:s.floor,fill:Array.from(s.fill),levels:s.levels,belts:s.belts,beltReceipts:s.beltReceipts,beltStock:s.beltStock,beltTimers:s.beltTimers,beltDirection:s.beltDirection,claws:s.claws,clawInventory:s.clawInventory,clawNextId:s.clawNextId,stockPiles:s.stockPiles,pallet:{...s.pallet,driving:false},ladderInventory:s.ladderInventory,ladders:s.ladders,ladderNextId:s.ladderNextId,robots:s.robots,robotNextId:s.robotNextId,cart:s.cart,cursor:s.cursor});}
+export function serialize(s){return JSON.stringify({version:4,money:s.money,pending:s.pending,floor:s.floor,fill:Array.from(s.fill),levels:s.levels,belts:s.belts,beltReceipts:s.beltReceipts,beltStock:s.beltStock,beltItems:s.beltItems,beltFlowTimer:s.beltFlowTimer,beltTimers:s.beltTimers,beltDirection:s.beltDirection,claws:s.claws,clawInventory:s.clawInventory,clawNextId:s.clawNextId,stockPiles:s.stockPiles,pallet:{...s.pallet,driving:false},ladderInventory:s.ladderInventory,ladders:s.ladders,ladderNextId:s.ladderNextId,robots:s.robots,robotNextId:s.robotNextId,cart:s.cart,cursor:s.cursor});}
 export const capacity=s=>1+s.levels.capacity,walkSpeed=s=>3.3+s.levels.speed*.45;
 export const price=(u,l)=>Math.ceil(u.base*u.factor**l);
 export function purchase(s,id){
@@ -147,8 +172,14 @@ export function sellLadder(s,id){
 }
 export function sellBelt(s,f,a,segment){
  if(!Number.isInteger(segment)||segment!==s.belts[f]?.[a]-1)return 0;
+ const carried=s.beltItems[f][a][segment]||0;
+ if(carried)s.stockPiles.push({
+  floor:f,aisle:a,x:aisleX(a)+2.1,z:bayZ(BAYS-1-segment),count:carried
+ });
+ s.beltItems[f][a][segment]=0;
+ s.beltStock[f][a]-=carried;
  s.belts[f][a]--;const cost=s.beltReceipts[f][a].pop()||12;
- if(s.belts[f][a]===0){s.beltStock[f][a]=0;s.beltTimers[f][a]=0;}
+ if(s.belts[f][a]===0)s.beltTimers[f][a]=0;
  const refund=Math.floor(cost/2);s.money+=refund;return refund;
 }
 // One aisle = 2 sides × 30 bays × 4 heights × 4 packages.
@@ -196,61 +227,109 @@ export function rotateBelt(s,f,a,segment){
  if(!Number.isInteger(segment)||segment<0||segment>=s.belts[f]?.[a])return -1;
  return s.beltDirection[f][a][segment]=(s.beltDirection[f][a][segment]+1)%4;
 }
+// Every physical conveyor segment holds at most THREE items. Segments are
+// ordered 0 (rear loading end) → n-1 (front unload end).
+export const beltSegmentCount=(s,f,a,seg)=>s.beltItems[f]?.[a]?.[seg]||0;
+export function clawReceivingSegment(s,claw){
+ const n=s.belts[claw.floor]?.[claw.aisle]||0;
+ if(!n)return -1;
+ let best=-1,dist=2.6;
+ for(let seg=0;seg<n;seg++){
+  const d=Math.hypot(claw.x-(aisleX(claw.aisle)+1.4),
+       claw.z-bayZ(BAYS-1-seg));
+  if(d<=dist){best=seg;dist=d;}
+ }
+ return best;
+}
 export function beltInput(s,claw){
- if(!s.belts[claw.floor]?.[claw.aisle])return false;
- const end=bayZ(BAYS-s.belts[claw.floor][claw.aisle]);
- if(Math.abs(claw.z-end)>8.8)return false;
- return s.beltStock[claw.floor][claw.aisle]<16;
+ const seg=clawReceivingSegment(s,claw);
+ return seg>=0 && s.beltItems[claw.floor][claw.aisle][seg]<BELT_CAPACITY;
 }
 export function nearestClawSource(s,claw){
+ // Adjacent stock only; distant aisles cannot magically supply a claw.
  const choices=[];
- if(claw.floor===s.floor&&Math.hypot(claw.x-DOCK.x,claw.z-DOCK.z)<22){
-  choices.push({type:'dock',distance:Math.hypot(claw.x-DOCK.x,claw.z-DOCK.z)});
- }
+ const dockDistance=Math.hypot(claw.x-DOCK.x,claw.z-DOCK.z);
+ if(claw.floor===s.floor&&dockDistance<=12)
+  choices.push({type:'dock',distance:dockDistance});
  for(let i=0;i<s.stockPiles.length;i++){
   const p=s.stockPiles[i];
   const d=Math.hypot(p.x-claw.x,p.z-claw.z);
-  if(p.floor===claw.floor&&p.count>0&&d<=12)choices.push({type:'pile',index:i,distance:d});
+  if(p.floor===claw.floor&&p.count>0&&d<=4.6)
+   choices.push({type:'pile',index:i,distance:d});
  }
  choices.sort((a,b)=>a.distance-b.distance);
  return choices[0]||null;
 }
+function moveBeltItemsOneStep(s){
+ // Snapshot and reserve incoming spaces. No packages can jump multiple
+ // sections in a single tick, and even a simultaneously departing package
+ // cannot falsely create space on a full destination.
+ const moves=[],reserved=new Map();
+ for(let f=0;f<FLOORS;f++)for(let a=0;a<AISLES;a++){
+  const n=s.belts[f][a];if(!n)continue;
+  for(let seg=n-1;seg>=0;seg--){
+   if(!s.beltItems[f][a][seg])continue;
+   const direction=s.beltDirection[f][a][seg]||0;
+   let destA=a,destSeg=seg;
+   if(direction===0)destSeg++;
+   else if(direction===1)destA++;
+   else if(direction===2)destSeg--;
+   else if(direction===3)destA--;
+   if(destA<0||destA>=AISLES||destSeg<0||
+      destSeg>=(s.belts[f][destA]||0))continue;
+   const key=f+':'+destA+':'+destSeg;
+   const used=reserved.get(key)||0;
+   if(s.beltItems[f][destA][destSeg]+used>=BELT_CAPACITY)continue;
+   reserved.set(key,used+1);moves.push([f,a,seg,destA,destSeg]);
+  }
+ }
+ for(const [f,a,seg,toA,toSeg] of moves){
+  s.beltItems[f][a][seg]--;
+  s.beltItems[f][toA][toSeg]++;
+  s.beltStock[f][a]--;s.beltStock[f][toA]++;
+ }
+ return moves.length;
+}
 export function advanceBelts(s,dt){
- // Belt segments NEVER create goods. Only installed claws, consuming a dock
- // or pallet-delivered inventory source, may deposit packages.
  if(!Number.isFinite(dt)||dt<=0)return 0;
  let delivered=0;
- for(const claw of s.claws){
-  if(!beltInput(s,claw))continue;
-  const source=nearestClawSource(s,claw);
-  if(!source)continue;
-  claw.timer+=dt;
-  while(claw.timer>=1.45&&beltInput(s,claw)){
+ // Small deterministic substeps interleave pickup and movement even in the
+ // accelerated 30-run simulations. Blocked cranes never accrue a burst queue.
+ while(dt>0){
+  const delta=Math.min(dt,.4);dt-=delta;
+  s.beltFlowTimer+=delta;
+  while(s.beltFlowTimer>=BELT_MOVE_SECONDS){
+   s.beltFlowTimer-=BELT_MOVE_SECONDS;
+   moveBeltItemsOneStep(s);
+  }
+  for(const claw of s.claws){
+   const seg=clawReceivingSegment(s,claw);
+   const source=seg>=0&&beltInput(s,claw)?nearestClawSource(s,claw):null;
+   if(!source){claw.timer=0;continue;}
+   claw.timer+=delta;
+   if(claw.timer<CLAW_PICK_SECONDS)continue;
    const current=nearestClawSource(s,claw);
-   if(!current)break;
-   if(current.type==='pile'&&!takePile(s,current.index,1))break;
-   claw.timer-=1.45;
+   if(!current||!beltInput(s,claw)){claw.timer=0;continue;}
+   if(current.type==='pile'&&!takePile(s,current.index,1)){
+    claw.timer=0;continue;
+   }
+   claw.timer-=CLAW_PICK_SECONDS;
+   s.beltItems[claw.floor][claw.aisle][seg]++;
    s.beltStock[claw.floor][claw.aisle]++;
    delivered++;
   }
  }
- // Rotated end segments redirect *existing* packages to an adjacent connected
- // branch. Right / left turns do not create products and never exceed capacity.
- for(let f=0;f<FLOORS;f++)for(let a=0;a<AISLES;a++){
-  const n=s.belts[f][a];if(!n||!s.beltStock[f][a])continue;
-  const direction=s.beltDirection[f][a][n-1];
-  const dest=direction===1?a+1:direction===3?a-1:-1;
-  if(dest<0||dest>=AISLES||!s.belts[f][dest]||s.beltStock[f][dest]>=16)continue;
-  s.beltTimers[f][a]+=dt;
-  if(s.beltTimers[f][a]>=1.2){
-   s.beltTimers[f][a]-=1.2;s.beltStock[f][a]--;s.beltStock[f][dest]++;
-  }
- }
  return delivered;
 }
-export function takeBelt(s,f,a){
+export function takeBelt(s,f,a,segment=null){
  if(!s.belts[f]?.[a]||!s.beltStock[f][a])return false;
- s.beltStock[f][a]--;return true;
+ // Player/robot collects from the farthest occupied reachable section.
+ let seg=segment;
+ if(seg===null){
+  for(let i=s.belts[f][a]-1;i>=0;i--)if(s.beltItems[f][a][i]>0){seg=i;break;}
+ }
+ if(seg===null||seg<0||seg>=s.belts[f][a]||!s.beltItems[f][a][seg])return false;
+ s.beltItems[f][a][seg]--;s.beltStock[f][a]--;return true;
 }
 export const remaining=s=>TOTAL_ITEMS-s.stocked;
 export const canOpenStore=s=>s.stocked===TOTAL_ITEMS&&remaining(s)===0;
