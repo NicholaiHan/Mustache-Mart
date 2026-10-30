@@ -1,6 +1,6 @@
 {
-  "version": "2026.10.30.3",
-  "name": "Flush Wall-Mounted Payroll",
+  "version": "2026.10.30.4",
+  "name": "Three-Item Conveyor Backpressure",
   "build_date": "2026-10-30",
   "includes": [
     "Robot Mike with white eyes and mustache",
@@ -26,6 +26,11 @@
     "Immediate mouse look on Close Shop button, clear fallback on Escape",
     "2D pixel digital eyes with flat white mustache",
     "Shop aisle signs, basket racks, vents and checkout detail",
-    "Entire payroll facade, countertop, glass, signage and E interaction relocated to front interior wall with zero backing gap"
+    "Entire payroll facade, countertop, glass, signage and E interaction relocated to front interior wall with zero backing gap",
+    "Every conveyor section stores up to exactly three real products",
+    "Claws only pick from reachable inventory and pause when their receiving belt is full",
+    "Goods move one belt section at a time and cannot pass missing/full sections",
+    "Claw/robot/player pickup and visual cartons all use shared per-segment inventory counts",
+    "30 congestion simulations preserve stock and previous saves safely migrate"
   ]
 }
