@@ -139,3 +139,99 @@ test('player-operated mobile ladder does not automatically earn money or stock s
  assert.ok(s.cart.z<before);
  assert.equal(s.stocked,0);
 });
+
+test('claw loads exactly three cartons into one segment, then stops until space opens',()=>{
+ const q=r.newState();q.money=100000;
+ const a=4,pile={floor:0,aisle:a,x:r.aisleX(a)+2.1,z:r.bayZ(r.BAYS-1),count:50};
+ assert.equal(r.buildBelt(q,0,a,0),true);
+ q.stockPiles.push(pile);
+ assert.equal(r.advanceBelts(q,60),0,'empty belt cannot source its own goods');
+ assert.equal(r.purchase(q,'itemClaw'),true);
+ assert.ok(r.deployClaw(q,0,a,r.BAYS-1));
+ assert.equal(r.advanceBelts(q,30),3,'only three may load before the belt backs up');
+ assert.equal(q.beltStock[0][a],3);
+ assert.equal(r.beltSegmentCount(q,0,a,0),3);
+ assert.equal(pile.count,47);
+ assert.equal(r.advanceBelts(q,150),0,'claw must stop when the receiving segment is full');
+ assert.equal(pile.count,47,'blocked claw cannot consume inventory');
+ assert.equal(r.takeBelt(q,0,a,0),true);
+ assert.equal(r.advanceBelts(q,1.5),1,'only one new item enters the freed slot');
+ assert.equal(r.beltSegmentCount(q,0,a,0),3);
+ assert.equal(pile.count,46);
+});
+test('multiple forward sections move exactly one hop and freeze at blocked or missing next segment',()=>{
+ const q=r.newState();q.money=100000;const a=5;
+ r.buildBelt(q,0,a,0);
+ q.stockPiles.push({floor:0,aisle:a,x:r.aisleX(a)+2.1,z:r.bayZ(r.BAYS-1),count:50});
+ r.purchase(q,'itemClaw');r.deployClaw(q,0,a,r.BAYS-1);
+ r.advanceBelts(q,20);
+ assert.deepEqual(q.beltItems[0][a].slice(0,2),[3,0]);
+ r.buildBelt(q,0,a,1);
+ r.advanceBelts(q,50);
+ assert.deepEqual(q.beltItems[0][a].slice(0,3),[3,3,0]);
+ const consumed=q.stockPiles[0].count;
+ r.advanceBelts(q,80);
+ assert.equal(q.stockPiles[0].count,consumed);
+ assert.deepEqual(q.beltItems[0][a].slice(0,3),[3,3,0]);
+ r.takeBelt(q,0,a,1);
+ assert.equal(q.beltItems[0][a][1],2);
+ r.advanceBelts(q,1);
+ assert.deepEqual(q.beltItems[0][a].slice(0,3),[2,3,0],
+  'only one product moves to the newly available downstream section');
+ r.advanceBelts(q,2);
+ assert.deepEqual(q.beltItems[0][a].slice(0,3),[3,3,0],
+  'remaining conveyor space refills through claw, with no overflow');
+});
+test('rotated junction refuses a full adjacent segment, and never duplicates inventory',()=>{
+ const q=r.newState();q.money=100000;
+ for(const a of [5,6])r.buildBelt(q,0,a,0);
+ q.stockPiles.push({floor:0,aisle:5,x:r.aisleX(5)+2.1,z:r.bayZ(r.BAYS-1),count:30});
+ q.stockPiles.push({floor:0,aisle:6,x:r.aisleX(6)+2.1,z:r.bayZ(r.BAYS-1),count:30});
+ for(const a of [5,6]){r.purchase(q,'itemClaw');r.deployClaw(q,0,a,r.BAYS-1);}
+ r.advanceBelts(q,25);
+ assert.deepEqual([q.beltStock[0][5],q.beltStock[0][6]],[3,3]);
+ assert.equal(r.rotateBelt(q,0,5,0),1);
+ const before=q.stockPiles.map(p=>p.count).reduce((a,b)=>a+b,0)+q.beltStock[0][5]+q.beltStock[0][6];
+ r.advanceBelts(q,15);
+ assert.deepEqual([q.beltStock[0][5],q.beltStock[0][6]],[3,3],
+  'full target prevents junction movement');
+ assert.equal(q.stockPiles.map(p=>p.count).reduce((a,b)=>a+b,0)+q.beltStock[0][5]+q.beltStock[0][6],before);
+ r.takeBelt(q,0,6,0);
+ r.advanceBelts(q,1);
+ assert.equal(q.beltStock[0][6],3,'right-turn sends a real product into the free slot');
+ assert.equal(q.beltStock[0][5],2,'source loses exactly one carton');
+});
+test('older saves migrate into three-slot segments without destroying overflow',()=>{
+ const q=r.newState();q.money=10000;
+ r.buildBelt(q,0,4,0);r.purchase(q,'itemClaw');
+ const legacy=JSON.parse(r.serialize(q));delete legacy.beltItems;
+ legacy.beltStock[0][4]=16;
+ const v=r.loadState(JSON.stringify(legacy));
+ assert.equal(v.beltStock[0][4],3);
+ assert.equal(v.beltItems[0][4][0],3);
+ assert.equal(v.stockPiles.filter(p=>p.aisle===4).reduce((sum,p)=>sum+p.count,0),13);
+ assert.equal(r.loadState(r.serialize(v)).stockPiles.filter(p=>p.aisle===4).reduce((sum,p)=>sum+p.count,0),13);
+});
+test('30 randomized first-floor conveyor sessions conserve every item under sustained blockages',()=>{
+ for(let session=0;session<30;session++){
+  const q=r.newState();q.money=100000;
+  const a=3+session%5,initial=40+session;
+  for(let seg=0;seg<3;seg++)assert.equal(r.buildBelt(q,0,a,seg),true);
+  q.stockPiles.push({floor:0,aisle:a,x:r.aisleX(a)+2.1,z:r.bayZ(r.BAYS-1),count:initial});
+  r.purchase(q,'itemClaw');r.deployClaw(q,0,a,r.BAYS-1);
+  let collected=0,seed=session*997+5;
+  for(let tick=0;tick<450;tick++){
+   seed=(1664525*seed+1013904223)>>>0;
+   if(seed%17===0 && r.takeBelt(q,0,a))collected++;
+   r.advanceBelts(q,.31);
+   const items=q.beltItems[0][a].slice(0,3);
+   assert.ok(items.every(v=>Number.isInteger(v)&&v>=0&&v<=3),'invalid slot count in run '+session);
+   const sum=items.reduce((n,v)=>n+v,0);
+   assert.equal(q.beltStock[0][a],sum,'aggregate out of sync');
+   assert.equal(q.stockPiles[0].count+sum+collected,initial,'products duplicated/lost in run '+session);
+  }
+  const restored=r.loadState(r.serialize(q));
+  assert.deepEqual(restored.beltItems[0][a].slice(0,3),q.beltItems[0][a].slice(0,3));
+ }
+ console.log('30 randomized first-floor clogged-belt simulations passed: 3 items per section, no duplication, no disappearance, saves intact');
+});
