@@ -50,8 +50,16 @@ test('30 accelerated first-floor sessions: interaction systems, upgrades, payout
    assert.equal(r.buildBelt(s,0,aisle,0),true);
    assert.equal(r.buildBelt(s,0,aisle,1),true);
   }
+  assert.equal(r.advanceBelts(s,7),0,'an unpowered conveyor must stay empty');
+  s.money+=1000000; // buy and regression-test new high-end logistics hardware
+  assert.equal(r.purchase(s,'itemClaw'),true);
+  assert.equal(r.purchase(s,'itemClaw'),true);
+  s.stockPiles.push({floor:0,aisle:targetA,x:r.aisleX(targetA)+2.5,z:r.bayZ(r.BAYS-2),count:100});
+  s.stockPiles.push({floor:0,aisle:targetB,x:r.aisleX(targetB)+2.5,z:r.bayZ(r.BAYS-2),count:100});
+  assert.ok(r.deployClaw(s,0,targetA,r.BAYS-2));
+  assert.ok(r.deployClaw(s,0,targetB,r.BAYS-2));
   r.advanceBelts(s,7);
-  assert.ok(s.beltStock[0][targetA]>0,'first aisle conveyor must deliver');
+  assert.ok(s.beltStock[0][targetA]>0,'placed claw must deliver pallet-sourced inventory');
   assert.ok(s.beltStock[0][targetB]>0,'other aisle conveyor must deliver');
   const beforePickup=s.beltStock[0][targetA];
   assert.equal(r.takeBelt(s,0,targetA),true);
@@ -63,7 +71,8 @@ test('30 accelerated first-floor sessions: interaction systems, upgrades, payout
    for(const bot of s.robots)r.botStep(s,bot,.1);
    r.cartStep(s,.1);
   }
-  assert.ok(s.stocked>beforeAutomatic,'robots/cart did not stock in session '+session);
+  assert.ok(s.stocked>beforeAutomatic,'robots must stock from actual dock or delivered sources in session '+session);
+  assert.equal(r.cartStep(s,1),-1,'player platform cannot auto-stock');
   // Equipment sales repay exactly half the PURCHASE price (not latest upgrade price).
   const sold=s.robots[0],moneyBeforeRobot=s.money;
   assert.equal(r.sellRobot(s,sold.id),Math.floor(sold.paid/2));
@@ -92,6 +101,8 @@ test('30 accelerated first-floor sessions: interaction systems, upgrades, payout
   assert.equal(r.floorStocked(restored,0),r.itemsPerFloor);
   assert.equal(restored.money,s.money);
   assert.equal(restored.robots.length,1);
+  assert.equal(restored.claws.length,2);
+  assert.equal(restored.stockPiles.length,2);
   assert.equal(restored.ladders.length,1);
   assert.equal(restored.belts[0][targetA],1);
   assert.equal(restored.belts[0][targetB],2);
