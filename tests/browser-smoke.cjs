@@ -151,7 +151,16 @@ const assert=require('node:assert/strict');
   await page.keyboard.press('b');await page.waitForTimeout(250);
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.belts[0],1);
-  // Accelerate real conveyor delivery rules; GPU frame rate must not affect QA.
+  // Belt exists without stock; only a purchased and installed claw may feed it.
+  const none=await page.evaluate(()=>window.__martTest.advanceConveyors(8));
+  assert.equal(none[0],0,'empty belts cannot make inventory from nowhere');
+  await page.evaluate(()=>{window.__martTest.giveClaw();window.__martTest.teleport(9.8,89.85);});
+  await page.keyboard.press('k');
+  assert.equal(await page.evaluate(()=>window.__martTest.logistics().claws),1,'K installs a separately purchased item claw');
+  await page.keyboard.press('z');
+  const turn=await page.evaluate(()=>window.__martTest.logistics().beltDirections[0][0]);
+  assert.equal(turn,1,'Z rotates conveyor outlet right');
+  // Accelerate actual claw transfer rules; GPU frame rate must not affect QA.
   const delivered=await page.evaluate(()=>window.__martTest.advanceConveyors(8));
   assert.ok(delivered[0]>0,'connected conveyor must deliver usable product stock');
 
@@ -164,7 +173,7 @@ const assert=require('node:assert/strict');
   await page.evaluate(()=>window.__martTest.setCarry(0));
   await page.keyboard.press('x');
   await page.waitForFunction(()=>window.__martTest.snapshot().belts[0]===0);
-  console.log('PASS: conveyor delivers tangible stock, player collects it, then sells last segment for half');
+  console.log('PASS: empty belt stays empty until K claw is deployed; Z turns outlet right; real stock delivered, collected and sold');
   // Sweep a fast movement into the high-bay rack; it must not tunnel through steel.
   await page.evaluate(()=>window.__martTest.teleport(8,28));
   const pos=await page.evaluate(()=>window.__martTest.move(12,0));
