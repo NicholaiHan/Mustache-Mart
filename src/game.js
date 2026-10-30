@@ -6,7 +6,7 @@ import {createEquipment} from './equipment.js';
 import {createDoors} from './doors.js';
 import {createCheckout} from './checkout.js';
 import {ladderHeight,canStockFromHeight} from './ladder.mjs';
-import {moveWithCollisions,isBlocked,blockedEquipment} from './collision.mjs';
+import {moveWithCollisions,isBlocked,blockedEquipment,PAYROLL_LAYOUT as PAY} from './collision.mjs';
 import {cartonTexture} from './textures.js';
 import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
@@ -177,7 +177,7 @@ function act(source='keyboard'){
   if(source==='keyboard')openShop();
   return;
  }
- if(nearby(10,-3,4.0)){const paid=payOut(s);if(paid)showPayReceipt(paid);else notify('Your payroll balance is currently $0.00. Stock more products to earn wages.');save();return;}
+ if(nearby(PAY.x,PAY.customerZ,PAY.interactionRadius)){const paid=payOut(s);if(paid)showPayReceipt(paid);else notify('Your payroll balance is currently $0.00. Stock more products to earn wages.');save();return;}
  if(nearby(23,-9,4.4)){openElevator();return;}
  if(nearby(DOCK.x,DOCK.z,4.4)&&V.carry<capacity(s)){V.carry++;return;}
  if(collectNearbyPile()){notify('Collected product from your pallet drop-off.');return;}
@@ -437,7 +437,7 @@ function updatePrompt(){
  else if(checkout.nearest(V.x,V.z)>=0)msg='E · Check cashier terminal · Checkout belts active · Customer payments begin on opening';
  else if(nearby(DOCK.x,DOCK.z,5.0))msg='RECEIVING CLAW: SELECT AISLE '+(selectedBeltAisle+1)+' WITH [ / ] · PRESS B TO CONNECT · E TO PICK UP';
  else if(nearby(1.5,-7,4.0))msg='E · Speak with Mustache Mike · E or Close returns to mouse look';
- else if(nearby(10,-3,4.0))msg='E · Collect '+centsText(s.pending)+' in wages';
+ else if(nearby(PAY.x,PAY.customerZ,PAY.interactionRadius))msg='E · Collect '+centsText(s.pending)+' at the WALL-MOUNTED payroll window';
  else if(nearby(23,-9,4.4))msg='E or R · Ride elevator to floors 1–15';
  else if(V.z>=11){
    const id=cellToStock();
