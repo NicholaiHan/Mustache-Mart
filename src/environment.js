@@ -140,6 +140,50 @@ function buildShell(){
    marker.rotation.x=-Math.PI/2;marker.rotation.y=0;marker.position.set(1.5,.042,z);
    add(marker);
  }
+ // Supermarket finish pass: color-coded aisle wayfinding, perimeter
+ // wainscoting, checkout queue guides, ceiling smoke detectors, vents and
+ // small grounded retail fittings. Batches are intentionally sparse to avoid
+ // increasing draw calls with 15 huge floors.
+ const ivory='#e4e6df',gunmetal='#697c78',warm='#d2b075';
+ for(const x of [3,17,31,45,59,73,87]){
+  const baseboard=round(6.5,.21,.11,gunmetal);baseboard.position.set(x,.18,-12.13);
+  const scuff=round(6.5,.035,.12,'#ced4c9');scuff.position.set(x,.33,-12.11);
+ }
+ for(let i=0;i<AISLES;i++){
+  const x=aisleX(i),z=7.6,themeColors=['#668b78','#8b8063','#708da1','#b58f5e'];
+  const category=['PANTRY','DRINKS','HOUSEHOLD','SNACKS'][i%4];
+  const hangerL=round(.042,1.07,.05,gunmetal);hangerL.position.set(x-1.58,CEILING_Y-2.3,z);
+  const hangerR=round(.042,1.07,.05,gunmetal);hangerR.position.set(x+1.58,CEILING_Y-2.3,z);
+  const signShell=round(3.45,.89,.12,themeColors[i%4]);signShell.position.set(x,CEILING_Y-3.05,z);
+  const front=textLabel('AISLE '+String(i+1).padStart(2,'0')+'  /  '+category,3.18,.57,themeColors[i%4],'#f5f7ee',35,'interior');
+  front.position.set(x,CEILING_Y-3.05,z+.07);add(front);
+  const edge=round(3.5,.045,.17,ivory);edge.position.set(x,CEILING_Y-3.53,z);
+  for(const sz of [20,51,81]){
+   const outlet=round(.12,.12,.16,gunmetal);outlet.position.set(x,CEILING_Y-.27,sz);
+   const vent=round(1.55,.04,.42,'#cdd3ce');vent.position.set(x,CEILING_Y-.32,sz+1.5);
+   for(let n=0;n<4;n++){
+    const grille=round(.038,.048,.37,'#798b85');grille.position.set(x+(n-1.5)*.31,CEILING_Y-.354,sz+1.5);
+   }
+  }
+ }
+ // Everyday shopping baskets and service-barrier uprights by the front entry.
+ for(const x of [31.7,34.5]){
+  const basket=round(1.15,.62,.72,'#597b70');basket.position.set(x,.36,-6.65);
+  const rim=round(1.28,.068,.84,'#e0c38b');rim.position.set(x,.7,-6.65);
+  for(const dz of [-.25,0,.25]){
+   const rib=round(.055,.45,.04,'#a2b8a9');rib.position.set(x+.57,.35,-6.65+dz);
+  }
+ }
+ for(const x of [39.5,52.8,65.2,78.5]){
+  const bollard=new THREE.Mesh(new THREE.CylinderGeometry(.09,.13,.84,12),
+    new THREE.MeshStandardMaterial({color:'#a2aba6',metalness:.6,roughness:.34}));
+  bollard.position.set(x,.42,-5.4);add(bollard);
+  const ring=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.055,12),
+    new THREE.MeshStandardMaterial({color:'#d2b075',metalness:.35,roughness:.43}));
+  ring.position.set(x,.84,-5.4);add(ring);
+ }
+ const staffing=textLabel('EMPLOYEE ACCESS  •  CHECK-IN',5.7,.63,'#e9ebe3','#42594d',29,'interior');
+ staffing.position.set(13.6,5.35,-12.14);add(staffing);
  const receiver=textLabel('GOODS RECEIVING  •  LOAD HERE',7,.9,'#d8c088','#303a3a',43);
  receiver.position.set(DOCK.x,4.4,94.4);add(receiver);
 }
