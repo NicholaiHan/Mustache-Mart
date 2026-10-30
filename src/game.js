@@ -436,7 +436,7 @@ function updatePrompt(){
    msg=canOpenStore(s)?'E · Unlock the grand opening and slide open the doors':'E · You have to stock the building before opening';
  else if(checkout.nearest(V.x,V.z)>=0)msg='E · Check cashier terminal · Checkout belts active · Customer payments begin on opening';
  else if(nearby(DOCK.x,DOCK.z,5.0))msg='RECEIVING CLAW: SELECT AISLE '+(selectedBeltAisle+1)+' WITH [ / ] · PRESS B TO CONNECT · E TO PICK UP';
- else if(nearby(1.5,-7,4.0))msg='E or Q · Talk to Mustache Mike for upgrades';
+ else if(nearby(1.5,-7,4.0))msg='E · Speak with Mustache Mike · E or Close returns to mouse look';
  else if(nearby(10,-3,4.0))msg='E · Collect '+centsText(s.pending)+' in wages';
  else if(nearby(23,-9,4.4))msg='E or R · Ride elevator to floors 1–15';
  else if(V.z>=11){
