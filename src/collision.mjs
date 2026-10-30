@@ -2,12 +2,28 @@
 // Player radius is shared by player movement and automated collision regression tests.
 import {AISLES,BAYS,aisleX,bayZ} from './rules.mjs';
 export const PLAYER_RADIUS=.34;
+// One shared layout contract for the payroll window, its physical solid,
+// the renderer, and the E interaction. Back faces deliberately intersect the
+// front interior wall at z=-12.45: there is NO empty space behind the station.
+export const PAYROLL_LAYOUT=Object.freeze({
+ x:10,
+ wallInnerZ:-12.45,
+ fasciaZ:-12.30,
+ fasciaDepth:.35,
+ counterZ:-11.48,
+ counterDepth:2.12,
+ counterWidth:5.1,
+ glassZ:-12.10,
+ signZ:-11.93,
+ customerZ:-8.38,
+ interactionRadius:3.4
+});
 const boxes=[
  // Front-of-store physical customer service and payroll counters.
  {name:'Mike service counter',x:1.5,z:-8.65,hx:2.37,hz:1.07},
  {name:'Mike concierge chassis',x:1.5,z:-10.48,hx:.53,hz:.51},
- {name:'Payroll counter',x:10,z:-3.2,hx:2.75,hz:1.2},
- {name:'Payroll back wall',x:10,z:-4.95,hx:2.85,hz:.26},
+ {name:'Payroll counter',x:PAYROLL_LAYOUT.x,z:PAYROLL_LAYOUT.counterZ,hx:2.75,hz:PAYROLL_LAYOUT.counterDepth/2},
+ {name:'Payroll wall-mounted facade',x:PAYROLL_LAYOUT.x,z:PAYROLL_LAYOUT.fasciaZ,hx:2.85,hz:PAYROLL_LAYOUT.fasciaDepth/2},
  {name:'Elevator housing',x:23,z:-11.4,hx:2.75,hz:.47},
  // Receiving desk, terminal, racking and pallets are solid.
  {name:'Receiving loading counter',x:1.5,z:96,hx:2.35,hz:1.47},
