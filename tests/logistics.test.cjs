@@ -30,7 +30,11 @@ test('conveyors deliver inventory over time that can be collected by robots or p
  r.advanceBelts(s,.3);
  assert.equal(s.beltStock[0][0],0);
  r.advanceBelts(s,5);
- assert.ok(s.beltStock[0][0]>0);
+ assert.equal(s.beltStock[0][0],0,'belts must NEVER create products by themselves');
+ assert.equal(r.purchase(s,'itemClaw'),true);
+ assert.ok(r.deployClaw(s,0,0,r.BAYS-1));
+ r.advanceBelts(s,5);
+ assert.ok(s.beltStock[0][0]>0,'placed claw must transfer inventory from dock');
  s.money-=r.price(r.UPGRADES.find(u=>u.id==='robot'),0);
  r.hireRobot(s,250,false);
  assert.equal(r.assignRobot(s,s.robots[0].id,0,0,29),true);
@@ -66,6 +70,9 @@ test('placed ladders, extra ladders, conveyors and their receipts survive saved 
  const second=r.deployLadder(s,1,4,25);
  assert.ok(first&&second);
  r.buildBelt(s,0,4,0);r.buildBelt(s,0,4,1);
+ assert.equal(r.purchase(s,'itemClaw'),true);
+ s.stockPiles.push({floor:0,aisle:4,x:r.aisleX(4)+2.3,z:r.bayZ(r.BAYS-2),count:16});
+ assert.ok(r.deployClaw(s,0,4,r.BAYS-2));
  r.advanceBelts(s,5);
  const restored=r.loadState(r.serialize(s));
  assert.equal(restored.ladders.length,2);
@@ -77,4 +84,56 @@ test('placed ladders, extra ladders, conveyors and their receipts survive saved 
  assert.equal(r.sellLadder(restored,first.id),22);
  assert.equal(restored.money,money+22);
  assert.equal(restored.ladders.length,1);
+});
+
+test('pallet jack and purchased claws never conjure goods; drop-offs save and capacity grows from 1/20 to one aisle',()=>{
+ const s=r.newState();s.money=1000000000;
+ assert.equal(r.itemsPerAisle,960);
+ assert.equal(r.palletCapacity(s),48);
+ assert.equal(r.loadPallet(s),48);
+ s.pallet.x=r.aisleX(1);s.pallet.z=r.bayZ(28);
+ assert.equal(r.unloadPallet(s),48);
+ assert.equal(s.stockPiles[0].count,48);
+ assert.equal(r.buildBelt(s,0,1,0),true);
+ assert.equal(r.advanceBelts(s,12),0);
+ assert.equal(r.purchase(s,'itemClaw'),true);
+ assert.ok(r.deployClaw(s,0,1,29));
+ assert.ok(r.advanceBelts(s,8)>0);
+ const before=r.loadState(r.serialize(s));
+ assert.equal(before.claws.length,1);
+ assert.equal(before.stockPiles[0].count,s.stockPiles[0].count);
+ for(const cap of [60,120,240,480,960]){
+  assert.equal(r.purchase(s,'palletCapacity'),true);
+  assert.equal(r.palletCapacity(s),cap);
+ }
+ assert.equal(r.purchase(s,'palletCapacity'),false);
+});
+test('rotating the outlet right transfers existing goods only to connected adjacent belts',()=>{
+ const s=r.newState();s.money=10000;
+ r.buildBelt(s,0,0,0);
+ assert.equal(r.advanceBelts(s,50),0);
+ assert.equal(r.rotateBelt(s,0,0,0),1);
+ assert.equal(r.advanceBelts(s,10),0);
+ assert.equal(s.beltStock[0][0],0);
+ r.purchase(s,'itemClaw');r.deployClaw(s,0,0,29);
+ r.advanceBelts(s,8);
+ const qty=s.beltStock[0][0];assert.ok(qty>0);
+ r.advanceBelts(s,3);assert.equal(s.beltStock[0][0],qty,'no adjacent belt means no teleporting');
+ r.buildBelt(s,0,1,0);
+ r.advanceBelts(s,1.25);
+ assert.ok(s.beltStock[0][1]>0);
+ const count=s.beltStock[0][0]+s.beltStock[0][1];
+ r.advanceBelts(s,.1);assert.equal(s.beltStock[0][0]+s.beltStock[0][1],count);
+});
+test('player-operated mobile ladder does not automatically earn money or stock shelves',()=>{
+ const s=r.newState();s.money=1000;
+ r.purchase(s,'ladder');r.purchase(s,'cart');
+ s.cart.mounted=true;s.cart.z=40;s.levels.cartSpeed=2;
+ assert.equal(r.cartStep(s,100),-1);
+ assert.equal(s.stocked,0);
+ assert.equal(r.liftPlatform(s,1,4),9.6);
+ const before=s.cart.z;
+ assert.equal(r.drivePlatform(s,1,0,.5),true);
+ assert.ok(s.cart.z<before);
+ assert.equal(s.stocked,0);
 });
