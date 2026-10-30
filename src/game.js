@@ -12,7 +12,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,sellRobot,deployLadder,sellLadder,sellBelt,advanceBelts,takeBelt,deployClaw,rotateBelt,nearestClawSource,takePile
+ floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,sellRobot,deployLadder,sellLadder,sellBelt,advanceBelts,takeBelt,beltInput,beltPickupSegment,BELT_CAPACITY,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -183,7 +183,7 @@ function act(source='keyboard'){
  if(collectNearbyPile()){notify('Collected product from your pallet drop-off.');return;}
  if(V.carry<capacity(s)){
   const source=nearestBeltStock();
-  if(source){takeBelt(s,s.floor,source.aisle);V.carry++;notify('Picked up one delivered conveyor product.');return;}
+  if(source&&takeBelt(s,s.floor,source.aisle,source.segment)){V.carry++;notify('Picked up one delivered conveyor product.');return;}
  }
  if(manualStock())return;
  // With empty hands, E is an accessible alternative to C for gripping a ladder.
@@ -241,9 +241,13 @@ function collectNearbyPile(){
 function nearestBeltStock(){
  let best=null,dist=2.7;
  for(let a=0;a<AISLES;a++){
-  const n=s.belts[s.floor][a];if(!n||!s.beltStock[s.floor][a])continue;
-  const x=aisleX(a)+1.4,z=bayZ(BAYS-n),d=Math.hypot(V.x-x,V.z-z);
-  if(d<dist){dist=d;best={aisle:a,x,z};}
+  const n=s.belts[s.floor][a];
+  if(!n||!s.beltStock[s.floor][a])continue;
+  for(let seg=0;seg<n;seg++){
+   if(!s.beltItems[s.floor][a][seg])continue;
+   const x=aisleX(a)+1.4,z=bayZ(BAYS-1-seg),d=Math.hypot(V.x-x,V.z-z);
+   if(d<dist){dist=d;best={aisle:a,segment:seg,x,z};}
+  }
  }
  return best;
 }
@@ -453,7 +457,7 @@ function updatePrompt(){
   const count=s.belts[s.floor].filter(v=>v>0).length;
   panel.hidden=!!modal||!nearby(DOCK.x,DOCK.z,8.0);
   if(!panel.hidden)panel.textContent='INVENTORY → CLAW → AISLE '+String(selectedBeltAisle+1).padStart(2,'0')+
-   '  |  Connected: '+count+'/'+AISLES+'  |  Delivered: '+s.beltStock[s.floor][selectedBeltAisle]+'/16  |  [ / ] choose · B connect';
+   '  |  Connected: '+count+'/'+AISLES+'  |  Items on line: '+s.beltStock[s.floor][selectedBeltAisle]+'/'+(s.belts[s.floor][selectedBeltAisle]*BELT_CAPACITY)+'  |  Max 3/segment · [ / ] choose';
  }
 }
 function createEndingBodies(){
@@ -568,7 +572,7 @@ function animate(now){
   for(const entry of placedClawMeshes){
    const claw=s.claws.find(c=>c.id===entry.id);
    if(!claw)continue;
-   const ready=!!nearestClawSource(s,claw)&&s.belts[claw.floor][claw.aisle]>0&&s.beltStock[claw.floor][claw.aisle]<16;
+   const ready=beltInput(s,claw)&&!!nearestClawSource(s,claw);
    entry.gripping.position.y=ready?Math.sin(now*.004+entry.id)*.25:0;
    entry.box.visible=ready;
   }
@@ -589,12 +593,11 @@ function animate(now){
    }
   }
   for(const b of beltCrates){
-   const n=s.belts[s.floor][b.aisle],stored=s.beltStock[s.floor][b.aisle];
-   b.crate.visible=stored>0;
-   b.crate.position.z=(((now*.001+b.segment*.27)%2.25)-1.1);
-   const direction=s.beltDirection[s.floor][b.aisle][b.segment]||0;
-   b.crate.position.x=direction===1?(.46*Math.sin(now*.0015)):direction===3?(-.46*Math.sin(now*.0015)):0;
-   if(b.segment===n-1&&stored>0)b.crate.position.z=0;
+   const actual=s.beltItems[s.floor][b.aisle][b.segment]||0;
+   b.crate.visible=b.slot<actual;
+   // The simulation moves inventory section by section. A blocked belt's
+   // visible cartons must NOT slide through a full or missing next section.
+   b.crate.position.set(0,.87,.78-b.slot*.78);
   }
   // Completion alone does NOT trigger the ending. Open the front doors with E.
  }
@@ -715,7 +718,7 @@ if(DEV_MODE){
   checkBlocked(x,z){return isBlocked(x,z,s.floor)||blockedEquipment(s,x,z);},
   advanceConveyors(seconds){advanceBelts(s,Math.max(0,Math.min(120,Number(seconds)||0)));return s.beltStock[s.floor].slice();},
    move(dx,dz){const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));V.x=next.x;V.z=next.z;return next;},
-   snapshot(){return {selectedBeltAisle,feedCrates:feederCrates.length,devMode:DEV_MODE,checkoutCount:s.floor===0?4:0,x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
+   snapshot(){return {beltItems:s.beltItems[s.floor].map(row=>row.slice()),selectedBeltAisle,feedCrates:feederCrates.length,devMode:DEV_MODE,checkoutCount:s.floor===0?4:0,x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
  };
 }
 buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();
