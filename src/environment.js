@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {polishedTileTexture,matteWallTexture,productTexture,cartonTexture} from './textures.js';
 import {AISLES,BAYS,TIERS,SLOTS,CELLS_PER_FLOOR,DOCK,aisleX,bayZ,decode,floorLabel} from './rules.mjs';
+import {PAYROLL_LAYOUT as PAY} from './collision.mjs';
 // Architecture, walls, supermarket service counters, shelves, products.
 // The factory owns shelf rendering buffers so other systems never modify them directly.
 export function createEnvironment({s,scene,add,cube,round,roundedGeo,textLabel,toon,dummy,color,goods,pastel,FLOOR_W,FLOOR_D,CEILING_Y,RACK_HEIGHT,TIER_Y,makeMike}){
@@ -195,43 +196,74 @@ function addKiosk(x,z,name,accent,facing='interior'){
 }
 function buildService(){
  addKiosk(DOCK.x,DOCK.z,'WAREHOUSE PICKUP','#c9b080','entrance');
- contactShadow(10,-3.2,6.6,3.5,.24);
+ contactShadow(PAY.x,PAY.counterZ+.48,6.6,2.7,.22);
  contactShadow(1.5,-9,5.6,3.8,.2);
  contactShadow(DOCK.x,DOCK.z,5.5,4.2,.25);
- // Payroll enclosure is fixed directly behind its transaction glass,
- // not several metres back as a floating backdrop.
- const payBack=round(5.6,3.6,.24,'#536363');payBack.position.set(10,2.95,-4.95);
- const payFloor=round(5.7,.14,2.7,'#576d6c');payFloor.position.set(10,.09,-3.95);
- const counter=round(5.1,1.18,2.05,'#dddcd5');counter.position.set(10,.59,-3.2);
- const workTop=round(5.32,.13,2.18,'#7e8988');workTop.position.set(10,1.24,-3.2);
- const glassMat=new THREE.MeshStandardMaterial({color:'#b8d1d3',transparent:true,opacity:.24,metalness:.1,roughness:.12,depthWrite:false});
- const glass=cube(4.95,1.8,.06,glassMat);glass.position.set(10,2.65,-3.89);
- for(const x of [7.5,12.5]){const stanchion=round(.1,2.24,.17,'#657477');stanchion.position.set(x,2.56,-3.89);}
- // Real framed transaction glass with a header and sign fixed to its fascia.
+ // WALL-MOUNTED PAYROLL: the actual building front wall is at z=-12.7
+ // (inner surface -12.45). Both the fascia and the countertop physically
+ // overlap that wall. No separate booth, freestanding backdrop or rear gap.
+ const payBack=round(5.6,3.65,PAY.fasciaDepth,'#536363');
+ payBack.position.set(PAY.x,2.94,PAY.fasciaZ);
+ const payFloor=round(5.68,.16,PAY.counterDepth+.12,'#647675');
+ payFloor.position.set(PAY.x,.085,PAY.counterZ);
+ const counter=round(PAY.counterWidth,1.18,PAY.counterDepth,'#dddcd5');
+ counter.position.set(PAY.x,.59,PAY.counterZ);
+ const workTop=round(5.32,.13,PAY.counterDepth+.06,'#7e8988');
+ workTop.position.set(PAY.x,1.24,PAY.counterZ);
+ // Finished fascia, glass and metal jambs mounted directly on plaster.
+ const glassMat=new THREE.MeshStandardMaterial({
+  color:'#b8d1d3',transparent:true,opacity:.32,metalness:.1,
+  roughness:.12,depthWrite:false
+ });
+ const glass=cube(4.92,1.79,.05,glassMat);
+ glass.position.set(PAY.x,2.62,PAY.glassZ);
+ for(const x of [7.5,12.5]){
+  const jamb=round(.12,2.27,.13,'#657477');
+  jamb.position.set(x,2.57,PAY.glassZ+.04);
+  const fastener=new THREE.Mesh(new THREE.CylinderGeometry(.043,.043,.035,8),
+   new THREE.MeshStandardMaterial({color:'#404f51',metalness:.72,roughness:.27}));
+  fastener.rotation.x=Math.PI/2;
+  fastener.position.set(x,3.59,PAY.glassZ+.11);add(fastener);
+ }
  for(const y of [1.57,3.63]){
-  const rail=round(5.12,.11,.18,'#697878');rail.position.set(10,y,-3.87);
+  const rail=round(5.12,.11,.15,'#697878');
+  rail.position.set(PAY.x,y,PAY.glassZ+.035);
  }
- const payHeader=round(5.45,.71,.28,'#344e4a');payHeader.position.set(10,4.02,-3.86);
- const windowSign=textLabel('PAY WINDOW   /   PAYROLL',4.95,.54,'#344e4a','#f1f3ea',36,'interior');
- windowSign.position.set(10,4.05,-3.69);add(windowSign);
- const terminal=round(.74,.47,.12,'#303b40');terminal.position.set(9.2,1.56,-3.05);
- const screen=round(.5,.27,.03,new THREE.MeshBasicMaterial({color:'#92c4b6'}));screen.position.set(9.2,1.6,-2.97);
- const documents=round(.78,.035,.43,'#f4f2e8');documents.position.set(10.9,1.35,-2.96);
- // Printer, receipt roll, ledger, terminal frame, and a small queue barrier.
- const printer=round(.64,.35,.58,'#e2e5e1');printer.position.set(11.45,1.49,-3.25);
- const printed=round(.41,.02,.28,'#f9f8ee');printed.position.set(11.45,1.7,-3.04);
+ const payHeader=round(5.45,.71,.24,'#344e4a');
+ payHeader.position.set(PAY.x,4.02,PAY.glassZ);
+ const windowSign=textLabel('PAY WINDOW   /   PAYROLL',4.95,.54,
+  '#344e4a','#f1f3ea',36,'interior');
+ windowSign.position.set(PAY.x,4.05,PAY.signZ);add(windowSign);
+ // Actual transaction equipment sits ON the countertop, attached to the wall.
+ const terminal=round(.74,.47,.12,'#303b40');
+ terminal.position.set(9.2,1.56,PAY.counterZ+.51);
+ const screen=round(.5,.27,.03,new THREE.MeshBasicMaterial({color:'#92c4b6'}));
+ screen.position.set(9.2,1.6,PAY.counterZ+.61);
+ const documents=round(.78,.035,.43,'#f4f2e8');
+ documents.position.set(10.9,1.35,PAY.counterZ+.33);
+ const printer=round(.64,.35,.58,'#e2e5e1');
+ printer.position.set(11.45,1.49,PAY.counterZ+.35);
+ const printed=round(.41,.02,.28,'#f9f8ee');
+ printed.position.set(11.45,1.7,PAY.counterZ+.54);
+ // Customer queue is OUTSIDE the wall-mounted window, with a walkable gap.
  for(const x of [6.75,13.25]){
-   const post=new THREE.Mesh(new THREE.CylinderGeometry(.075,.085,.94,14),new THREE.MeshStandardMaterial({color:'#9ba5a1',metalness:.62,roughness:.3}));
-   post.position.set(x,.47,-.5);add(post);
-   const foot=new THREE.Mesh(new THREE.CylinderGeometry(.21,.21,.09,16),new THREE.MeshStandardMaterial({color:'#465655',metalness:.46,roughness:.45}));
-   foot.position.set(x,.045,-.5);add(foot);
+  const post=new THREE.Mesh(new THREE.CylinderGeometry(.075,.085,.94,14),
+   new THREE.MeshStandardMaterial({color:'#9ba5a1',metalness:.62,roughness:.3}));
+  post.position.set(x,.47,-8.35);add(post);
+  const foot=new THREE.Mesh(new THREE.CylinderGeometry(.21,.21,.09,16),
+   new THREE.MeshStandardMaterial({color:'#465655',metalness:.46,roughness:.45}));
+  foot.position.set(x,.045,-8.35);add(foot);
  }
- const rope=round(6.5,.055,.05,'#6f847b');rope.position.set(10,.81,-.5);
- const payLogo=textLabel('STAFF SERVICES   •   VERIFIED PAYROLL',4.55,.4,'#536963','#f3f4ee',28,'interior');
- payLogo.position.set(10,4.55,-4.69);add(payLogo);
- const clipboard=round(.44,.67,.045,'#c4b394');clipboard.position.set(13.1,1.7,-3.95);
- const notebook=textLabel('MM  /  001',.38,.14,'#eae2c8','#343f37',27,'interior');
- notebook.position.set(13.1,1.74,-3.916);add(notebook);
+ const rope=round(6.5,.055,.05,'#6f847b');
+ rope.position.set(PAY.x,.81,-8.35);
+ const payLogo=textLabel('STAFF SERVICES   •   VERIFIED PAYROLL',4.55,.4,
+  '#536963','#f3f4ee',28,'interior');
+ payLogo.position.set(PAY.x,4.57,PAY.signZ);add(payLogo);
+ const clipboard=round(.44,.67,.045,'#c4b394');
+ clipboard.position.set(13.1,1.7,PAY.glassZ+.08);
+ const notebook=textLabel('MM  /  001',.38,.14,
+  '#eae2c8','#343f37',27,'interior');
+ notebook.position.set(13.1,1.74,PAY.glassZ+.11);add(notebook);
  // Mike stands BEHIND his own desk: customers interact from the open aisle.
  const mikeDesk=round(4.5,1.16,1.82,'#e3e5df');mikeDesk.position.set(1.5,.58,-8.65);
  const mikeTop=round(4.75,.15,2.08,'#7b8985');mikeTop.position.set(1.5,1.235,-8.65);
@@ -263,7 +295,7 @@ function buildService(){
  dataPanel.position.set(7.1,4.4,95.2);add(dataPanel);
  const receivingLabel=textLabel('INVENTORY  /  RECEIVING',5.4,.77,'#dfd9c4','#414d48',39,'entrance');receivingLabel.position.set(DOCK.x,5.7,94.35);add(receivingLabel);
  const entranceSign=textLabel('CUSTOMER SERVICE   |   PAYROLL',8.2,.76,'#e5e5db','#475752',39,'interior');
- entranceSign.position.set(9,4.65,-11.7);add(entranceSign);
+ entranceSign.position.set(9,6.2,-12.24);add(entranceSign);
  // Follow-through markers guide the player toward distant stock.
  const rearArrow=textLabel('STOCKROOM / RECEIVING  ↑  100 m',8.0,.68,'#46594e','#ffffff',36);
  rearArrow.position.set(1.6,4.6,8.8);add(rearArrow);
