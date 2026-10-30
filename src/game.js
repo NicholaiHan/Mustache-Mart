@@ -12,7 +12,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,sellRobot,deployLadder,sellLadder,sellBelt,advanceBelts,takeBelt,beltInput,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
+ floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,sellRobot,deployLadder,sellLadder,sellBelt,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -430,6 +430,15 @@ function updatePrompt(){
  else if(s.cart.mounted)msg='LADDER PLATFORM · WASD move · Space elevate · Ctrl descend · F exit · E stock shelves';
  else if(nearbyPallet(4))msg='F drive pallet jack · U load '+palletCapacity(s)+' products at receiving / unload by aisles';
  else if(nearbyPlatform(3.6))msg='F ride motorized ladder platform · WASD move · Space raise · Ctrl lower';
+ else if(s.claws.some(c=>c.floor===s.floor&&nearby(c.x,c.z,3.5))){
+  const claw=s.claws.find(c=>c.floor===s.floor&&nearby(c.x,c.z,3.5));
+  const seg=clawReceivingSegment(s,claw);
+  const filled=seg>=0?s.beltItems[s.floor][claw.aisle][seg]:0;
+  msg=seg<0?'CLAW DISCONNECTED · Build a conveyor beside it':
+      filled>=BELT_CAPACITY?'CLAW PAUSED · Receiving belt '+filled+'/'+BELT_CAPACITY+' FULL · Clear downstream or collect a carton':
+      !nearestClawSource(s,claw)?'CLAW IDLE · Place inventory beside it with pallet jack':
+      'CLAW LOADING · '+filled+'/'+BELT_CAPACITY+' cartons in segment · Moves only if next belt has space';
+ }
  else if(s.clawInventory.length&&V.z>10)msg='K place bought item claw near conveyor outlet · Z rotate outlet · F use machines';
  else if(placementRobotId!==null)msg='ROBOT #'+placementRobotId+' · WALK to the aisle · LEFT CLICK to deploy · ESC cancel';
  else if(climbingLadderId!==null)msg='CLIMBING · W up · S down · C release · Hold E to stock';
