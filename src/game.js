@@ -622,6 +622,10 @@ window.addEventListener('keydown',e=>{
   else if(!ending){show('intro');$('play').textContent='Resume shift';}
   return;
  }
+ if(modal==='shop'&&e.code==='KeyE'){
+  // E also closes Mike's menu, requesting mouse lock directly from this key.
+  e.preventDefault();resume();return;
+ }
  if(modal||ending)return;
  // Mustache Mike is interacted with using E, not a click or Q shortcut.
  if(e.code==='KeyR'&&!s.pallet.driving&&!s.cart.mounted)openElevator();
