@@ -12,7 +12,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,sellRobot,deployLadder,sellLadder,sellBelt,advanceBelts,takeBelt,beltInput,beltPickupSegment,BELT_CAPACITY,deployClaw,rotateBelt,nearestClawSource,takePile
+ floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,sellRobot,deployLadder,sellLadder,sellBelt,advanceBelts,takeBelt,beltInput,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -595,9 +595,17 @@ function animate(now){
   for(const b of beltCrates){
    const actual=s.beltItems[s.floor][b.aisle][b.segment]||0;
    b.crate.visible=b.slot<actual;
-   // The simulation moves inventory section by section. A blocked belt's
-   // visible cartons must NOT slide through a full or missing next section.
-   b.crate.position.set(0,.87,.78-b.slot*.78);
+   // Animate only a REAL parcel with a connected, non-full destination.
+   // Blocked and terminal belts are completely still.
+   const direction=s.beltDirection[s.floor][b.aisle][b.segment]||0;
+   const destA=b.aisle+(direction===1?1:direction===3?-1:0);
+   const destSeg=b.segment+(direction===0?1:direction===2?-1:0);
+   const hasNext=destA>=0&&destA<AISLES&&destSeg>=0&&
+      destSeg<(s.belts[s.floor][destA]||0);
+   const space=hasNext&&s.beltItems[s.floor][destA][destSeg]<BELT_CAPACITY;
+   const pct=space&&b.slot===actual-1&&actual>0?
+      (s.beltFlowTimer/BELT_MOVE_SECONDS):0;
+   b.crate.position.set(0,.87,.78-b.slot*.78-pct*.43);
   }
   // Completion alone does NOT trigger the ending. Open the front doors with E.
  }
