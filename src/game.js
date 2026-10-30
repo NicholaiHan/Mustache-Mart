@@ -198,10 +198,14 @@ function toggleVehicle(){
 }
 function handlePalletCargo(){
  if(s.pallet.floor!==s.floor||!nearbyPallet(5)){notify('Approach the pallet jack first.');return;}
+ // When carrying a load, prefer unloading at a valid aisle—even if that
+ // location happens to fall within the rear dock's loading radius.
+ if(s.pallet.load){
+  const dropped=unloadPallet(s);
+  if(dropped){buildWorld();save();notify('Delivered '+dropped+' products to aisle '+(Math.round((s.pallet.x-8)/10)+1)+'. Place a claw with K to feed a conveyor.');return;}
+ }
  const count=loadPallet(s);
  if(count){notify('Loaded '+count+' products · '+s.pallet.load+'/'+palletCapacity(s)+' capacity. Drive to an aisle with WASD.');save();return;}
- const dropped=unloadPallet(s);
- if(dropped){buildWorld();save();notify('Delivered '+dropped+' products to aisle '+(Math.round((s.pallet.x-8)/10)+1)+'. Place a claw with K to feed a conveyor.');return;}
  notify(s.pallet.load?'Drive to the front of an aisle, then press U to unload.':'Park near rear inventory to load the pallet jack.');
 }
 function installClaw(){
