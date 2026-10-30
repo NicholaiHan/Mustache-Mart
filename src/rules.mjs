@@ -233,6 +233,18 @@ export function advanceBelts(s,dt){
    delivered++;
   }
  }
+ // Rotated end segments redirect *existing* packages to an adjacent connected
+ // branch. Right / left turns do not create products and never exceed capacity.
+ for(let f=0;f<FLOORS;f++)for(let a=0;a<AISLES;a++){
+  const n=s.belts[f][a];if(!n||!s.beltStock[f][a])continue;
+  const direction=s.beltDirection[f][a][n-1];
+  const dest=direction===1?a+1:direction===3?a-1:-1;
+  if(dest<0||dest>=AISLES||!s.belts[f][dest]||s.beltStock[f][dest]>=16)continue;
+  s.beltTimers[f][a]+=dt;
+  if(s.beltTimers[f][a]>=1.2){
+   s.beltTimers[f][a]-=1.2;s.beltStock[f][a]--;s.beltStock[f][dest]++;
+  }
+ }
  return delivered;
 }
 export function takeBelt(s,f,a){
