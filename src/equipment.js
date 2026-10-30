@@ -19,6 +19,7 @@ export function createEquipment({s,round,getWorld,getLadder,getBeltCrates,getFee
 function makeBelt(f,a,segment){
  const group=new THREE.Group();getWorld().add(group);
  group.position.set(aisleX(a)+1.4,0,bayZ(BAYS-1-segment));
+ group.rotation.y=-(s.beltDirection?.[f]?.[a]?.[segment]||0)*Math.PI/2;
  const steel=equipmentMaterial('#a2adae',.65,.32);
  const rubber=equipmentMaterial('#2a373b',.09,.88);
  const orange=equipmentMaterial('#e2a753',.25,.45);
@@ -160,7 +161,7 @@ function makeStockPiles(){
  const items=[];
  const cardboard=equipmentMaterial('#bea47c',.03,.87),wood=equipmentMaterial('#98734b',.1,.85);
  for(const p of s.stockPiles.filter(q=>q.floor===s.floor&&q.count>0)){
-  const g=new THREE.Group();getWorld().add(g);g.position.set(p.x,0,p.z);
+  const g=new THREE.Group();getWorld().add(g);g.position.set(p.x,0,p.z);g.userData.pile=p;
   const pallet=round(1.65,.15,1.65,wood,g);pallet.position.y=.13;
   for(let tier=0;tier<Math.min(4,Math.ceil(p.count/70));tier++){
    for(let side of [-1,1]){
