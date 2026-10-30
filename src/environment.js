@@ -213,15 +213,6 @@ function buildService(){
  const dockTerminal=round(.85,1.1,.52,'#7a8b8c');dockTerminal.position.set(3.7,.59,95.8);
  const dockScreen=round(.64,.43,.08,new THREE.MeshBasicMaterial({color:'#accfbd'}));dockScreen.position.set(3.7,.95,95.49);
  // Receiving workstation: hanging rack structure, scanners, pallet jack and boxes.
- const jack=new THREE.Group();add(jack);jack.position.set(10.7,0,94.1);
- for(const off of [-.55,.55]){
-   const tine=round(.19,.11,2.1,'#b88c4e',jack);tine.position.set(off,.18,.35);
-   const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.145,.145,.15,16),
-     new THREE.MeshStandardMaterial({color:'#273035',roughness:.92}));
-   wheel.rotation.z=Math.PI/2;wheel.position.set(off,.13,1.26);jack.add(wheel);
- }
- const jackHandle=round(.15,1.4,.13,'#566969',jack);jackHandle.position.set(0,.78,-.84);
- const grip=round(.67,.11,.13,'#263a3e',jack);grip.position.set(0,1.52,-.84);
  const scanner=round(.15,.37,.26,'#32454b');scanner.position.set(4,.99,95.1);
  const scannerLight=round(.1,.052,.15,new THREE.MeshBasicMaterial({color:'#7fe6bb'}));scannerLight.position.set(4,1.2,95.02);
  const dataPanel=textLabel('SCAN  |  VERIFY  |  DISPATCH',4.0,.48,'#3c5652','#e5ecdf',31,'entrance');
