@@ -20,11 +20,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8011/#dev** in Chrome or Safari. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.29.4** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+2. Open **http://127.0.0.1:8011/#dev** in Chrome or Safari. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.30.1** and the introduction must list the new cash registers, Mike, ladders and fire exit.
 3. **Development mode** (the `#dev` suffix) gives **at least $500** for testing. Stop the server with **Control+C**.
 4. Port **8011 is deliberately different from 8000**: existing browser saves at port 8000 are still retained, but do not appear automatically at 8011 (browser storage is origin-specific). For continuing the same saved progress after verifying the build, stop the older port-8000 server, then in the downloaded folder run `node server.cjs` and open `http://127.0.0.1:8000/#dev`.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.29.4** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.30.1** is shown.
 
 ## Play on your MacBook
 
@@ -131,10 +131,18 @@ This is still a procedural browser game rather than a fully modeled commercial s
 
 These are deterministic **accelerated gameplay/rules simulations**, not thirty human-controlled rendered sessions. Separately, Playwright browser smoke tests actually render the first floor and interact with the checkout register, paycheck terminal, Mike, ladders, conveyor belts and red fire exit in Chromium.
 
-## Build 2026.10.29.4: conveyor visualization and structural art
+## Build 2026.10.30.1: conveyor visualization and structural art
 
 - **Original top-left HUD icons** replace all five phone/OS emoji labels: store, cash, payroll, carrying and robots are custom scalable vector artwork.
 - At **rear receiving** (near the inventory pickup), use **[** and **]** to select an aisle, then press **B** to connect its **first** conveyor segment. Its status panel shows the selected aisle, connected branches and delivered items out of 16. Once the first branch exists, extend it from its **frontmost tip** with B. Sections move in one direction, **toward the entrance**, and production pauses when their endpoint is full.
 - A visible overhead feeder connects receiving to the aisle chutes, with an industrial pickup claw, movement on connected source branches, arrows, frame fasteners, caution guards and belt gearboxes.
 - Shelves include thousands of small **instanced hex-head bolts**, back braces and aisle end guards. Register stations add tactile keypads, scanner windows, receipt paper, tiny flat white mustaches and stainless steel mounting hardware.
 - Saves and the original 15-floor stocking rules remain unchanged.
+
+## October 30, 2026 — Player-controlled logistics
+
+- Motorized ladder platform: buy the **Motorized Platform Ladder** at Mike's. Approach the platform and press **F** to ride; **Space** raises it, **Ctrl** lowers it, **WASD** drives along the aisle (sideways aisle changes occur at the back crosswalk). Press **F** again to exit. It never stocks shelves for you.
+- Pallet jack: stand near it and press **F** to drive. At the back inventory counter press **U** to load. Drive to an aisle and press **U** to unload real inventory onto a visible pallet stack. Upgrade its carrying capacity at Mike's: **48 / 60 / 120 / 240 / 480 / 960** items, each upgrade substantially more expensive.
+- Conveyor: **B** builds connected sections; **Z** at the front outlet rotates its direction clockwise. Right or left outputs can pass existing goods to an adjacent connected belt. Sections cannot produce products by themselves.
+- Item claw: buy an **Automated Item Claw** separately at Mike's. Stand near the front endpoint of the belt and press **K** to install the claw. Each placed claw picks one physical unit from the nearest main receiving counter or pallet drop-off within reach and places it on the belt, stopping when the belt buffer is full. Robots and players take from those real stocks.
+- Normal mode remains on http://127.0.0.1:8000/ ; development funds are on http://127.0.0.1:8000/#dev . Previous save progress is retained (version-4 format).
