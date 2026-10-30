@@ -478,7 +478,7 @@ function animate(now){
   V.yaw+=turn*dt*1.7;V.pitch=Math.max(-1.25,Math.min(1.25,V.pitch+((held.ArrowUp?1:0)-(held.ArrowDown?1:0))*dt));
   const forward=(held.KeyW?1:0)-(held.KeyS?1:0),side=(held.KeyD?1:0)-(held.KeyA?1:0);
   if(s.pallet.driving){
-   const moved=drivePallet(s,forward,side,dt);
+   const moved=drivePallet(s,forward,side,dt,(x,z)=>!isBlocked(x,z,s.floor));
    V.x=s.pallet.x;V.z=s.pallet.z;V.y=0;V.vy=0;
   }else if(s.cart.mounted){
    drivePlatform(s,forward,side,dt,(x,z)=>!isBlocked(x,z,s.floor));
@@ -658,6 +658,9 @@ if(DEV_MODE){
   setLook(yaw,pitch){V.yaw=yaw;V.pitch=pitch;},
   setCarry(count){V.carry=Math.min(capacity(s),Math.max(0,count));},
   setUpgrade(id,level){if(id in s.levels)s.levels[id]=level;},
+  giveClaw(){s.clawInventory.push({paid:450});return s.clawInventory.length;},
+  logistics(){return {claws:s.claws.length,clawInventory:s.clawInventory.length,palletLoad:s.pallet.load,palletCapacity:palletCapacity(s),palletDriving:s.pallet.driving,cartMounted:s.cart.mounted,cartHeight:s.cart.liftHeight,stockPiles:s.stockPiles.map(x=>({...x})),beltDirections:s.beltDirection[s.floor].map(x=>x.slice())};},
+
   setCompletion(value){s.fill.fill(value?SLOTS:0);s.stocked=value?TOTAL_ITEMS:0;},
   doorStatus(){return {fire:doors.isFireOpen(),entrance:doors.isEntranceOpen()};},
   checkBlocked(x,z){return isBlocked(x,z,s.floor)||blockedEquipment(s,x,z);},
