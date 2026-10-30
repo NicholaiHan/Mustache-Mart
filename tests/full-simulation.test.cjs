@@ -11,26 +11,39 @@ test('solid stations, high-bay racks, wall boundaries and pallets never permit w
  const c=collision;
  for(const [label,x,z] of [
   ['Mike counter',1.5,-9],['Mike robot behind front desk',1.5,-10.48],
-  ['Payroll counter',10,-3.2],['Receiving desk',1.5,96],
+  ['Wall-attached payroll counter',10,-11.48],['Receiving desk',1.5,96],
   ['Warehouse shelving',7.7,96.4],['Stock pallet',30,95],
   ['Structural pillar',101,26],['Shelf rack 1',4.6,31],
   ['Shelf rack 2',11.4,31],['Exterior wall',-10,22],['Outside entrance',46.5,-14]
  ])assert.equal(c.isBlocked(x,z),true,label);
  for(const [label,x,z] of [
   ['Mike reachable from the customer aisle',1.5,-4.1],
-  ['Payroll reachable from the aisle',10,-1.3],
+  ['Payroll reachable from the aisle',10,-8.38],
   ['Receiving accessible in front',1.5,93.1],
   ['Main aisle',8,35],['Aisle crosswalk',8,9],
   ['Fire-exit interaction on back-left wall',-6.5,85],['Grand opening interaction',46.5,-8.3]
  ])assert.equal(c.isBlocked(x,z),false,label);
+});
+test('payroll window facade and entire countertop physically intersect front wall',()=>{
+ const {PAYROLL_LAYOUT:p}=collision;
+ // The inner plaster face is z=-12.45. A correctly mounted back panel and
+ // transaction countertop must REACH or overlap that plane, not hover forward.
+ assert.ok(p.fasciaZ-p.fasciaDepth/2<=p.wallInnerZ,
+  'payroll fascia has an empty gap behind it');
+ assert.ok(p.counterZ-p.counterDepth/2<=p.wallInnerZ,
+  'payroll counter does not connect to the building wall');
+ assert.equal(collision.isBlocked(p.x,p.counterZ),true);
+ assert.equal(collision.isBlocked(p.x,p.customerZ),false);
+ assert.equal(collision.isBlocked(p.x,-3.2),false,
+  'old floating counter collider must be absent');
 });
 test('swept movement cannot tunnel through long shelves or counters',()=>{
  const c=collision;
  const rack=c.moveWithCollisions(8,20,8,0);
  assert.equal(c.isBlocked(rack.x,rack.z),false);
  assert.ok(rack.x<10.4,'player cannot enter the shelf rack');
- const front=c.moveWithCollisions(10,-.9,0,-8);
- assert.ok(front.z>-1.7,'payroll counter must prevent crossing');
+ const front=c.moveWithCollisions(10,-8.38,0,-8);
+ assert.ok(front.z>-10.1,'wall-mounted payroll counter must prevent crossing');
  const rear=c.moveWithCollisions(1.5,91,0,14);
  assert.ok(rear.z<94.3,'receiving counter must prevent crossing');
  const slide=c.moveWithCollisions(8,25,4,4);
