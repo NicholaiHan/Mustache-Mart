@@ -1,7 +1,7 @@
 {
-  "version": "2026.10.29.4",
-  "name": "Conveyor Routing + Structural Detail",
-  "build_date": "2026-10-29",
+  "version": "2026.10.30.1",
+  "name": "Drivable Pallet & Manual Claw Logistics",
+  "build_date": "2026-10-30",
   "includes": [
     "Robot Mike with white eyes and mustache",
     "Four powered cashier conveyors and payment terminals",
@@ -16,6 +16,10 @@
     "Five original illustrated HUD status icons",
     "Physical rear gantry and conveyor direction markings",
     "Hex-fastened reinforced shelving and more detailed checkout registers",
-    "Bracket keys choose which aisle the receiving claw feeds"
+    "Bracket keys choose which aisle the receiving claw feeds",
+    "Pallet jack WASD driving with six very expensive load capacity levels",
+    "Placeable claws K required to load conveyors from main receiving or pallet piles",
+    "Z-rotated conveyor outlet redirects goods into connected neighbor lines",
+    "Motorized platform ladder player-operated, elevated WASD driving, no automatic stocking"
   ]
 }
