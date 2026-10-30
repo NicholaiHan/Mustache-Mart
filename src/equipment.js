@@ -82,43 +82,94 @@ function makeReceivingSystem(){
    getFeedCrates().push({crate:feeder,aisle:a});
   }
  }
- // A believable transfer claw at receiving, no products dropped on the floor.
- const loader=new THREE.Group();root.add(loader);loader.position.set(2.7,0,93.2);
- const upright=round(.18,3.8,.18,steel,loader);upright.position.set(0,1.9,0);
- const beam=round(2.5,.18,.21,yellow,loader);beam.position.set(.94,3.73,0);
- const slide=round(.42,.26,.35,steel,loader);slide.position.set(1.85,3.5,0);
- loader.userData.jaws=[];
- for(const x of [1.65,2.05]){
-  const jaw=round(.14,.82,.19,steel,loader);jaw.position.set(x,2.86,0);loader.userData.jaws.push(jaw);
-  const tip=round(.19,.12,.22,dark,loader);tip.position.set(x,2.42,0);
- }
- const controller=round(.57,.48,.27,dark,loader);controller.position.set(-.2,1.62,-.15);
- const lamp=round(.24,.15,.085,green,loader);lamp.position.set(-.2,1.69,.025);
- if(setClawVisual)setClawVisual(loader);
+ // No free-running claw: cranes must be bought from Mike and placed by K.
  return root;
 }
 function makeCart(){
- if(!s.levels.cart)return;
- const cartMesh=new THREE.Group();getWorld().add(cartMesh);
- const shell=equipmentMaterial('#e4e2da',.15,.42);
- const steel=equipmentMaterial('#88999a',.6,.35);
- const dark=equipmentMaterial('#2d3439',.08,.62);
- const orange=equipmentMaterial('#c17e44',.18,.48);
- const body=round(1.38,.65,1.83,shell,cartMesh);body.position.y=.67;
- const bumper=round(1.46,.19,.17,dark,cartMesh);bumper.position.set(0,.42,-.92);
- const grille=round(.72,.31,.045,dark,cartMesh);grille.position.set(0,.78,-.93);
+ if(!s.levels.cart)return null;
+ const root=new THREE.Group();getWorld().add(root);
+ const shell=equipmentMaterial('#e5e2da',.25,.39);
+ const steel=equipmentMaterial('#7e9091',.72,.31);
+ const dark=equipmentMaterial('#283536',.16,.69);
+ const orange=equipmentMaterial('#d9a75b',.28,.43);
+ const frame=round(1.44,.46,2.06,shell,root);frame.position.y=.49;
+ const bumper=round(1.5,.16,.15,dark,root);bumper.position.set(0,.35,-1);
  for(const side of [-1,1]){
-  industrialWheel(cartMesh,side*.69,.28,-.52,.27);
-  industrialWheel(cartMesh,side*.69,.28,.57,.27);
-  const light=round(.18,.12,.04,orange,cartMesh);light.position.set(side*.49,.94,-.938);
-  const railing=round(.07,8.7,.08,steel,cartMesh);railing.position.set(side*.5,5.2,.62);
+  for(const z of [-.68,.68])industrialWheel(root,side*.72,.27,z,.26);
+  const guide=round(.095,9.6,.11,steel,root);guide.position.set(side*.49,5.1,.58);
+  const hydraulic=round(.12,4.7,.13,dark,root);hydraulic.position.set(side*.32,2.8,.6);
+  const brake=round(.28,.09,.13,orange,root);brake.position.set(side*.68,.68,-.82);
  }
- const mast=round(.19,9.6,.23,steel,cartMesh);mast.position.set(0,5.1,.49);
- const runner=round(.79,.14,.96,steel,cartMesh);runner.position.set(0,9.72,.23);
- const lift=round(.94,.08,.52,shell,cartMesh);lift.position.set(0,9.9,-.2);
- const stripe=round(.69,.08,.045,orange,cartMesh);stripe.position.set(0,1.04,-.925);
- const panel=round(.38,.23,.07,dark,cartMesh);panel.position.set(0,1.02,-.92);
- return cartMesh;
+ const platform=new THREE.Group();platform.name='riderPlatform';root.add(platform);
+ const deck=round(1.22,.17,1.3,steel,platform);deck.position.set(0,1.18,-.13);
+ const mat=round(1.05,.033,1.06,dark,platform);mat.position.set(0,1.28,-.16);
+ for(const side of [-1,1]){
+  const post=round(.06,1.18,.08,orange,platform);post.position.set(side*.54,1.85,-.53);
+  const post2=round(.06,1.18,.08,orange,platform);post2.position.set(side*.54,1.85,.42);
+  const sideRail=round(.065,.075,1.08,steel,platform);sideRail.position.set(side*.54,2.38,-.04);
+ }
+ const backRail=round(1.14,.09,.08,steel,platform);backRail.position.set(0,2.38,.43);
+ const frontGate=round(1.1,.08,.08,orange,platform);frontGate.position.set(0,2.14,-.56);
+ const panel=round(.31,.24,.09,dark,platform);panel.position.set(.36,1.81,-.58);
+ const indicator=round(.18,.11,.02,new THREE.MeshBasicMaterial({color:'#a0edc7'}),platform);indicator.position.set(.36,1.87,-.526);
+ const caution=round(.75,.07,.065,orange,root);caution.position.set(0,.77,-1.016);
+ return root;
+}
+function makePalletJack(){
+ const root=new THREE.Group();getWorld().add(root);
+ const frame=equipmentMaterial('#e0a64d',.4,.44),steel=equipmentMaterial('#829193',.72,.32);
+ const dark=equipmentMaterial('#273638',.11,.72),card=equipmentMaterial('#bca27a',.05,.85);
+ for(const side of [-1,1]){
+  const fork=round(.16,.12,2.0,frame,root);fork.position.set(side*.42,.23,-.27);
+  industrialWheel(root,side*.45,.18,-1.12,.17);
+ }
+ const housing=round(1.24,.33,.86,frame,root);housing.position.set(0,.45,.54);
+ for(const side of [-1,1])industrialWheel(root,side*.58,.25,.56,.23);
+ const column=round(.13,1.3,.16,steel,root);column.position.set(0,1.19,.81);
+ const steering=round(.85,.12,.12,dark,root);steering.position.set(0,1.85,.81);
+ const crate=round(.95,.62,1.18,card,root);crate.position.set(0,.63,-.36);crate.name='palletCargo';
+ const stripe=round(.72,.04,.035,dark,crate);stripe.position.set(0,.28,-.6);
+ const status=round(.24,.15,.045,new THREE.MeshBasicMaterial({color:'#b5e4bd'}),root);status.position.set(0,1.35,.92);
+ return root;
+}
+function makeClaws(){
+ const groups=[];
+ for(const claw of s.claws.filter(c=>c.floor===s.floor)){
+  const root=new THREE.Group();getWorld().add(root);
+  root.position.set(claw.x,0,claw.z);
+  const steel=equipmentMaterial('#76888a',.68,.33),yellow=equipmentMaterial('#e1af59',.24,.4),dark=equipmentMaterial('#344447',.22,.62);
+  for(const side of [-1,1]){
+   const support=round(.11,2.9,.13,steel,root);support.position.set(side*.49,1.54,.31);
+   const foot=round(.38,.1,.36,dark,root);foot.position.set(side*.49,.07,.31);
+  }
+  const beam=round(1.52,.19,.25,yellow,root);beam.position.set(0,3.02,.3);
+  const gearbox=round(.54,.35,.43,dark,root);gearbox.position.set(0,2.8,0);
+  const craneArm=round(.13,.95,.16,steel,root);craneArm.position.set(0,2.2,0);
+  const gripping=new THREE.Group();root.add(gripping);gripping.name='gripper';
+  for(const side of [-1,1]){
+   const jaw=round(.13,.58,.16,steel,gripping);jaw.position.set(side*.26,1.53,0);
+   const gripPad=round(.22,.15,.18,dark,gripping);gripPad.position.set(side*.26,1.24,0);
+  }
+  const box=round(.48,.33,.46,equipmentMaterial('#bfa681',0,.87),gripping);box.position.set(0,1.17,0);box.name='clawCargo';
+  const label=round(.66,.11,.065,yellow,root);label.position.set(0,2.52,-.28);
+  groups.push({id:claw.id,root,gripping,box});
+ }
+ return groups;
+}
+function makeStockPiles(){
+ const items=[];
+ const cardboard=equipmentMaterial('#bea47c',.03,.87),wood=equipmentMaterial('#98734b',.1,.85);
+ for(const p of s.stockPiles.filter(q=>q.floor===s.floor&&q.count>0)){
+  const g=new THREE.Group();getWorld().add(g);g.position.set(p.x,0,p.z);
+  const pallet=round(1.65,.15,1.65,wood,g);pallet.position.y=.13;
+  for(let tier=0;tier<Math.min(4,Math.ceil(p.count/70));tier++){
+   for(let side of [-1,1]){
+    const box=round(.72,.46,.8,cardboard,g);box.position.set(side*.38,.5+tier*.5,0);
+   }
+  }
+  items.push(g);
+ }
+ return items;
 }
 function makeLadder(){
  const group=new THREE.Group();getWorld().add(group);
@@ -142,5 +193,5 @@ function makeLadder(){
  }
  return group;
 }
-return {makeBelt,makeReceivingSystem,makeCart,makeLadder};
+return {makeBelt,makeReceivingSystem,makeCart,makeLadder,makePalletJack,makeClaws,makeStockPiles};
 }
