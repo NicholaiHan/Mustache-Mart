@@ -12,7 +12,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,assignRobot,sellRobot,deployLadder,sellLadder,sellBelt,advanceBelts,takeBelt
+ floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,sellRobot,deployLadder,sellLadder,sellBelt,advanceBelts,takeBelt,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -33,7 +33,7 @@ const TEST_ENDING=location.hash==='#ending-test', PREVIEW_ENDING=location.hash==
 const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
 let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0,shopCategory='tools';
 let doorInteractionHeld=false,ignoreMouseUntil=0,placementRobotId=null,placementSpot=null,robotGhost=null,climbingLadderId=null;
-let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],feederCrates=[],clawVisual=null,cartMesh=null,ladderMesh=null;
+let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],feederCrates=[],clawVisual=null,cartMesh=null,ladderMesh=null,palletMesh=null,placedClawMeshes=[],pileMeshes=[];
 let selectedBeltAisle=0;
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
 let receiptTimeout=0,payrollTransactions=0;
@@ -92,7 +92,7 @@ const {buildShell,buildService,buildShelves,drawProduct,getMike}=createEnvironme
  s,scene,add,cube,round,roundedGeo,textLabel,toon,dummy,color,goods,pastel,
  FLOOR_W,FLOOR_D,CEILING_Y,RACK_HEIGHT,TIER_Y,makeMike
 });
-const {makeBelt,makeReceivingSystem,makeCart,makeLadder}=createEquipment({
+const {makeBelt,makeReceivingSystem,makeCart,makeLadder,makePalletJack,makeClaws,makeStockPiles}=createEquipment({
  s,round,getWorld:()=>world,getBeltCrates:()=>beltCrates,getFeedCrates:()=>feederCrates,setClawVisual:claw=>clawVisual=claw
 });
 const doors=createDoors({getWorld:()=>world,getFloor:()=>s.floor,round,cube,textLabel});
@@ -100,11 +100,12 @@ const checkout=createCheckout({getWorld:()=>world,getFloor:()=>s.floor,round,tex
 function buildWorld(){
  clearWorld(world);
  world=new THREE.Group();scene.add(world);
- currentFloor=s.floor;beltCrates=[];feederCrates=[];clawVisual=null;cartMesh=null;ladderMesh=null;robotModels=new Map();robotGhost=null;
+ currentFloor=s.floor;beltCrates=[];feederCrates=[];clawVisual=null;cartMesh=null;ladderMesh=null;palletMesh=null;placedClawMeshes=[];pileMeshes=[];robotModels=new Map();robotGhost=null;
  buildShell();buildService();buildShelves();doors.build();checkout.build();makeReceivingSystem();
  for(let a=0;a<AISLES;a++)for(let segment=0;segment<s.belts[s.floor][a];segment++)makeBelt(s.floor,a,segment);
  for(const robot of s.robots)if(robot.placed&&robot.floor===s.floor)robotModels.set(robot.id,botAppearance(robot));
  cartMesh=makeCart();
+ palletMesh=makePalletJack();placedClawMeshes=makeClaws();pileMeshes=makeStockPiles();
  ladderMesh=makeLadder();
  uiUpdate();
 }
@@ -126,8 +127,8 @@ function nearestLadder(distance=1.8){
  return best;
 }
 function isLadderNear(){return !!nearestLadder(3.2);}
-function isCartNear(){return s.levels.cart&&s.cart.floor===s.floor&&nearby(aisleX(s.cart.aisle),s.cart.z,3.6);}
-function canReach(tier){return canStockFromHeight(tier,V.y,isCartNear());}
+function isCartNear(){return s.levels.cart&&s.cart.mounted&&s.cart.floor===s.floor&&nearby(aisleX(s.cart.aisle),s.cart.z,2.5);}
+function canReach(tier){return canStockFromHeight(tier,V.y,false);}
 function toggleClimb(){
  if(climbingLadderId!==null){climbingLadderId=null;notify('Released ladder.');return;}
  const l=nearestLadder(1.9);
@@ -174,6 +175,7 @@ function act(){
  if(nearby(10,-3,4.0)){const paid=payOut(s);if(paid)showPayReceipt(paid);else notify('Your payroll balance is currently $0.00. Stock more products to earn wages.');save();return;}
  if(nearby(23,-9,4.4)){openElevator();return;}
  if(nearby(DOCK.x,DOCK.z,4.4)&&V.carry<capacity(s)){V.carry++;return;}
+ if(collectNearbyPile()){notify('Collected product from your pallet drop-off.');return;}
  if(V.carry<capacity(s)){
   const source=nearestBeltStock();
   if(source){takeBelt(s,s.floor,source.aisle);V.carry++;notify('Picked up one delivered conveyor product.');return;}
@@ -184,6 +186,48 @@ function act(){
    if(doorInteractionHeld)return;
    doorInteractionHeld=true;toggleClimb();return;
  }
+}
+function nearbyPallet(d=3){return s.pallet.floor===s.floor&&nearby(s.pallet.x,s.pallet.z,d);}
+function nearbyPlatform(d=3){return s.levels.cart&&s.cart.floor===s.floor&&nearby(aisleX(s.cart.aisle),s.cart.z,d);}
+function toggleVehicle(){
+ if(s.pallet.driving){s.pallet.driving=false;notify('Parked pallet jack. U unloads inventory at an aisle.');save();return;}
+ if(s.cart.mounted){s.cart.mounted=false;V.y=0;notify('Exited motorized platform.');save();return;}
+ if(nearbyPallet(3.8)){s.pallet.driving=true;climbingLadderId=null;notify('PALLET JACK · WASD drive · U load at dock / unload beside aisle · F park');return;}
+ if(nearbyPlatform(3.6)){s.cart.mounted=true;climbingLadderId=null;notify('MOTORIZED PLATFORM · WASD drive · Space raise · Ctrl lower · F exit');return;}
+ notify('Approach the pallet jack or the motorized ladder platform, then press F.');
+}
+function handlePalletCargo(){
+ if(s.pallet.floor!==s.floor||!nearbyPallet(5)){notify('Approach the pallet jack first.');return;}
+ const count=loadPallet(s);
+ if(count){notify('Loaded '+count+' products · '+s.pallet.load+'/'+palletCapacity(s)+' capacity. Drive to an aisle with WASD.');save();return;}
+ const dropped=unloadPallet(s);
+ if(dropped){buildWorld();save();notify('Delivered '+dropped+' products to aisle '+(Math.round((s.pallet.x-8)/10)+1)+'. Place a claw with K to feed a conveyor.');return;}
+ notify(s.pallet.load?'Drive to the front of an aisle, then press U to unload.':'Park near rear inventory to load the pallet jack.');
+}
+function installClaw(){
+ if(!s.clawInventory.length){notify('Buy an Automated Item Claw from Mike first.');return;}
+ const a=nearestAisle(),n=s.belts[s.floor][a],bay=n?BAYS-n:nearestBay();
+ if(!n||Math.abs(V.x-(aisleX(a)+1.4))>4.4||Math.abs(V.z-bayZ(bay))>5.0){
+  notify('Install a belt first, then stand near the belt endpoint and press K.');return;
+ }
+ const claw=deployClaw(s,s.floor,a,bay);
+ if(!claw){notify('A claw is already placed at this belt endpoint.');return;}
+ buildWorld();save();notify('Item claw installed. It draws ONLY from nearby inventory or pallet piles, then supplies the belt.');
+}
+function turnBelt(){
+ const a=nearestAisle(),n=s.belts[s.floor][a];
+ if(!n||Math.abs(V.x-(aisleX(a)+1.4))>4.4||Math.abs(V.z-bayZ(BAYS-n))>5){
+   notify('Stand at the FRONT TIP of a conveyor and press Z to rotate its output.');return;
+ }
+ const angle=rotateBelt(s,s.floor,a,n-1);buildWorld();save();
+ notify('Belt outlet turned '+['FORWARD','RIGHT','REVERSE','LEFT'][angle]+'. Right/left transfers only to a connected adjacent belt.');
+}
+function collectNearbyPile(){
+ if(V.carry>=capacity(s))return false;
+ const index=s.stockPiles.findIndex(p=>p.floor===s.floor&&p.count>0&&nearby(p.x,p.z,3));
+ if(index<0)return false;
+ if(!takePile(s,index,1))return false;
+ V.carry++;return true;
 }
 function nearestBeltStock(){
  let best=null,dist=2.7;
@@ -274,6 +318,7 @@ function renderShop(){
    if(!purchase(s,u.id))return;
    if(u.id==='robot'){const r=s.robots[s.robots.length-1];save();startRobotPlacement(r.id);return;}
    if(['cart','ladderPlus','robotLift'].includes(u.id))buildWorld();
+   if(u.id==='itemClaw')notify('Item claw purchased. Stand by a conveyor outlet and press K to install it.');
    save();renderShop();uiUpdate();
   });
   row.append(info,btn);list.append(row);
@@ -342,7 +387,12 @@ function buildNextBelt(){
 }
 function updatePrompt(){
  let msg='';
- if(placementRobotId!==null)msg='ROBOT #'+placementRobotId+' · WALK to the aisle · LEFT CLICK to deploy · ESC cancel';
+ if(s.pallet.driving)msg='PALLET JACK '+s.pallet.load+'/'+palletCapacity(s)+' · WASD drive · U load/unload · F park';
+ else if(s.cart.mounted)msg='LADDER PLATFORM · WASD move · Space elevate · Ctrl descend · F exit · E stock shelves';
+ else if(nearbyPallet(4))msg='F drive pallet jack · U load '+palletCapacity(s)+' products at receiving / unload by aisles';
+ else if(nearbyPlatform(3.6))msg='F ride motorized ladder platform · WASD move · Space raise · Ctrl lower';
+ else if(s.clawInventory.length&&V.z>10)msg='K place bought item claw near conveyor outlet · Z rotate outlet · F use machines';
+ else if(placementRobotId!==null)msg='ROBOT #'+placementRobotId+' · WALK to the aisle · LEFT CLICK to deploy · ESC cancel';
  else if(climbingLadderId!==null)msg='CLIMBING · W up · S down · C release · Hold E to stock';
  else if(nearestLadder(1.8))msg='E or C · Grab ladder · Hold W to climb / S to descend · X sell';
  else if(nearestBeltStock())msg='E · Take conveyor stock · X sell LAST segment';
@@ -401,10 +451,7 @@ function endingTick(dt){
  scene.background.set('#1b2447').lerp(new THREE.Color('#a6dcf4'),dawn);
  sunlight.intensity=.3+1.7*dawn;
 }
-function tickCart(dt){
- const id=cartStep(s,dt);
- if(id>=0&&decode(id).floor===s.floor)drawProduct(id,s.fill[id]-1);
-}
+function tickCart(){/* The moving ladder platform belongs to the player, never auto-stocks. */}
 function syncRobots(){
  for(const r of s.robots){
   if(r.placed&&r.floor===s.floor){
@@ -511,7 +558,7 @@ window.addEventListener('keydown',e=>{
  }
  if(modal||ending)return;
  if(e.code==='KeyQ')openShop();
- if(e.code==='KeyR')openElevator();
+ if(e.code==='KeyR'&&!s.pallet.driving&&!s.cart.mounted)openElevator();
  if(e.code==='KeyL')placeLadder();
  if(e.code==='KeyC')toggleClimb();
  if(climbingLadderId!==null&&(e.code==='KeyW'||e.code==='KeyS')){
@@ -522,7 +569,11 @@ window.addEventListener('keydown',e=>{
  if(e.code==='BracketLeft'&&nearby(DOCK.x,DOCK.z,5.0)){selectedBeltAisle=(selectedBeltAisle+AISLES-1)%AISLES;notify('Receiving claw: target AISLE '+(selectedBeltAisle+1));}
  if(e.code==='BracketRight'&&nearby(DOCK.x,DOCK.z,5.0)){selectedBeltAisle=(selectedBeltAisle+1)%AISLES;notify('Receiving claw: target AISLE '+(selectedBeltAisle+1));}
  if(e.code==='KeyB')buildNextBelt();
- if(e.code==='KeyE'){actionClock=0;act();}
+ if(e.code==='KeyF')toggleVehicle();
+ if(e.code==='KeyU')handlePalletCargo();
+ if(e.code==='KeyK')installClaw();
+ if(e.code==='KeyZ')turnBelt();
+ if(e.code==='KeyE'&&!s.pallet.driving&&!s.cart.mounted){actionClock=0;act();}
 });
 window.addEventListener('keyup',e=>{held[e.code]=false;if(e.code==='KeyE')doorInteractionHeld=false;});
 window.addEventListener('blur',()=>{held={};mouseDown=false;doorInteractionHeld=false;actionClock=0;});
