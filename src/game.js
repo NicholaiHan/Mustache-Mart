@@ -301,11 +301,22 @@ function sellNearby(){
 }
 function pointerRequest(){
  if(!renderer.domElement.requestPointerLock)return;
- try{const result=renderer.domElement.requestPointerLock();if(result?.catch)result.catch(()=>notify('Mouse capture unavailable. Arrow keys still let you look.'));}catch(_){notify('Mouse capture unavailable; use arrow keys to look.');}
+ try{
+  const result=renderer.domElement.requestPointerLock();
+  if(result?.catch)result.catch(()=>{
+   if(!modal&&!ending){
+    $('lookPrompt').hidden=false;
+    notify('Click once on the game to restore mouse look.');
+   }
+  });
+ }catch(_){
+  if(!modal&&!ending)$('lookPrompt').hidden=false;
+ }
 }
 function show(id){
  for(const key of ['intro','shop','elevator','end'])$(key).classList.toggle('open',key===id);
  modal=id;running=!id&&!ending;
+ $('lookPrompt').hidden=!!id || document.pointerLockElement===renderer.domElement;
  if(id)document.exitPointerLock?.();
 }
 function resume(){
@@ -668,11 +679,14 @@ window.addEventListener('mouseup',()=>{mouseDown=false;doorInteractionHeld=false
 document.addEventListener('pointerlockchange',()=>{
  if(document.pointerLockElement===renderer.domElement){
   ignoreMouseUntil=performance.now()+24;
+  $('lookPrompt').hidden=true;
   return;
  }
  if(!ending&&!modal&&document.pointerLockElement!==renderer.domElement){
-  // Arrow-key fallback still works, without bypassing browser permissions.
-  notify('Mouse released · click the game once to restore mouse look.');
+  $('lookPrompt').hidden=false;
+  // Browser security can suppress an immediate relock after Escape.
+  // The next click on the canvas is a genuine user gesture and restores it.
+  notify('Click the game once to restore mouse look.');
  }
 });
 renderer.domElement.addEventListener('click',()=>{if(running)pointerRequest();});
