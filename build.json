@@ -1,6 +1,6 @@
 {
-  "version": "2026.10.30.1",
-  "name": "Drivable Pallet & Manual Claw Logistics",
+  "version": "2026.10.30.2",
+  "name": "Retail Detail + Mike Interaction Fix",
   "build_date": "2026-10-30",
   "includes": [
     "Robot Mike with white eyes and mustache",
@@ -20,6 +20,11 @@
     "Pallet jack WASD driving with six very expensive load capacity levels",
     "Placeable claws K required to load conveyors from main receiving or pallet piles",
     "Z-rotated conveyor outlet redirects goods into connected neighbor lines",
-    "Motorized platform ladder player-operated, elevated WASD driving, no automatic stocking"
+    "Motorized platform ladder player-operated, elevated WASD driving, no automatic stocking",
+    "Remove 98-metre overhead inventory bar and dark UI bars",
+    "E-only Mustache Mike dialogue; click cannot open shop",
+    "Immediate mouse look on Close Shop button, clear fallback on Escape",
+    "2D pixel digital eyes with flat white mustache",
+    "Shop aisle signs, basket racks, vents and checkout detail"
   ]
 }
