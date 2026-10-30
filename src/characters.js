@@ -39,15 +39,27 @@ function makeMike(x,z){
  const skull=round(1.06,.91,.83,pearl,head);skull.position.set(0,0,0);
  const brow=round(.91,.14,.89,enamel,head);brow.position.set(0,.39,.01);
  const face=round(.88,.57,.064,graphite,head);face.position.set(0,-.035,.437);
+ // Two flat, high-contrast digital pixel matrices embedded in the faceplate.
+ // No raised eyeballs or spherical sockets: the LEDs are a single flush layer.
+ const eyeOn=new THREE.MeshBasicMaterial({color:'#ebffff'});
+ const eyeOff=new THREE.MeshBasicMaterial({color:'#365458'});
+ const ledFrame=round(.76,.30,.015,trim,head);ledFrame.position.set(0,.065,.483);
+ const ledScreen=round(.72,.25,.01,graphite,head);ledScreen.position.set(0,.065,.495);
  for(const sign of [-1,1]){
-  const socket=new THREE.Mesh(new THREE.SphereGeometry(.12,20,14),equipmentMaterial('#486465',.2,.32));
-  socket.position.set(sign*.19,.06,.486);head.add(socket);
-  const eye=new THREE.Mesh(new THREE.SphereGeometry(.068,20,14),eyeWhite);
-  eye.position.set(sign*.19,.06,.588);head.add(eye);
-  const moustache=new THREE.Mesh(new THREE.SphereGeometry(.19,20,12),white);
-  moustache.scale.set(1,.32,.5);moustache.position.set(sign*.14,-.175,.535);
-  moustache.rotation.z=sign*.24;head.add(moustache);
+  const bx=sign*.185;
+  for(let row=0;row<3;row++)for(let col=0;col<4;col++){
+   const lit=(row===1)||(row===0&&(col===1||col===2));
+   const cell=round(.037,.039,.002,lit?eyeOn:eyeOff,head);
+   cell.position.set(bx+(col-1.5)*.049,.066+(row-1)*.054,.508);
+  }
+  // Flat white twin-tip mustache on the front glass, not an extruded bulb.
+  const wing=round(.24,.043,.012,white,head);
+  wing.position.set(sign*.147,-.195,.515);
+  wing.rotation.z=-sign*.27;
+  const point=round(.09,.035,.012,white,head);point.position.set(sign*.32,-.172,.515);
+  point.rotation.z=sign*.22;
  }
+ const mouthLED=round(.18,.018,.01,mint,head);mouthLED.position.set(0,-.285,.505);
  const sideLens=round(.1,.18,.32,brass,head);sideLens.position.set(.54,-.12,0);
  const hairline=round(.77,.085,.08,brass,head);hairline.position.set(0,.4,.32);
  const badge=round(.63,.2,.055,brass,guy);badge.position.set(0,1.5,.474);
