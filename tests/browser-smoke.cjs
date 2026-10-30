@@ -175,6 +175,11 @@ const assert=require('node:assert/strict');
   // Accelerate actual claw transfer rules; GPU frame rate must not affect QA.
   const delivered=await page.evaluate(()=>window.__martTest.advanceConveyors(8));
   assert.ok(delivered[0]>0,'connected conveyor must deliver usable product stock');
+  const physical=await page.evaluate(()=>window.__martTest.snapshot());
+  assert.equal(physical.beltItems[0][0],3,'first physical belt may hold exactly 3 cartons');
+  assert.equal(physical.beltItems[0].reduce((a,b)=>a+b,0),3,'no hidden invented conveyor stock');
+  const blocked=await page.evaluate(()=>window.__martTest.advanceConveyors(60));
+  assert.equal(blocked[0],3,'missing downstream belt must stop all additional claw inventory');
 
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.ok(snap.beltStock[0]>0,'connected conveyor transports products to its endpoint');
