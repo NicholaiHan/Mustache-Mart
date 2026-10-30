@@ -102,7 +102,8 @@ test('30 accelerated first-floor sessions: interaction systems, upgrades, payout
   assert.equal(restored.money,s.money);
   assert.equal(restored.robots.length,1);
   assert.equal(restored.claws.length,2);
-  assert.equal(restored.stockPiles.length,2);
+  assert.ok(restored.stockPiles.length>=2,'pallet piles and reclaimed stock from a sold belt must survive');
+  assert.ok(restored.stockPiles.every(p=>p.count>0));
   assert.equal(restored.ladders.length,1);
   assert.equal(restored.belts[0][targetA],1);
   assert.equal(restored.belts[0][targetB],2);
