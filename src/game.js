@@ -477,7 +477,14 @@ function animate(now){
   const turn=(held.ArrowLeft?1:0)-(held.ArrowRight?1:0);
   V.yaw+=turn*dt*1.7;V.pitch=Math.max(-1.25,Math.min(1.25,V.pitch+((held.ArrowUp?1:0)-(held.ArrowDown?1:0))*dt));
   const forward=(held.KeyW?1:0)-(held.KeyS?1:0),side=(held.KeyD?1:0)-(held.KeyA?1:0);
-  if(climbingLadderId!==null){
+  if(s.pallet.driving){
+   const moved=drivePallet(s,forward,side,dt);
+   V.x=s.pallet.x;V.z=s.pallet.z;V.y=0;V.vy=0;
+  }else if(s.cart.mounted){
+   drivePlatform(s,forward,side,dt,(x,z)=>!isBlocked(x,z,s.floor));
+   liftPlatform(s,(held.Space?1:0)-(held.ControlLeft||held.ControlRight?1:0),dt);
+   V.x=aisleX(s.cart.aisle);V.z=s.cart.z;V.y=s.cart.liftHeight+1.15;V.vy=0;
+  }else if(climbingLadderId!==null){
    const l=s.ladders.find(l=>l.id===climbingLadderId&&l.floor===s.floor);
    if(!l){climbingLadderId=null;V.y=0;}
    else{const top=s.levels.ladderPlus?9.45:4.75;
@@ -490,9 +497,9 @@ function animate(now){
    const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));
    V.x=next.x;V.z=next.z;
   }
-  if(climbingLadderId===null){V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0)V.vy=0;}
-  if(climbingLadderId===null&&held.Space&&s.levels.jump&&V.y===0)V.vy=5.4;
-  if(held.KeyE||mouseDown){actionClock+=dt;while(actionClock>=.32){actionClock-=.32;act();if(modal)break;}}else actionClock=0;
+  if(climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted){V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0)V.vy=0;}
+  if(climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted&&held.Space&&s.levels.jump&&V.y===0)V.vy=5.4;
+  if(!s.pallet.driving&&(held.KeyE||mouseDown)){actionClock+=dt;while(actionClock>=.32){actionClock-=.32;act();if(modal)break;}}else actionClock=0;
  }
  if(!ending&&running){
   // Render the current floor; background robot simulation advances on every floor.
@@ -507,7 +514,29 @@ function animate(now){
    if(id>=0&&decode(id).floor===s.floor)drawProduct(id,s.fill[id]-1);
   }
   tickCart(dt);
-  if(s.levels.cart&&cartMesh){cartMesh.visible=s.cart.floor===s.floor;if(cartMesh.visible)cartMesh.position.set(aisleX(s.cart.aisle),0,s.cart.z);}
+  if(s.levels.cart&&cartMesh){
+   cartMesh.visible=s.cart.floor===s.floor;
+   if(cartMesh.visible){
+    cartMesh.position.set(aisleX(s.cart.aisle),0,s.cart.z);
+    const platform=cartMesh.getObjectByName('riderPlatform');
+    if(platform)platform.position.y=s.cart.liftHeight;
+   }
+  }
+  if(palletMesh){
+   palletMesh.visible=s.pallet.floor===s.floor;
+   palletMesh.position.set(s.pallet.x,0,s.pallet.z);
+   palletMesh.rotation.y=s.pallet.yaw;
+   const cargo=palletMesh.getObjectByName('palletCargo');
+   if(cargo){cargo.visible=s.pallet.load>0;cargo.scale.y=.45+Math.min(1,s.pallet.load/palletCapacity(s))*.55;}
+  }
+  for(const p of pileMeshes){p.visible=p.userData.pile?.count>0;if(p.visible)p.scale.y=Math.max(.45,Math.min(1,p.userData.pile.count/140));}
+  for(const entry of placedClawMeshes){
+   const claw=s.claws.find(c=>c.id===entry.id);
+   if(!claw)continue;
+   const ready=!!nearestClawSource(s,claw)&&s.belts[claw.floor][claw.aisle]>0&&s.beltStock[claw.floor][claw.aisle]<16;
+   entry.gripping.position.y=ready?Math.sin(now*.004+entry.id)*.25:0;
+   entry.box.visible=ready;
+  }
   syncRobots();
   if(clawVisual){
    const cycle=(now*.00066)%1;
@@ -518,7 +547,7 @@ function animate(now){
    });
   }
   for(const f of feederCrates){
-   f.crate.visible=s.belts[s.floor][f.aisle]>0;
+   f.crate.visible=s.beltStock[s.floor][f.aisle]>0;
    if(f.crate.visible){
      f.crate.position.z=91.76-(now*.00037+f.aisle*.19)%1.55;
      f.crate.rotation.y=Math.sin(now*.0004+f.aisle)*.04;
@@ -526,8 +555,10 @@ function animate(now){
   }
   for(const b of beltCrates){
    const n=s.belts[s.floor][b.aisle],stored=s.beltStock[s.floor][b.aisle];
-   b.crate.visible=stored>0||s.beltTimers[s.floor][b.aisle]>0;
+   b.crate.visible=stored>0;
    b.crate.position.z=(((now*.001+b.segment*.27)%2.25)-1.1);
+   const direction=s.beltDirection[s.floor][b.aisle][b.segment]||0;
+   b.crate.position.x=direction===1?(.46*Math.sin(now*.0015)):direction===3?(-.46*Math.sin(now*.0015)):0;
    if(b.segment===n-1&&stored>0)b.crate.position.z=0;
   }
   // Completion alone does NOT trigger the ending. Open the front doors with E.
