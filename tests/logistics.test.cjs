@@ -203,7 +203,7 @@ test('rotated junction refuses a full adjacent segment, and never duplicates inv
 });
 test('older saves migrate into three-slot segments without destroying overflow',()=>{
  const q=r.newState();q.money=10000;
- r.buildBelt(q,0,4,0);r.purchase(q,'itemClaw');
+ r.buildBelt(q,0,4,0);r.purchase(q,'itemClaw');r.deployClaw(q,0,4,r.BAYS-1);
  const legacy=JSON.parse(r.serialize(q));delete legacy.beltItems;
  legacy.beltStock[0][4]=16;
  const v=r.loadState(JSON.stringify(legacy));
@@ -234,4 +234,13 @@ test('30 randomized first-floor conveyor sessions conserve every item under sust
   assert.deepEqual(restored.beltItems[0][a].slice(0,3),q.beltItems[0][a].slice(0,3));
  }
  console.log('30 randomized first-floor clogged-belt simulations passed: 3 items per section, no duplication, no disappearance, saves intact');
+});
+
+test('legacy conveyor with no installed claw discards phantom auto-generated items',()=>{
+ const q=r.newState();q.money=10000;r.buildBelt(q,0,3,0);
+ const legacy=JSON.parse(r.serialize(q));delete legacy.beltItems;
+ legacy.beltStock[0][3]=12;
+ const restored=r.loadState(JSON.stringify(legacy));
+ assert.equal(restored.beltStock[0][3],0);
+ assert.equal(restored.stockPiles.length,0);
 });
