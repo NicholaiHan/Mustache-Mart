@@ -1,6 +1,6 @@
 {
-  "version": "2026.10.30.2",
-  "name": "Retail Detail + Mike Interaction Fix",
+  "version": "2026.10.30.3",
+  "name": "Flush Wall-Mounted Payroll",
   "build_date": "2026-10-30",
   "includes": [
     "Robot Mike with white eyes and mustache",
@@ -25,6 +25,7 @@
     "E-only Mustache Mike dialogue; click cannot open shop",
     "Immediate mouse look on Close Shop button, clear fallback on Escape",
     "2D pixel digital eyes with flat white mustache",
-    "Shop aisle signs, basket racks, vents and checkout detail"
+    "Shop aisle signs, basket racks, vents and checkout detail",
+    "Entire payroll facade, countertop, glass, signage and E interaction relocated to front interior wall with zero backing gap"
   ]
 }
