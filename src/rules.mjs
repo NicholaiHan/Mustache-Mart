@@ -321,14 +321,16 @@ export function advanceBelts(s,dt){
  }
  return delivered;
 }
+export function beltPickupSegment(s,f,a){
+ const n=s.belts[f]?.[a]||0;
+ for(let i=n-1;i>=0;i--)if(s.beltItems[f][a][i]>0)return i;
+ return -1;
+}
 export function takeBelt(s,f,a,segment=null){
  if(!s.belts[f]?.[a]||!s.beltStock[f][a])return false;
  // Player/robot collects from the farthest occupied reachable section.
- let seg=segment;
- if(seg===null){
-  for(let i=s.belts[f][a]-1;i>=0;i--)if(s.beltItems[f][a][i]>0){seg=i;break;}
- }
- if(seg===null||seg<0||seg>=s.belts[f][a]||!s.beltItems[f][a][seg])return false;
+ const seg=segment===null?beltPickupSegment(s,f,a):segment;
+ if(seg<0||seg>=s.belts[f][a]||!s.beltItems[f][a][seg])return false;
  s.beltItems[f][a][seg]--;s.beltStock[f][a]--;return true;
 }
 export const remaining=s=>TOTAL_ITEMS-s.stocked;
@@ -383,8 +385,12 @@ export function robotSource(s,r){
  for(let i=0;i<s.stockPiles.length;i++){const p=s.stockPiles[i];if(p.floor===r.floor&&p.count>0)candidates.push({type:'pile',x:p.x,z:p.z,index:i,aisle:p.aisle});}
  for(let a=0;a<AISLES;a++){
   const n=s.belts[r.floor][a];
-  if(n&&s.beltStock[r.floor][a]>0)
-   candidates.push({type:'belt',x:aisleX(a)+1.4,z:bayZ(BAYS-n),aisle:a});
+  if(n&&s.beltStock[r.floor][a]>0){
+   const seg=beltPickupSegment(s,r.floor,a);
+   if(seg>=0)candidates.push({
+    type:'belt',x:aisleX(a)+1.4,z:bayZ(BAYS-1-seg),aisle:a,segment:seg
+   });
+  }
  }
  candidates.sort((u,v)=>{
   const metric=p=>Math.abs(p.x-r.x)*1.3+Math.abs(p.z-r.z);
@@ -405,7 +411,7 @@ export function botStep(s,r,dt){
   // A new source is chosen on every supply run (belt vs dock).
   const source=robotSource(s,r);r.source=source;
   if(approach(r,source.x,source.z,dt,speed)){
-    if(source.type==='belt'&&!takeBelt(s,r.floor,source.aisle))return -1;
+    if(source.type==='belt'&&!takeBelt(s,r.floor,source.aisle,source.segment))return -1;
     if(source.type==='pile'&&!takePile(s,source.index,1))return -1;
     r.carry=source.type==='dock'?8:1;r.phase='shelf';r.target=-1;r.source=null;
   }
