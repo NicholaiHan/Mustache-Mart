@@ -56,9 +56,9 @@ test('Browser scene implements floor access, building and ending',()=>{
 
 test('Latest build manifest and Mac launcher contain exactly matching verifiable version',async()=>{
  const manifest=JSON.parse(fs.readFileSync(path.join(root,'build.json'),'utf8'));
- assert.equal(manifest.version,'2026.10.30.1');
- assert.match(html,/UPDATED BUILD · 2026\.10\.30\.1/);
- assert.match(html,/UPDATED EDITION · BUILD 2026\.10\.30\.1/);
+ assert.equal(manifest.version,'2026.10.30.2');
+ assert.match(html,/UPDATED BUILD · 2026\.10\.30\.2/);
+ assert.match(html,/UPDATED EDITION · BUILD 2026\.10\.30\.2/);
  const launcher=fs.readFileSync(path.join(root,'PLAY_LATEST_MAC.sh'),'utf8');
  assert.match(launcher,/PORT:-8011/);
  assert.match(launcher,/build\.json/);
