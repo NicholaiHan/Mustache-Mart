@@ -60,30 +60,35 @@ function makeBelt(f,a,segment){
  return group;
 }
 function makeReceivingSystem(){
+ // Receiving equipment stays at the rear inventory bay only. No permanent
+ // 98-metre overhead crossbar, dark floating bar, or ten unused empty chutes.
+ // The K-installed item claws supply the actual B-built conveyors.
  const root=new THREE.Group();getWorld().add(root);
- const steel=equipmentMaterial('#7a8b8d',.7,.33);
- const dark=equipmentMaterial('#34494b',.3,.52);
- const yellow=equipmentMaterial('#dbb369',.25,.44);
- const green=new THREE.MeshBasicMaterial({color:'#9bd9af'});
- // A shared overhead feeder connects the rear dock to ten aisle branches.
- const crossbar=round(98,.14,.22,steel,root);crossbar.position.set(50.5,3.5,92.4);
- const secondary=round(98,.085,.12,dark,root);secondary.position.set(50.5,3.27,92.4);
- for(let a=0;a<10;a++){
-  const x=aisleX(a)+1.4,active=s.belts[s.floor][a]>0;
-  const anchor=round(.28,.24,.38,steel,root);anchor.position.set(x,3.45,92.4);
-  const hanger=round(.095,1.35,.11,steel,root);hanger.position.set(x,2.66,92.4);
-  const chute=round(.81,.11,2.35,active?steel:dark,root);
-  chute.position.set(x,1.27,91.05);
-  const guardL=round(.07,.2,2.25,steel,root);guardL.position.set(x-.45,1.35,91.05);
-  const guardR=round(.07,.2,2.25,steel,root);guardR.position.set(x+.45,1.35,91.05);
-  const indicator=round(.16,.17,.17,active?green:yellow,root);indicator.position.set(x,3.03,92.06);
-  if(active){
-   const feeder=round(.54,.33,.47,equipmentMaterial('#c2a780',0,.82),root);
-   feeder.position.set(x,1.5,91.1);
-   getFeedCrates().push({crate:feeder,aisle:a});
+ const steel=equipmentMaterial('#8e9a9a',.63,.34);
+ const dark=equipmentMaterial('#3a4a4d',.3,.5);
+ const yellow=equipmentMaterial('#d6ab66',.22,.45);
+ const concrete=equipmentMaterial('#aab3ac',.02,.94);
+ const floor=round(4.2,.085,2.8,concrete,root);floor.position.set(5.4,.04,96.2);
+ const backStop=round(4.2,.12,.13,yellow,root);backStop.position.set(5.4,.17,97.55);
+ const intake=round(2.7,.2,1.35,dark,root);intake.position.set(5.6,.63,95.2);
+ for(const side of [-1,1]){
+  const rail=round(.09,.25,1.5,steel,root);rail.position.set(5.6+side*1.37,.76,95.2);
+  for(const z of [94.63,95.76]){
+   const leg=round(.13,.55,.16,steel,root);leg.position.set(5.6+side*1.1,.32,z);
+   const foot=round(.25,.04,.25,dark,root);foot.position.set(5.6+side*1.1,.045,z);
   }
  }
- // No free-running claw: cranes must be bought from Mike and placed by K.
+ for(let k=0;k<6;k++){
+  const roller=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,2.47,12),steel);
+  roller.rotation.z=Math.PI/2;roller.position.set(5.6,.76,94.62+k*.23);root.add(roller);
+ }
+ const bumper=round(2.7,.09,.12,yellow,root);bumper.position.set(5.6,.66,94.51);
+ const sign=round(2.2,.34,.08,dark,root);sign.position.set(5.6,2.35,96.32);
+ const digits=round(.5,.09,.03,new THREE.MeshBasicMaterial({color:'#8ce3bd'}),root);
+ digits.position.set(5.6,2.35,96.27);
+ const post=round(.12,2,.13,steel,root);post.position.set(5.6,1.35,96.43);
+ // No cartons are placed on this intake until an actual item claw picks them
+ // from receiving stock and sends them onto a paid, connected belt.
  return root;
 }
 function makeCart(){
