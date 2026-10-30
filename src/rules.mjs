@@ -49,7 +49,7 @@ export function loadState(text){
   for(let i=0;i<s.belts[f][a];i++)s.beltReceipts[f][a].push(limit(d.beltReceipts?.[f]?.[a]?.[i]??(12+Math.floor(i*1.3)),100000));
   // Version-4 belts generated stock without input. Reset legacy phantom stock:
   // all new deliveries must originate at a placed claw.
-  s.beltStock[f][a]=Array.isArray(d.claws)?limit(d.beltStock?.[f]?.[a],BAYS*BELT_CAPACITY):0;
+  s.beltStock[f][a]=Array.isArray(d.claws)&&d.claws.length?limit(d.beltStock?.[f]?.[a],BAYS*BELT_CAPACITY):0;
   for(let i=0;i<s.belts[f][a];i++)s.beltDirection[f][a][i]=limit(d.beltDirection?.[f]?.[a]?.[i],3);
   const t=Number(d.beltTimers?.[f]?.[a]);s.beltTimers[f][a]=Number.isFinite(t)?Math.max(0,Math.min(30,t)):0;
  }
