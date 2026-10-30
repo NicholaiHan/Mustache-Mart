@@ -118,12 +118,14 @@ test('rotating the outlet right transfers existing goods only to connected adjac
  r.purchase(s,'itemClaw');r.deployClaw(s,0,0,29);
  r.advanceBelts(s,8);
  const qty=s.beltStock[0][0];assert.ok(qty>0);
- r.advanceBelts(s,3);assert.equal(s.beltStock[0][0],qty,'no adjacent belt means no teleporting');
+ r.advanceBelts(s,3);assert.ok(s.beltStock[0][0]>=qty,'without adjacent belt, stock remains on the original belt');
  r.buildBelt(s,0,1,0);
  r.advanceBelts(s,1.25);
  assert.ok(s.beltStock[0][1]>0);
  const count=s.beltStock[0][0]+s.beltStock[0][1];
- r.advanceBelts(s,.1);assert.equal(s.beltStock[0][0]+s.beltStock[0][1],count);
+ s.claws=[]; // Stop further real supplier input before checking conservative routing.
+ r.advanceBelts(s,1.25);
+ assert.equal(s.beltStock[0][0]+s.beltStock[0][1],count,'turns transfer existing stock without creating new items');
 });
 test('player-operated mobile ladder does not automatically earn money or stock shelves',()=>{
  const s=r.newState();s.money=1000;
