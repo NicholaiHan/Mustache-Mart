@@ -20,11 +20,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8011/#dev** in Chrome or Safari. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.30.3** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+2. Open **http://127.0.0.1:8011/#dev** in Chrome or Safari. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.30.4** and the introduction must list the new cash registers, Mike, ladders and fire exit.
 3. **Development mode** (the `#dev` suffix) gives **at least $500** for testing. Stop the server with **Control+C**.
 4. Port **8011 is deliberately different from 8000**: existing browser saves at port 8000 are still retained, but do not appear automatically at 8011 (browser storage is origin-specific). For continuing the same saved progress after verifying the build, stop the older port-8000 server, then in the downloaded folder run `node server.cjs` and open `http://127.0.0.1:8000/#dev`.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.30.3** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.30.4** is shown.
 
 ## Play on your MacBook
 
@@ -131,10 +131,10 @@ This is still a procedural browser game rather than a fully modeled commercial s
 
 These are deterministic **accelerated gameplay/rules simulations**, not thirty human-controlled rendered sessions. Separately, Playwright browser smoke tests actually render the first floor and interact with the checkout register, paycheck terminal, Mike, ladders, conveyor belts and red fire exit in Chromium.
 
-## Build 2026.10.30.3: conveyor visualization and structural art
+## Build 2026.10.30.4: conveyor visualization and structural art
 
 - **Original top-left HUD icons** replace all five phone/OS emoji labels: store, cash, payroll, carrying and robots are custom scalable vector artwork.
-- At **rear receiving** (near the inventory pickup), use **[** and **]** to select an aisle, then press **B** to connect its **first** conveyor segment. Its status panel shows the selected aisle, connected branches and delivered items out of 16. Once the first branch exists, extend it from its **frontmost tip** with B. Sections move in one direction, **toward the entrance**, and production pauses when their endpoint is full.
+- At **rear receiving** (near the inventory pickup), use **[** and **]** to select an aisle, then press **B** to connect its **first** conveyor segment. Its status panel shows the selected aisle, connected branches and stock out of three items per built section. Once the first branch exists, extend it from its **frontmost tip** with B. Sections move in one direction, **toward the entrance**, and production pauses when their endpoint is full.
 - A visible overhead feeder connects receiving to the aisle chutes, with an industrial pickup claw, movement on connected source branches, arrows, frame fasteners, caution guards and belt gearboxes.
 - Shelves include thousands of small **instanced hex-head bolts**, back braces and aisle end guards. Register stations add tactile keypads, scanner windows, receipt paper, tiny flat white mustaches and stainless steel mounting hardware.
 - Saves and the original 15-floor stocking rules remain unchanged.
@@ -147,7 +147,7 @@ These are deterministic **accelerated gameplay/rules simulations**, not thirty h
 - Item claw: buy an **Automated Item Claw** separately at Mike's. Stand near the front endpoint of the belt and press **K** to install the claw. Each placed claw picks one physical unit from the nearest main receiving counter or pallet drop-off within reach and places it on the belt, stopping when the belt buffer is full. Robots and players take from those real stocks.
 - Normal mode remains on http://127.0.0.1:8000/ ; development funds are on http://127.0.0.1:8000/#dev . Previous save progress is retained (version-4 format).
 
-## October 30, 2026 — Rendering and Mike's interaction improvements (build 2026.10.30.3)
+## October 30, 2026 — Rendering and Mike's interaction improvements (build 2026.10.30.4)
 
 - **No long overhead black bar:** removed the 98-metre receiving gantry and secondary floating beam. Only grounded, local metal rollers and the separately installed item claws are visible. This is a visual change, not a change to pallet or claw inventory rules.
 - **Cleaner UI:** the former black help/prompt/routing panels are now compact pale service displays so they no longer cover the store.
@@ -155,6 +155,14 @@ These are deterministic **accelerated gameplay/rules simulations**, not thirty h
 - **Mike is an E interaction:** stand at his desk and press **E** to open the shop; clicking the game screen next to him will not open it. **Close Shop** restores mouse look in the same click. If a browser blocks relocking after **Escape**, click the game once; a small on-screen label tells you when recapture is needed. Q is no longer a shop shortcut.
 - **Mike's eyes:** flat built-in digital LED matrix instead of raised orb-style eyes.
 
-## Build 2026.10.30.3 — Payroll mounted on front wall
+## Build 2026.10.30.4 — Payroll mounted on front wall
 
 The entire wages window—not just its sign—is attached to the physical interior front wall at **z=-12.45**. Counter back and facade embed into the wall by design so no visible gap remains. Glass, trim, card reader, documents, receipt printer, and queue guide have moved as one station. The accessible **E** payroll collection position is now **(x=10, z=-8.38)**. Previous saves and balances are unchanged. A regression checks facade/back-of-counter overlap against the real wall and accessible customer space.
+
+## October 30, 2026 — Three-item conveyor segments (build 2026.10.30.4)
+
+**Each physical conveyor segment now holds exactly 0–3 real products.** The crane may take from nearby warehouse stock (within reach) or inventory piles delivered by your pallet jack; it stops when its receiving segment has three products. Each transport step moves **only one package into the next built conveyor**, and never into a missing or full segment. If a connection is absent/full, the cartons stay put until a player or robot removes one or you build more belt. Clockwise-rotated Z junctions obey the same capacity rule.
+
+The 3D conveyor shows precisely as many visible cartons as that physical segment contains—no fake permanently animated products. Player and robot pickup removes the matching physical item. The crane prompt reports **LOADING**, **PAUSED (FULL)** or **IDLE (NO INVENTORY)**. Progress saves preserve per-segment inventory. Any genuine old overflow is converted into a nearby inventory pickup pile, not deleted. Stale automatically generated products on legacy saves without a placed claw are cleared.
+
+The core logistic regression includes **30 randomized congestion simulations** with the invariant: remaining source goods + all belt cartons + player pickup = initial goods, plus the pre-existing complete first-floor tests and headless browser rendering checks.
