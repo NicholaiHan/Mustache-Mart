@@ -160,13 +160,14 @@ export function loadPallet(s){
  const amount=palletCapacity(s)-p.load;if(amount<=0)return 0;
  p.load+=amount;return amount; // warehouse has an unlimited supply, not belts
 }
-export function drivePallet(s,forward,turn,dt){
+export function drivePallet(s,forward,turn,dt,canTravel=null){
  const p=s.pallet;if(!p.driving||dt<=0)return false;
  p.yaw+=Math.max(-1,Math.min(1,turn))*dt*1.3;
  const speed=4.2;const dx=Math.sin(p.yaw)*Math.max(-1,Math.min(1,forward))*dt*speed;
  const dz=-Math.cos(p.yaw)*Math.max(-1,Math.min(1,forward))*dt*speed;
  const x=p.x+dx,z=p.z+dz;
  if(x<1.8||x>100||z<10||z>99)return false;
+ if(canTravel&&!canTravel(x,z))return false;
  p.x=x;p.z=z;return true;
 }
 export function unloadPallet(s){
