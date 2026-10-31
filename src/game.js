@@ -12,7 +12,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
+ floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,repairRobot,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -170,6 +170,15 @@ function act(source='keyboard'){
  if(register>=0){
    notify('CHECKOUT '+String(register+1).padStart(2,'0')+' · Card terminal powered; customer payments begin at the grand opening.');
    return;
+ }
+ const broken=s.robots.filter(r=>r.placed&&r.floor===s.floor&&r.broken).sort((a,b)=>
+ Math.hypot(V.x-a.x,V.z-a.z)-Math.hypot(V.x-b.x,V.z-b.z))[0];
+ if(broken&&Math.hypot(V.x-broken.x,V.z-broken.z)<3.2){
+  repairRobot(s,broken.id);
+  const need=Math.max(1,4-(s.levels.repairTraining||0));
+  notify(broken.broken?'Repairing stocker #'+broken.id+' · '+broken.repairProgress+'/'+need+' · press E again':
+   'Stocker #'+broken.id+' repaired and back in service!');
+  save();return;
  }
  if(nearby(1.5,-7,4.0)){
   // Clicking is used for robot placement / picking up inventory. Mike's
@@ -372,7 +381,7 @@ function renderShop(){
    for(const r of s.robots){
     const item=document.createElement('div');item.className='upgrade';
     const name=document.createElement('strong');
-    name.textContent='Stocker #'+r.id+' · '+(r.placed?floorLabel(r.floor)+' / Aisle '+(r.aisle+1):'Pending placement');
+    name.textContent='Stocker #'+r.id+' · '+(r.broken?'REPAIR NEEDED · ':'')+(r.placed?floorLabel(r.floor)+' / Aisle '+(r.aisle+1):'Pending placement')+' · '+(r.stockedSinceService||0)+' stocked since service';
     item.append(name);const buttons=document.createElement('div');buttons.className='robotActions';
     const relocate=document.createElement('button');relocate.textContent=r.placed?'Move / redeploy':'Deploy';
     relocate.addEventListener('click',()=>startRobotPlacement(r.id));
@@ -456,6 +465,10 @@ function updatePrompt(){
  else if(s.clawInventory.length&&V.z>10)msg='K place bought item claw near conveyor outlet · Z rotate outlet · F use machines';
  else if(placementRobotId!==null)msg='ROBOT #'+placementRobotId+' · WALK to the aisle · LEFT CLICK to deploy · ESC cancel';
  else if(climbingLadderId!==null)msg='CLIMBING · W up · S down · C release · Hold E to stock';
+ else if(s.robots.some(r=>r.floor===s.floor&&r.placed&&r.broken&&nearby(r.x,r.z,3.2))){
+  const robot=s.robots.find(r=>r.floor===s.floor&&r.placed&&r.broken&&nearby(r.x,r.z,3.2));
+  msg='STOCKER #'+robot.id+' NEEDS REPAIR · PRESS E ('+(robot.repairProgress||0)+'/'+Math.max(1,4-(s.levels.repairTraining||0))+')';
+ }
  else if(nearestLadder(1.8))msg='E or C · Grab ladder · Hold W to climb / S to descend · X sell';
  else if(nearestBeltStock())msg='E · Take conveyor stock · X sell LAST segment';
  else if(doors.nearFire(V.x,V.z))msg='E · '+(doors.isFireOpen()?'Close':'Open')+' FIRE EXIT (brick wall behind)';
@@ -524,6 +537,9 @@ function syncRobots(){
    const jack=obj.getObjectByName('liftingJack');
    if(jack){jack.scale.y=1+(r.liftY||0);jack.position.y=.98+(r.liftY||0)*.5;}
    const crate=obj.getObjectByName('crate');if(crate)crate.visible=r.carry>0;
+   const beacon=obj.getObjectByName('repairBeacon');
+   if(beacon)beacon.visible=!!r.broken;
+   if(r.broken)obj.rotation.y=Math.sin(performance.now()/600)*.06;
   }else if(robotModels.has(r.id)){const obj=robotModels.get(r.id);obj.visible=false;robotModels.delete(r.id);}
  }
 }
