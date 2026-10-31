@@ -1,0 +1,102 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{pathToFileURL}=require('node:url');
+let r;
+test.before(async()=>{r=await import(pathToFileURL(path.resolve(__dirname,'../src/rules.mjs')).href);});
+const source=name=>fs.readFileSync(path.resolve(__dirname,'../src',name),'utf8');
+const simulate=(fn)=>{for(let iteration=0;iteration<30;iteration++)fn(iteration);};
+
+test('stage 1: 30 skill-tree progression/economy simulations',()=>{
+ simulate(i=>{
+  const s=r.newState();s.money=1e9;
+  const upgrades=['capacity','capacity','speed','speed','robot','robotSpeed','shelfBonus','itemClaw','palletCapacity','carryHarness','courierStride','warehouseFocus','clawCycle','beltMotor','robotEfficiency','repairTraining','robotReliability','retailMargin','retailMargin','robotCommission','cashback','warehouseLogistics'];
+  for(const up of upgrades)assert.equal(r.purchase(s,up),true,up+' purchase '+i);
+  const before=s.money,id=r.cellId(0,i%10,0,i%30,0);
+  assert.ok(r.place(s,id,true)>0);
+  assert.ok(s.money>before);
+  const saved=r.loadState(r.serialize(s));
+  assert.equal(saved.stocked,1);assert.equal(saved.levels.robotReliability,1);
+  assert.ok(r.capacity(saved)>1);assert.ok(r.walkSpeed(saved)>3.3);
+ });
+});
+test('stage 2: 30 elevator-safe gameplay simulations',()=>{
+ const env=source('environment.js');
+ assert.match(env,/PASSENGER ELEVATOR/);assert.match(env,/floorDisplay/);
+ simulate(i=>{const s=r.newState();s.floor=i%r.FLOORS;s.money=250;
+  r.place(s,r.cellId(s.floor,i%r.AISLES,0,i%r.BAYS,0),true);
+  assert.equal(r.loadState(r.serialize(s)).stocked,1);
+ });
+});
+test('stage 3: 30 left-fire-exit and inventory regression simulations',()=>{
+ const door=source('doors.js');
+ assert.match(door,/firePivot\.position\.set\(-9\.37/);
+ assert.match(door,/fireOpen\?1\.35:0/);
+ assert.match(door,/mortar joins/);
+ simulate(i=>{const s=r.newState();s.money=10000;const a=i%r.AISLES;
+  r.buildBelt(s,0,a,0);assert.equal(r.advanceBelts(s,10),0);
+  assert.equal(r.loadState(r.serialize(s)).stocked,0);
+ });
+});
+test('stage 4: 30 claw-resale simulations, preserving already supplied stock',()=>{
+ simulate(i=>{const s=r.newState();s.money=100000;const a=i%r.AISLES;
+  r.buildBelt(s,0,a,0);r.purchase(s,'itemClaw');
+  const claw=r.deployClaw(s,0,a,r.BAYS-1);assert.ok(claw);
+  r.advanceBelts(s,8);const count=s.beltStock[0][a],funds=s.money;
+  const refund=r.sellClaw(s,claw.id);
+  assert.equal(refund,Math.floor(claw.paid/2));assert.equal(s.money,funds+refund);
+  assert.equal(s.beltStock[0][a],count);assert.equal(s.claws.length,0);
+ });
+});
+test('stage 5: 30 robot breakdown + manual repair simulations',()=>{
+ simulate(i=>{
+  const s=r.newState();s.money=100000;
+  const bot=r.hireRobot(s,250,true),aisle=i%r.AISLES,bay=i%r.BAYS;
+  r.assignRobot(s,bot.id,0,aisle,bay);
+  const point=r.nextRobotBreakpoint(s,bot);
+  assert.ok(point>=30&&point<=50);
+  bot.phase='shelf';bot.carry=1;bot.target=r.cellId(0,aisle,0,bay,0);
+  bot.x=r.aisleX(aisle);bot.z=r.bayZ(bay);bot.stockedSinceService=point-1;bot.breakAt=point;
+  for(let j=0;j<12&&!bot.broken;j++)r.botStep(s,bot,1);
+  assert.equal(bot.broken,true);
+  const old=s.stocked;r.botStep(s,bot,10);assert.equal(s.stocked,old);
+  for(let j=0;j<4;j++)assert.equal(r.repairRobot(s,bot.id),true);
+  assert.equal(bot.broken,false);assert.equal(bot.stockedSinceService,0);
+  const loaded=r.loadState(r.serialize(s));
+  assert.equal(loaded.robots[0].broken,false);
+ });
+ for(let level=0;level<5;level++){
+  const s=r.newState();s.levels.robotReliability=level;
+  const bot=r.hireRobot(s,250,true);
+  const n=r.nextRobotBreakpoint(s,bot),ranges=[[30,50],[50,100],[200,300],[500,1000]];
+  if(level===4)assert.equal(n,Infinity);
+  else assert.ok(n>=ranges[level][0]&&n<=ranges[level][1]);
+ }
+});
+test('stage 6: 30 Mike-assigned aisle changes and next-aisle simulations',()=>{
+ simulate(i=>{
+  const s=r.newState();s.money=5000;s.levels.robotLift=1;
+  const bot=r.hireRobot(s,250,true),a=i%9;r.assignRobot(s,bot.id,0,a,4);
+  assert.equal(r.setRobotAisle(s,bot.id,a),true);
+  for(let side=0;side<2;side++)for(let bay=0;bay<r.BAYS;bay++)for(let tier=0;tier<r.TIERS;tier++)
+   s.fill[r.cellId(0,a,side,bay,tier)]=r.SLOTS;
+  assert.equal(r.aisleComplete(s,0,a),true);
+  assert.ok(r.robotTarget(s,bot)>=0);
+  assert.equal(bot.aisle,a+1);
+  assert.equal(r.loadState(r.serialize(s)).robots[0].homeAisle,a+1);
+ });
+});
+test('stage 7: 30 checkout unobstructed floor simulations',()=>{
+ const env=source('environment.js');
+ assert.doesNotMatch(env,/for\(const x of \[39\.5,52\.8,65\.2,78\.5\]\)/);
+ simulate(i=>{const s=r.newState();s.money=1000;r.place(s,r.cellId(0,i%10,0,i%r.BAYS,0),true);
+  assert.equal(r.loadState(r.serialize(s)).stocked,1);
+ });
+});
+test('stage 8: 30 aisle-sign visibility simulations',()=>{
+ const env=source('environment.js');
+ assert.doesNotMatch(env,/const signShell=/);
+ assert.doesNotMatch(env,/const labelNum=/);
+ assert.match(env,/AISLE '\+String\(i\+1\)/);
+ simulate(i=>{const s=r.newState();s.money=1000;r.place(s,r.cellId(0,i%10,0,i%r.BAYS,0),true);
+  assert.equal(r.loadState(r.serialize(s)).stocked,1);
+ });
+});
