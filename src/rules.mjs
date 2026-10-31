@@ -218,7 +218,7 @@ export function sellBelt(s,f,a,segment){
 // One aisle = 2 sides × 30 bays × 4 heights × 4 packages.
 export const itemsPerAisle=2*BAYS*TIERS*SLOTS;
 export const PALLET_FRACTIONS=[1/20,1/16,1/8,1/4,1/2,1];
-export const palletCapacity=s=>Math.ceil(itemsPerAisle*PALLET_FRACTIONS[Math.max(0,Math.min(5,s.levels.palletCapacity||0))])+4*(s.levels.warehouseLogistics||0);
+export const palletCapacity=s=>Math.min(itemsPerAisle,Math.ceil(itemsPerAisle*PALLET_FRACTIONS[Math.max(0,Math.min(5,s.levels.palletCapacity||0))])+4*(s.levels.warehouseLogistics||0));
 export function loadPallet(s){
  const p=s.pallet;if(Math.hypot(p.x-DOCK.x,p.z-DOCK.z)>9)return 0;
  const amount=palletCapacity(s)-p.load;if(amount<=0)return 0;
