@@ -59,8 +59,15 @@ test('bots collect supplies and stock shelves, including unvisited floors',()=>{
  assert.equal(s2.robots.length,1);
  s2.floor=14;
  const before=s2.stocked;
+ // Reliability update: a worn-down robot will NOT run until the player
+ // manually repairs it. The test services the bot first, then verifies
+ // that its work resumes even if the player changes floors.
+ if(s2.robots[0].broken){
+   for(let i=0;i<4;i++)assert.equal(r.repairRobot(s2,s2.robots[0].id),true);
+ }
+ assert.equal(s2.robots[0].broken,false);
  for(let i=0;i<500;i++)r.botStep(s2,s2.robots[0],.1);
- assert.ok(s2.stocked>before,'robot operates when player is on another floor');
+ assert.ok(s2.stocked>before,'serviced robot works on its assigned floor even when player is elsewhere');
 });
 test('save restores economy, exact shelf progress and valid upgrades',()=>{
  const s=r.newState();s.floor=11;s.money=500;s.pending=9;s.belts[8][3]=9;
