@@ -11,7 +11,7 @@ import {cartonTexture} from './textures.js';
 import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
- capacity,walkSpeed,price,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
+ capacity,walkSpeed,price,skillAvailable,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
  floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
