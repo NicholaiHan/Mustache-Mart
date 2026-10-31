@@ -92,6 +92,13 @@ function botAppearance(r){
   const arm=round(.16,.48,.18,trim,b);arm.position.set(side*.54,1.01,-.06);
  }
  const light=round(.26,.08,.12,orange,b);light.position.set(0,1.84,-.07);
+ // A prominent fault lamp stays on the chassis even when the lifting mast rises.
+ const repairBeacon=new THREE.Mesh(
+  new THREE.SphereGeometry(.16,14,10),
+  new THREE.MeshBasicMaterial({color:'#f15b42'})
+ );
+ repairBeacon.name='repairBeacon';repairBeacon.position.set(0,2.07,0);repairBeacon.visible=false;b.add(repairBeacon);
+ const alarmBase=round(.32,.09,.32,trim,b);alarmBase.position.set(0,1.94,0);
  const hatch=round(.55,.07,.44,trim,b);hatch.position.set(0,1.31,.13);
  if(s.levels.robotLift){
   // Compact motorized scissor lift; only the robots have this mechanism.
@@ -107,7 +114,7 @@ function botAppearance(r){
  if(s.levels.robotLift){
   // Motorized lift: wheels stay planted while the upper robot rises.
   const liftBody=new THREE.Group();liftBody.name='liftBody';
-  for(const part of [...b.children])if(part.position.y>.58){
+  for(const part of [...b.children])if(part.position.y>.58&&part.name!=='repairBeacon'){
    b.remove(part);liftBody.add(part);
   }
   b.add(liftBody);
