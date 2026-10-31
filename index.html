@@ -235,6 +235,17 @@ button:active:not(:disabled){transform:translateY(1px)}
 @media(max-width:700px){#shop.skillTreeMode .panel,#shop.toolShopMode .panel{width:100%;padding:12px}#shopitems .toolUpgrade{min-height:192px}.skillTreeSummary{flex-direction:column;align-items:flex-start}.skillViewport{height:57vh;min-height:360px}}
 @media(prefers-reduced-motion:reduce){#shopitems .justPurchased{animation:none}#shopitems .toolUpgrade,#shopitems .skillNode,#shopitems .skillFoundation{transition:none}}
 
+
+/* Portable save transfer lets players restore the same save on a different local port. */
+#saveTransfer{border:1px solid #b9cabb;border-radius:11px;background:#edf4ec;margin:18px 0 10px;padding:15px;text-align:left}
+#saveTransfer>strong{font-size:14px;color:#2a5243}
+#saveTransfer p{margin:6px 0 10px;line-height:1.4}
+#saveTransfer .saveActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#saveTransfer button,#saveTransfer .saveFileLabel{display:inline-flex;align-items:center;justify-content:center;position:relative;padding:10px 13px;background:#e0eee3;border:1px solid #6d9781;border-radius:8px;font-size:12px;font-weight:850;color:#275540;cursor:pointer;box-shadow:none}
+#saveTransfer .saveFileLabel:focus-within{outline:3px solid #7cbb91;outline-offset:3px}
+#saveTransfer .saveFileLabel input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+#saveTransferStatus{display:block;color:#6e543a;margin-top:8px;font-size:11px}
+
 </style>
 </head>
 <body>
@@ -269,6 +280,15 @@ button:active:not(:disabled){transform:translateY(1px)}
     <p><strong>15 floors. 144,000 products. One grand opening.</strong><br>The inventory warehouse is all the way at the BACK of the store. Begin by carrying a single can through long aisles. Earn 1¢ on lower racks, 2¢ using a step ladder and 3¢ with the telescopic ladder extension. Collect pay at the front window, then visit Mustache Mike for tools and economy contracts.</p>
     <p class="hint">WASD to walk · E to collect / stock · mouse or arrow keys to aim · E near Mike for upgrades · R at elevator · B to extend rear-fed conveyor · Space to jump (upgrade) · L to place a ladder · C to climb, W/S to move up/down · X to sell equipment · Buy a robot at Mike's, walk into an aisle and left-click to deploy.</p>
     <button id="play">Start your shift</button> <button id="reset">Reset this game's saved progress</button>
+    <div id="saveTransfer"><strong>Save backup &amp; recovery</strong>
+      <p class="hint">Missing your progress after switching ports? Open your old port using the same browser, export the save, then import it here. This does not reset the old copy.</p>
+      <div class="saveActions"><button type="button" id="saveExport">Download save backup</button>
+        <label for="saveImportFile" class="saveFileLabel">Import save backup
+          <input id="saveImportFile" type="file" accept=".json,application/json">
+        </label>
+      </div>
+      <small id="saveTransferStatus" aria-live="polite"></small>
+    </div>
     <p class="hint">Progress is saved per browser and port (8000 and 8011 have separate saves). To find older progress, reopen its original port in the same browser. Add #dev to the address for a minimum $500 testing balance. The game does not need Electron.</p>
   </div>
 </div>
