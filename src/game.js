@@ -17,7 +17,8 @@ import {
 
 const $=id=>document.getElementById(id);
 // Upgrade existing fifteen-floor saves by reindexing their old three-band shelves.
-let s=loadState(localStorage.getItem(SAVE_KEY) || localStorage.getItem('mustacheMartV3'));
+const ORIGINAL_SAVE_DATA=localStorage.getItem(SAVE_KEY) || localStorage.getItem('mustacheMartV3');
+let s=loadState(ORIGINAL_SAVE_DATA);
 // Explicit opt-in dev mode: restore at least $500 in test cash without touching normal saves.
 const DEV_MODE=location.hash==='#rich'||location.hash==='#dev';
 if(DEV_MODE)s.money=Math.max(s.money,50000);
@@ -901,6 +902,29 @@ document.addEventListener('pointerlockchange',()=>{
 });
 renderer.domElement.addEventListener('click',()=>{if(running)pointerRequest();});
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+// A #dev URL is easy to forget; offer a visible, one-click way to enable
+// testing funds without changing the user's purchased skills or shelf progress.
+function showSaveOrigin(){
+ const status=$('saveOriginStatus');
+ const totalRanks=Object.values(s.levels).reduce((sum,n)=>sum+n,0);
+ const locationLabel=location.protocol+'//'+location.host;
+ status.textContent='THIS BROWSER SAVE · '+locationLabel+' · '+s.stocked.toLocaleString()+' products stocked · '+totalRanks+' total upgrade ranks · '+centsText(s.money)+' cash. '+(!ORIGINAL_SAVE_DATA?'No previous saved game was found at this browser address. Your older skills may still be on another port (8000 or 8011), or in another browser.':'Your progress was loaded from this browser address.');
+ const btn=$('devEnable');
+ btn.textContent=DEV_MODE?'Refill developer cash to $500':'Enable $500 Developer Mode';
+ $('devStatus').textContent=DEV_MODE?'Developer Mode ON · Refill this account to at least $500 whenever needed.':'Developer Mode OFF · Enable without losing existing shelf or skill progress.';
+}
+$('devEnable').addEventListener('click',()=>{
+ if(!DEV_MODE){
+  // Changing the fragment keeps the same browser origin/local save.
+  location.hash='#dev';
+  location.reload();
+  return;
+ }
+ const previous=s.money;
+ s.money=Math.max(s.money,50000);
+ save();uiUpdate();showSaveOrigin();
+ notify(s.money===previous?'Developer funds ready · '+centsText(s.money):'Developer account refilled to '+centsText(s.money));
+});
 $('play').addEventListener('click',resume);
 $('reset').addEventListener('click',e=>{e.stopPropagation();if(confirm('Erase your new 15-floor save and restart?')){localStorage.removeItem(SAVE_KEY);location.reload();}});
 // Browser localStorage is isolated by host+port. Portable save files provide
@@ -958,6 +982,6 @@ if(DEV_MODE){
    snapshot(){return {beltItems:s.beltItems[s.floor].map(row=>row.slice()),selectedBeltAisle,feedCrates:feederCrates.length,devMode:DEV_MODE,checkoutCount:s.floor===0?4:0,x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
  };
 }
-buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();
+buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();showSaveOrigin();
 if(PREVIEW_ENDING)beginEnding();
 requestAnimationFrame(animate);
