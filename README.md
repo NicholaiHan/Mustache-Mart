@@ -20,11 +20,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8011/#dev** in Chrome or Safari. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.30.4** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+2. Open **http://127.0.0.1:8011/#dev** in Chrome or Safari. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.31.1** and the introduction must list the new cash registers, Mike, ladders and fire exit.
 3. **Development mode** (the `#dev` suffix) gives **at least $500** for testing. Stop the server with **Control+C**.
 4. Port **8011 is deliberately different from 8000**: existing browser saves at port 8000 are still retained, but do not appear automatically at 8011 (browser storage is origin-specific). For continuing the same saved progress after verifying the build, stop the older port-8000 server, then in the downloaded folder run `node server.cjs` and open `http://127.0.0.1:8000/#dev`.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.30.4** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.31.1** is shown.
 
 ## Play on your MacBook
 
@@ -131,7 +131,7 @@ This is still a procedural browser game rather than a fully modeled commercial s
 
 These are deterministic **accelerated gameplay/rules simulations**, not thirty human-controlled rendered sessions. Separately, Playwright browser smoke tests actually render the first floor and interact with the checkout register, paycheck terminal, Mike, ladders, conveyor belts and red fire exit in Chromium.
 
-## Build 2026.10.30.4: conveyor visualization and structural art
+## Build 2026.10.31.1: conveyor visualization and structural art
 
 - **Original top-left HUD icons** replace all five phone/OS emoji labels: store, cash, payroll, carrying and robots are custom scalable vector artwork.
 - At **rear receiving** (near the inventory pickup), use **[** and **]** to select an aisle, then press **B** to connect its **first** conveyor segment. Its status panel shows the selected aisle, connected branches and stock out of three items per built section. Once the first branch exists, extend it from its **frontmost tip** with B. Sections move in one direction, **toward the entrance**, and production pauses when their endpoint is full.
@@ -147,7 +147,7 @@ These are deterministic **accelerated gameplay/rules simulations**, not thirty h
 - Item claw: buy an **Automated Item Claw** separately at Mike's. Stand near the front endpoint of the belt and press **K** to install the claw. Each placed claw picks one physical unit from the nearest main receiving counter or pallet drop-off within reach and places it on the belt, stopping when the belt buffer is full. Robots and players take from those real stocks.
 - Normal mode remains on http://127.0.0.1:8000/ ; development funds are on http://127.0.0.1:8000/#dev . Previous save progress is retained (version-4 format).
 
-## October 30, 2026 — Rendering and Mike's interaction improvements (build 2026.10.30.4)
+## October 30, 2026 — Rendering and Mike's interaction improvements (build 2026.10.31.1)
 
 - **No long overhead black bar:** removed the 98-metre receiving gantry and secondary floating beam. Only grounded, local metal rollers and the separately installed item claws are visible. This is a visual change, not a change to pallet or claw inventory rules.
 - **Cleaner UI:** the former black help/prompt/routing panels are now compact pale service displays so they no longer cover the store.
@@ -155,14 +155,28 @@ These are deterministic **accelerated gameplay/rules simulations**, not thirty h
 - **Mike is an E interaction:** stand at his desk and press **E** to open the shop; clicking the game screen next to him will not open it. **Close Shop** restores mouse look in the same click. If a browser blocks relocking after **Escape**, click the game once; a small on-screen label tells you when recapture is needed. Q is no longer a shop shortcut.
 - **Mike's eyes:** flat built-in digital LED matrix instead of raised orb-style eyes.
 
-## Build 2026.10.30.4 — Payroll mounted on front wall
+## Build 2026.10.31.1 — Payroll mounted on front wall
 
 The entire wages window—not just its sign—is attached to the physical interior front wall at **z=-12.45**. Counter back and facade embed into the wall by design so no visible gap remains. Glass, trim, card reader, documents, receipt printer, and queue guide have moved as one station. The accessible **E** payroll collection position is now **(x=10, z=-8.38)**. Previous saves and balances are unchanged. A regression checks facade/back-of-counter overlap against the real wall and accessible customer space.
 
-## October 30, 2026 — Three-item conveyor segments (build 2026.10.30.4)
+## October 30, 2026 — Three-item conveyor segments (build 2026.10.31.1)
 
 **Each physical conveyor segment now holds exactly 0–3 real products.** The crane may take from nearby warehouse stock (within reach) or inventory piles delivered by your pallet jack; it stops when its receiving segment has three products. Each transport step moves **only one package into the next built conveyor**, and never into a missing or full segment. If a connection is absent/full, the cartons stay put until a player or robot removes one or you build more belt. Clockwise-rotated Z junctions obey the same capacity rule.
 
 The 3D conveyor shows precisely as many visible cartons as that physical segment contains—no fake permanently animated products. Player and robot pickup removes the matching physical item. The crane prompt reports **LOADING**, **PAUSED (FULL)** or **IDLE (NO INVENTORY)**. Progress saves preserve per-segment inventory. Any genuine old overflow is converted into a nearby inventory pickup pile, not deleted. Stale automatically generated products on legacy saves without a placed claw are cleared.
 
 The core logistic regression includes **30 randomized congestion simulations** with the invariant: remaining source goods + all belt cartons + player pickup = initial goods, plus the pre-existing complete first-floor tests and headless browser rendering checks.
+
+## October 31, 2026 — Skill Tree & Maintenance (build 2026.10.31.1)
+
+**Mike → Skill tree:** 12 new prerequisite-gated skill upgrades grouped into Handling, Automation, Maintenance and Retail. Existing upgrades remain, so there are now 30 upgrade types overall. Buying skills increases carrying, travel speed, robotic picking/stocking, conveyor and claw speed, revenue or maintenance effectiveness. The full skill menu shows each prerequisite and locks unavailable ranks.
+
+**Robot breakdowns:** every individual stocker needs manual repair after **30–50** pieces at base reliability. Unlock the Reliability Tree (after Technician Training): rank 1 **50–100**, rank 2 **200–300**, rank 3 **500–1000**, rank 4 **never breaks**. Broken robots stop working, display a red alarm lamp, and show a repair prompt when you approach. Press **E** up to four times to repair (Technician Training reduces to one). An upgrade to permanent reliability also immediately repairs any currently broken workers.
+
+**Mike → Equipment & automation → Your robots:** choose **Aisle 1–10** for each individual worker from a dropdown. The robot stays there until all four height bands on both sides are stocked, then automatically advances to the next incomplete aisle. The selected assignment and repair state persist in your existing local save.
+
+**Claw resale:** stand beside a placed claw and press **X**, or sell it in Mike's equipment management list, for half its original purchase cost. Existing products already on the conveyor remain available.
+
+**Visual updates:** the elevator now has inset brushed-steel double doors, trim, call panel and a floor display; the FIRE EXIT is on the **left**, swings inward and opens onto detailed staggered brickwork with mortar. Removed the floor-level posts beside cash registers and the solid colored flags obscuring aisle names.
+
+**Verification:** 8 successive upgrade stages were each checked with 30 deterministic gameplay simulations (240 stage checks total); the repository also runs an independent CI test suite of the same eight stages. These are logic/geometry checks, not 240 manually driven 3D playthroughs.
