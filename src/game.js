@@ -12,7 +12,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,sellRobot,deployLadder,sellLadder,sellBelt,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
+ floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -287,6 +287,10 @@ function sellNearby(){
   const d=Math.hypot(V.x-l.x,V.z-l.z);
   if(d<dist){dist=d;best={type:'ladder',id:l.id};}
  }
+ if(!best||best.type!=='ladder')for(const claw of s.claws.filter(c=>c.floor===s.floor)){
+  const d=Math.hypot(V.x-claw.x,V.z-claw.z);
+  if(d<dist){dist=d;best={type:'claw',id:claw.id};}
+ }
  if(!best||best.type!=='ladder')for(const r of s.robots.filter(r=>r.placed&&r.floor===s.floor)){
   const d=Math.hypot(V.x-r.x,V.z-r.z);
   if(d<dist){dist=d;best={type:'robot',id:r.id};}
@@ -296,8 +300,8 @@ function sellNearby(){
   const z=bayZ(BAYS-n),d=Math.hypot(V.x-(aisleX(a)+1.4),V.z-z);
   if(d<dist){dist=d;best={type:'belt',a,seg:n-1};}
  }
- if(!best){notify('Walk close to a robot, ladder, or END conveyor segment and press X.');return;}
- const refund=best.type==='ladder'?sellLadder(s,best.id):best.type==='robot'?sellRobot(s,best.id):sellBelt(s,s.floor,best.a,best.seg);
+ if(!best){notify('Walk close to a robot, item claw, ladder, or END conveyor segment and press X.');return;}
+ const refund=best.type==='ladder'?sellLadder(s,best.id):best.type==='robot'?sellRobot(s,best.id):best.type==='claw'?sellClaw(s,best.id):sellBelt(s,s.floor,best.a,best.seg);
  if(!refund){notify('Cannot sell that equipment.');return;}
  if(best.type==='ladder'&&climbingLadderId===best.id){climbingLadderId=null;V.y=0;V.vy=0;}
  buildWorld();save();
@@ -375,6 +379,16 @@ function renderShop(){
     const sell=document.createElement('button');sell.textContent='Sell for '+centsText(Math.floor(r.paid/2));
     sell.addEventListener('click',()=>{sellRobot(s,r.id);buildWorld();save();renderShop();uiUpdate();});
     buttons.append(relocate,sell);item.append(buttons);list.append(item);
+   }
+  }
+  if(s.claws.length){
+   const heading=document.createElement('h3');heading.textContent='Deployed claws · Resale';list.append(heading);
+   for(const claw of s.claws){
+    const row=document.createElement('div');row.className='upgrade';
+    const label=document.createElement('strong');label.textContent='Claw #'+claw.id+' · '+floorLabel(claw.floor)+' / Aisle '+(claw.aisle+1);
+    const button=document.createElement('button');button.textContent='Sell '+centsText(Math.floor(claw.paid/2));
+    button.addEventListener('click',()=>{sellClaw(s,claw.id);buildWorld();save();renderShop();uiUpdate();});
+    row.append(label,button);list.append(row);
    }
   }
   if(s.ladderInventory.length){
