@@ -341,7 +341,7 @@ function openShop(){
 }
 function renderShop(){
  $('shopMoney').textContent=centsText(s.money);
- for(const name of ['tools','economy']){
+ for(const name of ['tools','skills','economy']){
   const tab=$('tab-'+name);tab.setAttribute('aria-pressed',String(shopCategory===name));
   tab.classList.toggle('selected',shopCategory===name);
  }
@@ -350,9 +350,9 @@ function renderShop(){
   const lv=s.levels[u.id],cost=price(u,lv),max=lv>=u.max;
   const row=document.createElement('div');row.className='upgrade';
   const info=document.createElement('div'),name=document.createElement('strong'),desc=document.createElement('small');
-  name.textContent=u.name+' · Lv '+lv+'/'+u.max;desc.textContent=u.detail;
+  name.textContent=(u.branch?'['+u.branch+'] ':'')+u.name+' · Lv '+lv+'/'+u.max;desc.textContent=u.detail+(u.requires?' · Requires: '+Object.entries(u.requires).map(([id,n])=>(UPGRADES.find(x=>x.id===id)?.name||id)+' Lv '+n).join(', '):'');
   info.append(name,desc);const btn=document.createElement('button');
-  btn.textContent=max?'MAXED':centsText(cost);btn.disabled=max||s.money<cost||(['cart','ladderPlus'].includes(u.id)&&!s.levels.ladder);
+  btn.textContent=max?'MAXED':!skillAvailable(s,u)?'LOCKED':centsText(cost);btn.disabled=max||s.money<cost||!skillAvailable(s,u)||(['cart','ladderPlus'].includes(u.id)&&!s.levels.ladder);
   btn.addEventListener('click',()=>{
    if(!purchase(s,u.id))return;
    if(u.id==='robot'){const r=s.robots[s.robots.length-1];save();startRobotPlacement(r.id);return;}
@@ -718,7 +718,7 @@ window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camer
 $('play').addEventListener('click',resume);
 $('reset').addEventListener('click',e=>{e.stopPropagation();if(confirm('Erase your new 15-floor save and restart?')){localStorage.removeItem(SAVE_KEY);location.reload();}});
 $('shopClose').addEventListener('click',resume);
-for(const category of ['tools','economy'])$('tab-'+category).addEventListener('click',()=>{shopCategory=category;renderShop();});
+for(const category of ['tools','skills','economy'])$('tab-'+category).addEventListener('click',()=>{shopCategory=category;renderShop();});
 $('elevatorClose').addEventListener('click',resume);
 // Local-only QA controls are enabled solely with the explicit #rich developer URL.
 if(DEV_MODE){
