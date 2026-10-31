@@ -25,7 +25,19 @@ export const UPGRADES=[
 {id:'soupTriple',name:'Canned Goods Supercontract',detail:'ALL canned goods pay 3× their normal cents. A $50 investment.',base:5000,factor:1,max:1,category:'economy'},
 {id:'waterDouble',name:'Bottled Water Partnership',detail:'Water products pay twice their normal cents.',base:2500,factor:1,max:1,category:'economy'},
 {id:'shelfBonus',name:'High-Shelf Premium',detail:'Add 1¢ per level to 2¢ and 3¢ height-band products.',base:900,factor:1.9,max:5,category:'economy'},
-{id:'robotBonus',name:'Automation Profit Share',detail:'Robots and the cart earn 25% more cents per level.',base:3500,factor:2.0,max:5,category:'economy'}
+{id:'robotBonus',name:'Automation Profit Share',detail:'Robots and the cart earn 25% more cents per level.',base:3500,factor:2.0,max:5,category:'economy'},
+{id:'carryHarness',name:'Cargo Harness',detail:'Carry +2 goods per rank. Requires Double Grip Lv 2.',base:130,factor:1.75,max:6,category:'skills',branch:'Handling',requires:{capacity:2}},
+{id:'courierStride',name:'Warehouse Footwork',detail:'Improve sprinting speed. Requires Sneakers Lv 2.',base:220,factor:1.7,max:8,category:'skills',branch:'Handling',requires:{speed:2}},
+{id:'warehouseFocus',name:'Shelf Locator',detail:'Faster robot acquisition of target shelves. Requires Robot Espresso Lv 1.',base:350,factor:1.75,max:5,category:'skills',branch:'Automation',requires:{robotSpeed:1}},
+{id:'clawCycle',name:'Claw Servo Tuning',detail:'Claw cycle rate +12% per rank. Requires owning an Item Claw.',base:550,factor:2.0,max:6,category:'skills',branch:'Automation',requires:{itemClaw:1}},
+{id:'beltMotor',name:'Conveyor Drive Control',detail:'Move products 12% faster per rank. Requires Claw Servo Lv 1.',base:950,factor:2,max:6,category:'skills',branch:'Automation',requires:{clawCycle:1}},
+{id:'robotEfficiency',name:'Precision Stocking',detail:'Stocking rate +10% per rank. Requires Shelf Locator Lv 1.',base:750,factor:1.9,max:6,category:'skills',branch:'Automation',requires:{warehouseFocus:1}},
+{id:'repairTraining',name:'Technician Training',detail:'Repair a broken stocker quicker and more economically. Requires one bot.',base:400,factor:1.7,max:3,category:'skills',branch:'Maintenance',requires:{robot:1}},
+{id:'robotReliability',name:'Robot Reliability Tree',detail:'4 ranks: 50–100, 200–300, 500–1000, then NEVER breaks. Requires Technician Training.',base:900,factor:7,max:4,category:'skills',branch:'Maintenance',requires:{repairTraining:1}},
+{id:'retailMargin',name:'Merchandise Markup',detail:'Earn +1¢ per 2 levels on every stocked item. Requires shelf premium.',base:1400,factor:2.25,max:8,category:'skills',branch:'Retail',requires:{shelfBonus:1}},
+{id:'robotCommission',name:'Robot Commission',detail:'Earn +1¢ for every robotic package stocked per rank. Requires Retail Markup Lv 1.',base:1800,factor:2.4,max:5,category:'skills',branch:'Retail',requires:{retailMargin:1}},
+{id:'cashback',name:'Supplier Rebates',detail:'Receive 2% of the purchase price back on equipment purchases per rank. Requires Retail Markup Lv 2.',base:2600,factor:2.0,max:5,category:'skills',branch:'Retail',requires:{retailMargin:2}},
+{id:'warehouseLogistics',name:'Supply Chain Planning',detail:'Raise pallet capacity by 4 pieces per rank. Requires pallet capacity upgrade.',base:3200,factor:2.1,max:6,category:'skills',branch:'Handling',requires:{palletCapacity:1}}
 ];
 export function cellId(f,a,side,bay,tier){return ((((f*AISLES+a)*2+side)*BAYS+bay)*TIERS+tier);}
 export function decode(id){const tier=id%TIERS;id=Math.floor(id/TIERS);const bay=id%BAYS;id=Math.floor(id/BAYS);const side=id%2;id=Math.floor(id/2);return {floor:Math.floor(id/AISLES),aisle:id%AISLES,side,bay,tier};}
@@ -108,14 +120,15 @@ export function loadState(text){
  return s;
 }
 export function serialize(s){return JSON.stringify({version:4,money:s.money,pending:s.pending,floor:s.floor,fill:Array.from(s.fill),levels:s.levels,belts:s.belts,beltReceipts:s.beltReceipts,beltStock:s.beltStock,beltItems:s.beltItems,beltFlowTimer:s.beltFlowTimer,beltTimers:s.beltTimers,beltDirection:s.beltDirection,claws:s.claws,clawInventory:s.clawInventory,clawNextId:s.clawNextId,stockPiles:s.stockPiles,pallet:{...s.pallet,driving:false},ladderInventory:s.ladderInventory,ladders:s.ladders,ladderNextId:s.ladderNextId,robots:s.robots,robotNextId:s.robotNextId,cart:s.cart,cursor:s.cursor});}
-export const capacity=s=>1+s.levels.capacity,walkSpeed=s=>3.3+s.levels.speed*.45;
+export const capacity=s=>1+s.levels.capacity+2*(s.levels.carryHarness||0),walkSpeed=s=>3.3+s.levels.speed*.45+(s.levels.courierStride||0)*.22;
 export const price=(u,l)=>Math.ceil(u.base*u.factor**l);
+export const skillAvailable=(s,u)=>!u.requires||Object.entries(u.requires).every(([id,level])=>(s.levels[id]||0)>=level);
 export function purchase(s,id){
  const u=UPGRADES.find(x=>x.id===id);if(!u)return false;
- const level=s.levels[id],cost=price(u,level);if(level>=u.max||s.money<cost)return false;
+ const level=s.levels[id],cost=price(u,level);if(level>=u.max||s.money<cost||!skillAvailable(s,u))return false;
  if(id==='cart'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
  if(id==='ladderPlus'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
- s.money-=cost;s.levels[id]++;if(id==='robot')hireRobot(s,cost,false);if(id==='ladder'||id==='ladderUnit')s.ladderInventory.push({kind:id,paid:cost});if(id==='itemClaw')s.clawInventory.push({paid:cost});return true;
+ s.money-=cost;s.money+=Math.floor(cost*Math.min(.1,(s.levels.cashback||0)*.02));s.levels[id]++;if(id==='robot')hireRobot(s,cost,false);if(id==='ladder'||id==='ladderUnit')s.ladderInventory.push({kind:id,paid:cost});if(id==='itemClaw')s.clawInventory.push({paid:cost});return true;
 }
 export function payOut(s){const p=s.pending;s.pending=0;s.money+=p;return p;}
 export function earnings(s,id,automatic=false){
@@ -124,7 +137,7 @@ export function earnings(s,id,automatic=false){
  if(aisle%5===0&&s.levels.soupTriple)amount*=3;
  if(aisle%5===1&&s.levels.waterDouble)amount*=2;
  if(automatic&&s.levels.robotBonus)amount=Math.ceil(amount*(1+.25*s.levels.robotBonus));
- return amount;
+ return amount+(s.levels.retailMargin||0>>1)+(automatic?(s.levels.robotCommission||0):0);
 }
 export function place(s,id,automatic=false){
  if(!Number.isInteger(id)||id<0||id>=TOTAL_CELLS||s.fill[id]>=SLOTS)return 0;
@@ -185,7 +198,7 @@ export function sellBelt(s,f,a,segment){
 // One aisle = 2 sides × 30 bays × 4 heights × 4 packages.
 export const itemsPerAisle=2*BAYS*TIERS*SLOTS;
 export const PALLET_FRACTIONS=[1/20,1/16,1/8,1/4,1/2,1];
-export const palletCapacity=s=>Math.ceil(itemsPerAisle*PALLET_FRACTIONS[Math.max(0,Math.min(5,s.levels.palletCapacity||0))]);
+export const palletCapacity=s=>Math.ceil(itemsPerAisle*PALLET_FRACTIONS[Math.max(0,Math.min(5,s.levels.palletCapacity||0))])+4*(s.levels.warehouseLogistics||0);
 export function loadPallet(s){
  const p=s.pallet;if(Math.hypot(p.x-DOCK.x,p.z-DOCK.z)>9)return 0;
  const amount=palletCapacity(s)-p.load;if(amount<=0)return 0;
@@ -298,8 +311,8 @@ export function advanceBelts(s,dt){
  while(dt>0){
   const delta=Math.min(dt,.4);dt-=delta;
   s.beltFlowTimer+=delta;
-  while(s.beltFlowTimer>=BELT_MOVE_SECONDS){
-   s.beltFlowTimer-=BELT_MOVE_SECONDS;
+  while(s.beltFlowTimer>=BELT_MOVE_SECONDS/(1+(s.levels.beltMotor||0)*.12)){
+   s.beltFlowTimer-=BELT_MOVE_SECONDS/(1+(s.levels.beltMotor||0)*.12);
    moveBeltItemsOneStep(s);
   }
   for(const claw of s.claws){
@@ -307,13 +320,13 @@ export function advanceBelts(s,dt){
    const source=seg>=0&&beltInput(s,claw)?nearestClawSource(s,claw):null;
    if(!source){claw.timer=0;continue;}
    claw.timer+=delta;
-   if(claw.timer<CLAW_PICK_SECONDS)continue;
+   if(claw.timer<CLAW_PICK_SECONDS/(1+(s.levels.clawCycle||0)*.12))continue;
    const current=nearestClawSource(s,claw);
    if(!current||!beltInput(s,claw)){claw.timer=0;continue;}
    if(current.type==='pile'&&!takePile(s,current.index,1)){
     claw.timer=0;continue;
    }
-   claw.timer-=CLAW_PICK_SECONDS;
+   claw.timer-=CLAW_PICK_SECONDS/(1+(s.levels.clawCycle||0)*.12);
    s.beltItems[claw.floor][claw.aisle][seg]++;
    s.beltStock[claw.floor][claw.aisle]++;
    delivered++;
@@ -406,7 +419,7 @@ export function botStep(s,r,dt){
   r.floor=f;r.x=aisleX(r.aisle??0);r.z=REAR_CROSSWALK;
   r.phase='supply';r.target=-1;r.carry=0;r.source=null;
  }
- const speed=3.4+s.levels.robotSpeed*.38;
+ const speed=3.4+s.levels.robotSpeed*.38+(s.levels.warehouseFocus||0)*.15;
  if(r.phase==='supply'){
   // A new source is chosen on every supply run (belt vs dock).
   const source=robotSource(s,r);r.source=source;
@@ -427,7 +440,7 @@ export function botStep(s,r,dt){
   const desired=tier<2?0:tier===2?5.0:9.4;
   r.liftY=Math.min(desired,(r.liftY||0)+dt*4.5);
   if(r.liftY+0.1<desired)return -1;
-  r.acc+=dt*(.7+s.levels.robotSpeed*.16);
+  r.acc+=dt*(.7+s.levels.robotSpeed*.16)*(1+(s.levels.robotEfficiency||0)*.1);
   if(r.acc>=1){
    r.acc-=1;
    if(place(s,r.target,true)){
