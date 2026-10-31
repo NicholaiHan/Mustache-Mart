@@ -236,6 +236,15 @@ export function deployClaw(s,f,a,bay){
  const claw={id:s.clawNextId++,floor:f,aisle:a,bay,x:aisleX(a)+2.1,z:bayZ(bay),paid,timer:0};
  s.claws.push(claw);return claw;
 }
+export function sellClaw(s,id){
+ const i=s.claws.findIndex(c=>c.id===id);
+ if(i<0)return 0;
+ const [claw]=s.claws.splice(i,1);
+ const refund=Math.floor(claw.paid/2);
+ s.money+=refund;
+ s.levels.itemClaw=Math.max(0,(s.levels.itemClaw||0)-1);
+ return refund;
+}
 export function rotateBelt(s,f,a,segment){
  if(!Number.isInteger(segment)||segment<0||segment>=s.belts[f]?.[a])return -1;
  return s.beltDirection[f][a][segment]=(s.beltDirection[f][a][segment]+1)%4;
