@@ -352,34 +352,177 @@ function openShop(){
  held.KeyE=false;mouseDown=false;actionClock=0;
  show('shop');renderShop();
 }
+// The skill-tree graph is presentation only. All prerequisites and prices come
+// from UPGRADES and the production purchase() function; save data is unchanged.
+const SKILL_LAYOUT={
+ carryHarness:[0,205],courierStride:[0,424],warehouseLogistics:[0,643],
+ warehouseFocus:[1,205],robotEfficiency:[1,350],clawCycle:[1,575],beltMotor:[1,720],
+ repairTraining:[2,205],robotReliability:[2,350],
+ retailMargin:[3,205],robotCommission:[3,350],cashback:[3,500]
+};
+const FOUNDATION_LAYOUT={
+ capacity:[0,105],speed:[0,324],palletCapacity:[0,543],
+ robotSpeed:[1,105],itemClaw:[1,475],
+ robot:[2,105],shelfBonus:[3,105]
+};
+const SKILL_BRANCHES=['Handling','Automation','Maintenance','Retail'];
+const SKILL_X=[28,328,628,928];
+function makeUpgradeCard(u,view='economy'){
+ const lv=s.levels[u.id],cost=price(u,lv),max=lv>=u.max;
+ const unlocked=skillAvailable(s,u);
+ const state=max?'maxed':!unlocked?'locked':s.money<cost?'unaffordable':'ready';
+ const row=document.createElement('div');
+ row.className='upgrade '+(view==='skills'?'skillNode ':view==='tools'?'toolUpgrade ':'')+'state-'+state;
+ row.dataset.upgrade=u.id;
+ const info=document.createElement('div');info.className='upgradeInfo';
+ const name=document.createElement('strong'),desc=document.createElement('small');
+ name.textContent=(view==='economy'&&u.branch?'['+u.branch+'] ':'')+u.name+(view==='economy'?' · Lv '+lv+'/'+u.max:'');
+ desc.textContent=u.detail+(view==='economy'&&u.requires?' · Requires: '+Object.entries(u.requires).map(([id,n])=>(UPGRADES.find(x=>x.id===id)?.name||id)+' Lv '+n).join(', '):'');
+ if(view!=='economy'){
+  const meta=document.createElement('div');meta.className='upgradeMeta';
+  const family=document.createElement('span');family.className='upgradeFamily';
+  family.textContent=view==='skills'?u.branch:'MM / '+(u.id.startsWith('robot')?'ROBOTICS':u.id.toLowerCase().includes('ladder')||u.id==='cart'?'ACCESS':u.id==='itemClaw'?'LOGISTICS':'EQUIPMENT');
+  const rank=document.createElement('span');rank.className='upgradeRank';rank.textContent='LV '+lv+' / '+u.max;
+  meta.append(family,rank);info.append(meta);
+ }
+ info.append(name,desc);
+ if(view==='skills'){
+  const requirements=document.createElement('div');requirements.className='skillNeeds';
+  for(const [id,n] of Object.entries(u.requires||{})){
+   const req=document.createElement('span');const source=UPGRADES.find(x=>x.id===id);
+   const met=(s.levels[id]||0)>=n;req.className='skillRequirement '+(met?'met':'unmet');
+   req.textContent=(met?'✓ ':'◇ ')+(source?.name||id)+' '+n;
+   requirements.append(req);
+  }
+  info.append(requirements);
+ }
+ const bottom=document.createElement('div');bottom.className='upgradeFooter';
+ if(view!=='economy'){
+  const badge=document.createElement('span');badge.className='upgradeStatus';
+  badge.textContent=max?'COMPLETE':!unlocked?'PREREQUISITE':s.money<cost?'FUNDS NEEDED':'READY';
+  bottom.append(badge);
+ }
+ const btn=document.createElement('button');btn.type='button';
+ btn.textContent=max?'MAXED':!unlocked?'LOCKED':centsText(cost);
+ btn.setAttribute('aria-label',max?u.name+' maxed':!unlocked?u.name+' locked': 'Purchase '+u.name+' for '+centsText(cost));
+ btn.disabled=max||s.money<cost||!unlocked||(['cart','ladderPlus'].includes(u.id)&&!s.levels.ladder);
+ btn.addEventListener('click',()=>{
+  if(!purchase(s,u.id))return;
+  if(u.id==='robot'){const bot=s.robots[s.robots.length-1];save();startRobotPlacement(bot.id);return;}
+  if(['cart','ladderPlus','robotLift'].includes(u.id))buildWorld();
+  if(u.id==='itemClaw')notify('Item claw purchased. Stand by a conveyor outlet and press K to install it.');
+  else notify('UPGRADE INSTALLED · '+u.name+' · Level '+s.levels[u.id]);
+  save();renderShop();uiUpdate();
+  const updated=$('shopitems').querySelector('[data-upgrade="'+u.id+'"]');
+  if(updated){updated.classList.add('justPurchased');updated.scrollIntoView({block:'nearest',inline:'nearest'});}
+ });
+ bottom.append(btn);row.append(info,bottom);
+ return row;
+}
+function renderSkillGraph(list){
+ list.className='skillTree';
+ const summary=document.createElement('div');summary.className='skillTreeSummary';
+ const copy=document.createElement('div'),heading=document.createElement('strong'),description=document.createElement('small');
+ heading.textContent='THE UPGRADE NETWORK';
+ description.textContent='Follow the connections. Branches unlock as you purchase the required equipment or earlier skills.';
+ copy.append(heading,description);
+ const tally=document.createElement('div');tally.className='skillTreeCount';
+ const skills=UPGRADES.filter(u=>u.category==='skills');
+ tally.textContent=skills.filter(u=>s.levels[u.id]>0).length+' / '+skills.length+' skills started';
+ summary.append(copy,tally);list.append(summary);
+ const legend=document.createElement('div');legend.className='skillLegend';
+ for(const [kind,label] of [['ready','Available'],['maxed','Completed'],['locked','Locked'],['unaffordable','Need funds']]){
+  const labelNode=document.createElement('span');labelNode.className='legend-'+kind;labelNode.textContent=label;legend.append(labelNode);
+ }
+ list.append(legend);
+ const viewport=document.createElement('div');viewport.className='skillViewport';viewport.tabIndex=0;
+ viewport.setAttribute('role','region');viewport.setAttribute('aria-label','Connected upgrade skill tree. Scroll horizontally and vertically to browse.');
+ const board=document.createElement('div');board.className='skillBoard';
+ for(let col=0;col<SKILL_BRANCHES.length;col++){
+  const lane=document.createElement('div');lane.className='skillLane skillLane-'+col;lane.style.left=SKILL_X[col]+'px';
+  const title=document.createElement('h3');title.textContent=SKILL_BRANCHES[col];
+  const sub=document.createElement('small');sub.textContent=['MOVE & HAUL','MACHINES & ROUTES','SERVICE & REPAIR','SALES & REBATES'][col];
+  lane.append(title,sub);board.append(lane);
+ }
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ svg.setAttribute('class','skillWires');svg.setAttribute('width','1200');svg.setAttribute('height','870');
+ svg.setAttribute('viewBox','0 0 1200 870');svg.setAttribute('aria-hidden','true');
+ board.append(svg);
+ const targets=new Map();
+ for(const [id,[col,y]] of Object.entries(FOUNDATION_LAYOUT)){
+  const u=UPGRADES.find(x=>x.id===id);
+  const levelsNeeded=Math.max(...skills.map(x=>x.requires?.[id]||0),1);
+  const available=(s.levels[id]||0)>=levelsNeeded;
+  const base=document.createElement('div');base.className='skillFoundation '+(available?'foundationActive':'foundationLocked');
+  base.style.left=SKILL_X[col]+'px';base.style.top=y+'px';base.dataset.foundation=id;
+  const top=document.createElement('span');top.textContent='FOUNDATION · '+(u.category==='economy'?'ECONOMY':'TOOLS');
+  const name=document.createElement('strong');name.textContent=u.name;
+  const progress=document.createElement('small');progress.textContent='LV '+(s.levels[id]||0)+' / '+levelsNeeded+(available?' · ONLINE':' · REQUIRED');
+  base.append(top,name,progress);
+  base.title='Click to find this prerequisite in '+(u.category==='economy'?'Economy':'Equipment');
+  base.tabIndex=0;base.setAttribute('role','button');
+  base.setAttribute('aria-label','Find prerequisite '+u.name);
+  const follow=()=>{shopCategory=u.category||'tools';renderShop();};
+  base.addEventListener('click',follow);
+  base.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();follow();}});
+  board.append(base);targets.set(id,{x:SKILL_X[col]+125,y:y+76,ready:available});
+ }
+ for(const u of skills){
+  const pos=SKILL_LAYOUT[u.id];if(!pos)continue;
+  const [col,y]=pos,x=SKILL_X[col];
+  const node=makeUpgradeCard(u,'skills');
+  node.style.left=x+'px';node.style.top=y+'px';
+  board.append(node);
+  targets.set(u.id,{x:x+125,y:y,ready:s.levels[u.id]>0});
+ }
+ for(const u of skills){
+  const dest=targets.get(u.id);if(!dest)continue;
+  for(const [id,n] of Object.entries(u.requires||{})){
+   const src=targets.get(id);if(!src)continue;
+   const met=(s.levels[id]||0)>=n;
+   const startY=src.y;
+   const endY=dest.y;
+   const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+   const bend=Math.max(28,Math.min(85,Math.abs(endY-startY)*.48));
+   path.setAttribute('d','M '+src.x+' '+startY+' C '+src.x+' '+(startY+bend)+', '+dest.x+' '+(endY-bend)+', '+dest.x+' '+endY);
+   path.setAttribute('class','skillWire '+(met?'wireActive':'wireLocked'));
+   svg.append(path);
+  }
+ }
+ viewport.append(board);list.append(viewport);
+ const foot=document.createElement('p');foot.className='skillGraphFoot';
+ foot.textContent='Foundation blocks link to their required purchase category. The upgrade network does not change prices, prerequisites or saved progress.';
+ list.append(foot);
+}
 function renderShop(){
  $('shopMoney').textContent=centsText(s.money);
+ $('shop').classList.toggle('skillTreeMode',shopCategory==='skills');
+ $('shop').classList.toggle('toolShopMode',shopCategory==='tools');
  for(const name of ['tools','skills','economy']){
   const tab=$('tab-'+name);tab.setAttribute('aria-pressed',String(shopCategory===name));
   tab.classList.toggle('selected',shopCategory===name);
  }
- const list=$('shopitems');list.replaceChildren();
+ const list=$('shopitems');list.replaceChildren();list.className='';
+ if(shopCategory==='skills'){
+  renderSkillGraph(list);
+  return;
+ }
+ if(shopCategory==='tools'){
+  list.classList.add('shopTools');
+  const heading=document.createElement('div');heading.className='toolsHeading';
+  const eyebrow=document.createElement('span');eyebrow.textContent='MUSTACHE MIKE / EQUIPMENT DEPOT';
+  const title=document.createElement('h3');title.textContent='Build your own retail machine.';
+  const caption=document.createElement('small');caption.textContent='Upgrade, deploy, and automate your way through fifteen floors.';
+  heading.append(eyebrow,title,caption);list.append(heading);
+ }
  for(const u of UPGRADES.filter(u=>(u.category||'tools')===shopCategory)){
-  const lv=s.levels[u.id],cost=price(u,lv),max=lv>=u.max;
-  const row=document.createElement('div');row.className='upgrade';
-  const info=document.createElement('div'),name=document.createElement('strong'),desc=document.createElement('small');
-  name.textContent=(u.branch?'['+u.branch+'] ':'')+u.name+' · Lv '+lv+'/'+u.max;desc.textContent=u.detail+(u.requires?' · Requires: '+Object.entries(u.requires).map(([id,n])=>(UPGRADES.find(x=>x.id===id)?.name||id)+' Lv '+n).join(', '):'');
-  info.append(name,desc);const btn=document.createElement('button');
-  btn.textContent=max?'MAXED':!skillAvailable(s,u)?'LOCKED':centsText(cost);btn.disabled=max||s.money<cost||!skillAvailable(s,u)||(['cart','ladderPlus'].includes(u.id)&&!s.levels.ladder);
-  btn.addEventListener('click',()=>{
-   if(!purchase(s,u.id))return;
-   if(u.id==='robot'){const r=s.robots[s.robots.length-1];save();startRobotPlacement(r.id);return;}
-   if(['cart','ladderPlus','robotLift'].includes(u.id))buildWorld();
-   if(u.id==='itemClaw')notify('Item claw purchased. Stand by a conveyor outlet and press K to install it.');
-   save();renderShop();uiUpdate();
-  });
-  row.append(info,btn);list.append(row);
+  list.append(makeUpgradeCard(u,shopCategory));
  }
  if(shopCategory==='tools'){
   if(s.robots.length){
-   const heading=document.createElement('h3');heading.textContent='Your robots · Placement and resale';list.append(heading);
+   const heading=document.createElement('h3');heading.className='toolsGroupTitle';heading.textContent='Your robots · Placement and resale';list.append(heading);
    for(const r of s.robots){
-    const item=document.createElement('div');item.className='upgrade';
+    const item=document.createElement('div');item.className='upgrade toolManagement';
     const name=document.createElement('strong');
     name.textContent='Stocker #'+r.id+' · '+(r.broken?'REPAIR NEEDED · ':'')+(r.placed?floorLabel(r.floor)+' / Aisle '+(r.aisle+1):'Pending placement')+' · '+(r.stockedSinceService||0)+' stocked since service';
     item.append(name);const buttons=document.createElement('div');buttons.className='robotActions';
@@ -389,24 +532,24 @@ function renderShop(){
     sell.addEventListener('click',()=>{sellRobot(s,r.id);buildWorld();save();renderShop();uiUpdate();});
     const chooser=document.createElement('select');chooser.setAttribute('aria-label','Choose aisle for stocker '+r.id);
     for(let aisle=0;aisle<AISLES;aisle++){
-      const option=document.createElement('option');option.value=String(aisle);
-      option.textContent='Aisle '+(aisle+1);option.selected=aisle===(r.homeAisle??r.aisle);
-      chooser.append(option);
+     const option=document.createElement('option');option.value=String(aisle);
+     option.textContent='Aisle '+(aisle+1);option.selected=aisle===(r.homeAisle??r.aisle);
+     chooser.append(option);
     }
     chooser.addEventListener('change',()=>{
-      if(setRobotAisle(s,r.id,Number(chooser.value))){
-        notify('Stocker #'+r.id+' assigned to Aisle '+(Number(chooser.value)+1)+'. Next unfinished aisle follows automatically.');
-        save();renderShop();
-      }
+     if(setRobotAisle(s,r.id,Number(chooser.value))){
+      notify('Stocker #'+r.id+' assigned to Aisle '+(Number(chooser.value)+1)+'. Next unfinished aisle follows automatically.');
+      save();renderShop();
+     }
     });
     item.append(chooser);
     buttons.append(relocate,sell);item.append(buttons);list.append(item);
    }
   }
   if(s.claws.length){
-   const heading=document.createElement('h3');heading.textContent='Deployed claws · Resale';list.append(heading);
+   const heading=document.createElement('h3');heading.className='toolsGroupTitle';heading.textContent='Deployed claws · Resale';list.append(heading);
    for(const claw of s.claws){
-    const row=document.createElement('div');row.className='upgrade';
+    const row=document.createElement('div');row.className='upgrade toolManagement';
     const label=document.createElement('strong');label.textContent='Claw #'+claw.id+' · '+floorLabel(claw.floor)+' / Aisle '+(claw.aisle+1);
     const button=document.createElement('button');button.textContent='Sell '+centsText(Math.floor(claw.paid/2));
     button.addEventListener('click',()=>{sellClaw(s,claw.id);buildWorld();save();renderShop();uiUpdate();});
