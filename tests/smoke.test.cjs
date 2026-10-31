@@ -49,6 +49,9 @@ test('Browser scene implements floor access, building and ending',()=>{
  assert.match(game,/beginEnding\(\)/);
  const doors=fs.readFileSync(path.join(root,'src/doors.js'),'utf8');
  assert.match(doors,/FIRE EXIT/);
+ assert.match(doors,/PUSH BAR TO OPEN/);
+ assert.match(doors,/backing\.position\.set\(-\.18/);
+ assert.match(doors,/brick\.position\.set\(-10\.78/);
  assert.match(game,/stock the entire building before opening/);
  assert.match(game,/WENT BANKRUPT|endingDay/);
  assert.ok(fs.statSync(path.join(root,'vendor/three.module.js')).size>100000);
@@ -56,11 +59,11 @@ test('Browser scene implements floor access, building and ending',()=>{
 
 test('Latest build manifest and Mac launcher contain exactly matching verifiable version',async()=>{
  const manifest=JSON.parse(fs.readFileSync(path.join(root,'build.json'),'utf8'));
- assert.equal(manifest.version,'2026.10.31.2');
- assert.match(html,/UPDATED BUILD · 2026\.10\.31\.2/);
- assert.match(html,/UPDATED EDITION · BUILD 2026\.10\.31\.2/);
+ assert.equal(manifest.version,'2026.10.31.3');
+ assert.match(html,/UPDATED BUILD · 2026\.10\.31\.3/);
+ assert.match(html,/UPDATED EDITION · BUILD 2026\.10\.31\.3/);
  const launcher=fs.readFileSync(path.join(root,'PLAY_LATEST_MAC.sh'),'utf8');
- assert.match(launcher,/PORT:-8011/);
+ assert.match(launcher,/PORT:-8000/);
  assert.match(launcher,/build\.json/);
  assert.match(launcher,/src\/checkout\.js/);
  assert.match(launcher,/src\/ladder\.mjs/);
