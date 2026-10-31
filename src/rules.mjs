@@ -32,7 +32,7 @@ export const UPGRADES=[
 {id:'clawCycle',name:'Claw Servo Tuning',detail:'Claw cycle rate +12% per rank. Requires owning an Item Claw.',base:550,factor:2.0,max:6,category:'skills',branch:'Automation',requires:{itemClaw:1}},
 {id:'beltMotor',name:'Conveyor Drive Control',detail:'Move products 12% faster per rank. Requires Claw Servo Lv 1.',base:950,factor:2,max:6,category:'skills',branch:'Automation',requires:{clawCycle:1}},
 {id:'robotEfficiency',name:'Precision Stocking',detail:'Stocking rate +10% per rank. Requires Shelf Locator Lv 1.',base:750,factor:1.9,max:6,category:'skills',branch:'Automation',requires:{warehouseFocus:1}},
-{id:'repairTraining',name:'Technician Training',detail:'Repair a broken stocker quicker and more economically. Requires one bot.',base:400,factor:1.7,max:3,category:'skills',branch:'Maintenance',requires:{robot:1}},
+{id:'repairTraining',name:'Technician Training',detail:'Reduce E repair actions required (4 → 1). Requires one bot.',base:400,factor:1.7,max:3,category:'skills',branch:'Maintenance',requires:{robot:1}},
 {id:'robotReliability',name:'Robot Reliability Tree',detail:'4 ranks: 50–100, 200–300, 500–1000, then NEVER breaks. Requires Technician Training.',base:900,factor:7,max:4,category:'skills',branch:'Maintenance',requires:{repairTraining:1}},
 {id:'retailMargin',name:'Merchandise Markup',detail:'Earn +1¢ per 2 levels on every stocked item. Requires shelf premium.',base:1400,factor:2.25,max:8,category:'skills',branch:'Retail',requires:{shelfBonus:1}},
 {id:'robotCommission',name:'Robot Commission',detail:'Earn +1¢ for every robotic package stocked per rank. Requires Retail Markup Lv 1.',base:1800,factor:2.4,max:5,category:'skills',branch:'Retail',requires:{retailMargin:1}},
@@ -110,7 +110,11 @@ export function loadState(text){
  placed:r.placed!==false,paid:limit(r.paid??price(UPGRADES.find(u=>u.id==='robot'),i),100000),
  phase:!old&&['supply','shelf'].includes(r.phase)?r.phase:'supply',
  target:!old&&Number.isInteger(r.target)&&r.target>=0&&r.target<TOTAL_CELLS?r.target:-1,
- carry:limit(r.carry,8),acc:0,liftY:0,source:null
+ carry:limit(r.carry,8),homeAisle:limit(r.homeAisle??r.aisle,AISLES-1),
+ stockedSinceService:limit(r.stockedSinceService,1000000),
+ breakdowns:limit(r.breakdowns,100000),broken:!!r.broken,
+ breakAt:Math.max(0,Number(r.breakAt)||0),repairProgress:limit(r.repairProgress,10),
+ acc:0,liftY:0,source:null
  }));
  s.robotNextId=Math.max(limit(d.robotNextId,1000000)||1,...s.robots.map(r=>r.id+1));
  while(s.robots.length<s.levels.robot)hireRobot(s,250,true);
@@ -128,7 +132,9 @@ export function purchase(s,id){
  const level=s.levels[id],cost=price(u,level);if(level>=u.max||s.money<cost||!skillAvailable(s,u))return false;
  if(id==='cart'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
  if(id==='ladderPlus'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
- s.money-=cost;s.money+=Math.floor(cost*Math.min(.1,(s.levels.cashback||0)*.02));s.levels[id]++;if(id==='robot')hireRobot(s,cost,false);if(id==='ladder'||id==='ladderUnit')s.ladderInventory.push({kind:id,paid:cost});if(id==='itemClaw')s.clawInventory.push({paid:cost});return true;
+ s.money-=cost;s.money+=Math.floor(cost*Math.min(.1,(s.levels.cashback||0)*.02));s.levels[id]++;if(id==='robotReliability'&&s.levels.robotReliability===4){
+  for(const bot of s.robots){bot.broken=false;bot.stockedSinceService=0;bot.repairProgress=0;bot.breakAt=Infinity;}
+ }if(id==='robot')hireRobot(s,cost,false);if(id==='ladder'||id==='ladderUnit')s.ladderInventory.push({kind:id,paid:cost});if(id==='itemClaw')s.clawInventory.push({paid:cost});return true;
 }
 export function payOut(s){const p=s.pending;s.pending=0;s.money+=p;return p;}
 export function earnings(s,id,automatic=false){
@@ -157,7 +163,7 @@ export function incomplete(s,f,start=0){
 export function nextRobotFloor(s){for(let f=0;f<FLOORS;f++)if(incomplete(s,f,s.cursor[f])>=0)return f;return -1;}
 export function hireRobot(s,paid=250,placed=false){
  const f=nextRobotFloor(s);if(f<0)return null;
- const r={id:s.robotNextId++,floor:f,aisle:0,x:DOCK.x,z:REAR_CROSSWALK,placed,paid,phase:'supply',target:-1,carry:0,acc:0,liftY:0,source:null};
+ const r={id:s.robotNextId++,floor:f,aisle:0,homeAisle:0,stockedSinceService:0,breakdowns:0,breakAt:0,broken:false,repairProgress:0,x:DOCK.x,z:REAR_CROSSWALK,placed,paid,phase:'supply',target:-1,carry:0,acc:0,liftY:0,source:null};
  s.robots.push(r);return r;
 }
 export function assignRobot(s,id,f,a,bay){
@@ -420,8 +426,27 @@ export function robotSource(s,r){
  });
  return candidates[0];
 }
+export const ROBOT_BREAKDOWN_RANGES=[[30,50],[50,100],[200,300],[500,1000],null];
+export function nextRobotBreakpoint(s,r){
+ const level=Math.max(0,Math.min(4,s.levels.robotReliability||0));
+ const range=ROBOT_BREAKDOWN_RANGES[level];
+ if(!range)return Infinity;
+ // Deterministic, reproducible cycle with a different interval for each bot.
+ const [low,high]=range,seed=((r.id*2654435761)^(r.breakdowns*2246822519))>>>0;
+ return low+(seed%(high-low+1));
+}
+export function repairRobot(s,id){
+ const r=s.robots.find(bot=>bot.id===id);
+ if(!r||!r.broken)return false;
+ const needed=Math.max(1,4-(s.levels.repairTraining||0));
+ r.repairProgress=(r.repairProgress||0)+1;
+ if(r.repairProgress<needed)return true;
+ r.broken=false;r.repairProgress=0;r.stockedSinceService=0;r.breakAt=nextRobotBreakpoint(s,r);
+ return true;
+}
 export function botStep(s,r,dt){
- if(!r.placed||dt<=0)return -1;
+ if(!r.placed||dt<=0||r.broken)return -1;
+ if(!r.breakAt)r.breakAt=nextRobotBreakpoint(s,r);
  if(r.phase==='supply')r.liftY=Math.max(0,(r.liftY||0)-dt*5);
  if(incomplete(s,r.floor,0)<0){
   const f=nextRobotFloor(s);if(f<0)return -1;
@@ -456,6 +481,10 @@ export function botStep(s,r,dt){
      const done=r.target;r.carry--;
      s.cursor[r.floor]=(done-r.floor*CELLS_PER_FLOOR+1)%CELLS_PER_FLOOR;
      r.target=-1;if(r.carry<=0)r.phase='supply';
+     r.stockedSinceService=(r.stockedSinceService||0)+1;
+     if(r.stockedSinceService>=r.breakAt&&Number.isFinite(r.breakAt)){
+       r.broken=true;r.breakdowns=(r.breakdowns||0)+1;r.repairProgress=0;
+     }
      return done;
    }
   }
