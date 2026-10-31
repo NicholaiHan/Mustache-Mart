@@ -927,7 +927,11 @@ $('saveImportFile').addEventListener('change',async e=>{
    throw new Error('This file is not a compatible Mustache Mart save.');
   const restored=loadState(raw);
   if(!confirm('Import this save? It will replace progress on this browser address only. Your backup file and any save on another port will not be deleted.')){status.textContent='Import canceled; progress unchanged.';return;}
-  localStorage.setItem(SAVE_KEY,serialize(restored));
+  // Update the live state before reloading, because beforeunload calls save().
+  // Otherwise that handler could overwrite the imported backup with old data.
+  s=restored;
+  if(DEV_MODE)s.money=Math.max(s.money,50000);
+  save();
   status.textContent='Save imported. Reloading your game…';
   location.reload();
  }catch(err){status.textContent='Import not completed: '+err.message;}
