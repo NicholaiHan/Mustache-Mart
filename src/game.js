@@ -356,13 +356,13 @@ function openShop(){
 // from UPGRADES and the production purchase() function; save data is unchanged.
 const SKILL_LAYOUT={
  carryHarness:[0,205],courierStride:[0,424],warehouseLogistics:[0,643],
- warehouseFocus:[1,205],robotEfficiency:[1,350],clawCycle:[1,575],beltMotor:[1,720],
+ warehouseFocus:[1,205],robotEfficiency:[1,350],clawCycle:[1,630],beltMotor:[1,790],
  repairTraining:[2,205],robotReliability:[2,350],
  retailMargin:[3,205],robotCommission:[3,350],cashback:[3,500]
 };
 const FOUNDATION_LAYOUT={
  capacity:[0,105],speed:[0,324],palletCapacity:[0,543],
- robotSpeed:[1,105],itemClaw:[1,475],
+ robotSpeed:[1,105],itemClaw:[1,525],
  robot:[2,105],shelfBonus:[3,105]
 };
 const SKILL_BRANCHES=['Handling','Automation','Maintenance','Retail'];
@@ -445,8 +445,8 @@ function renderSkillGraph(list){
   lane.append(title,sub);board.append(lane);
  }
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
- svg.setAttribute('class','skillWires');svg.setAttribute('width','1200');svg.setAttribute('height','870');
- svg.setAttribute('viewBox','0 0 1200 870');svg.setAttribute('aria-hidden','true');
+ svg.setAttribute('class','skillWires');svg.setAttribute('width','1200');svg.setAttribute('height','980');
+ svg.setAttribute('viewBox','0 0 1200 980');svg.setAttribute('aria-hidden','true');
  board.append(svg);
  const targets=new Map();
  for(const [id,[col,y]] of Object.entries(FOUNDATION_LAYOUT)){
