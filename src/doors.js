@@ -16,13 +16,26 @@ export function createDoors({getWorld,getFloor,round,cube,textLabel}){
    const header=round(.28,.24,3.74,metal);header.position.set(-9.50,4.55,85);
    const sill=round(.3,.095,3.72,mat('#343c3d',.45,.5));sill.position.set(-9.53,.09,85);
    const brick=new THREE.Group();brick.position.set(-10.67,0,85);world.add(brick);
-   const mortar=mat('#c0b5a5',0,.96),brickMat=mat('#92564b',0,.9);
+   const mortar=mat('#d0c4b4',0,.97);const brickTones=['#96584d','#854c42','#aa695c','#9f6252','#784a40'].map(c=>mat(c,.02,.86));
    const backing=round(.13,4.13,3.35,mortar,brick);backing.position.set(0,2.13,0);
-   for(let row=0;row<13;row++)for(let col=0;col<6;col++){
-     const z=(col-2.5)*.56+(row%2?.26:0);
-     if(Math.abs(z)>1.62)continue;
-     const block=round(.082,.269,.52,brickMat,brick);
-     block.position.set(-.113,.38+row*.285,z);
+   // Running bond brickwork with 16 staggered courses, visible mortar joins,
+   // 5 brick colors, individual chipped joints and a recessed blocked doorway.
+   for(let row=0;row<16;row++)for(let col=-3;col<=3;col++){
+     const z=col*.51+(row%2?.255:0);
+     if(Math.abs(z)>1.59)continue;
+     const block=round(.097,.212,.47,brickTones[(row*7+col*11+17)%brickTones.length],brick);
+     block.position.set(-.139,.32+row*.243,z);
+     if((row*5+col*3)%7===0){
+       const inset=round(.014,.12,.13,mat('#6e443c',0,.98),brick);
+       inset.position.set(-.197,.32+row*.243,z+.1);
+     }
+   }
+   // Visible chalky masonry seams and concrete lintel framing the obstruction.
+   const lintel=round(.22,.25,3.42,mat('#95877b',.08,.87),brick);
+   lintel.position.set(-.21,4.12,0);
+   for(const zz of [-1.68,1.68]){
+     const trim=round(.18,4.12,.11,mat('#9a8d82',.08,.9),brick);
+     trim.position.set(-.18,2.07,zz);
    }
    const safetyPlate=round(.09,.61,1.13,mat('#f5e7c6',.06,.86));
    safetyPlate.position.set(-9.16,4.1,85);
@@ -34,6 +47,14 @@ export function createDoors({getWorld,getFloor,round,cube,textLabel}){
    const bar=round(.11,.11,1.68,mat('#566064',.58,.38),firePivot);bar.position.set(.22,1.95,1.49);
    const label=textLabel('FIRE EXIT',2.5,.44,'#f3eee9','#a52622',45,'interior');
    label.rotation.y=Math.PI/2;label.position.set(.19,3.36,1.49);firePivot.add(label);
+   const pushPlate=round(.2,.62,.11,mat('#a9b5b3',.56,.24),firePivot);
+   pushPlate.position.set(.23,2.01,2.47);
+   for(const y of [1.18,2.72]){
+    const hinge=round(.22,.19,.16,mat('#b9c2c0',.67,.27),firePivot);
+    hinge.position.set(.16,y,.14);
+   }
+   const kick=round(.075,.58,2.71,mat('#cccbc6',.55,.35),firePivot);
+   kick.position.set(.16,.53,1.49);
    const emergency=round(.16,.16,.13,new THREE.MeshBasicMaterial({color:'#f0d68c'}),firePivot);emergency.position.set(.2,3.68,2.72);
    // Double-panel front entrance with inset panes, metal rails, and sliding mechanism.
    const frameMat=mat('#59686a',.67,.31);
@@ -60,7 +81,7 @@ export function createDoors({getWorld,getFloor,round,cube,textLabel}){
  function openEntrance(){if(!entryLeft||entryTriggered)return false;entryOpen=true;entryTriggered=true;return true;}
  function update(dt){
    const k=Math.min(1,dt*5.5);
-   if(firePivot)firePivot.rotation.y+=((fireOpen?-1.32:0)-firePivot.rotation.y)*k;
+   if(firePivot)firePivot.rotation.y+=((fireOpen?1.35:0)-firePivot.rotation.y)*k; // positive rotation swings left-wall door INTO shop (+X)
    if(entryLeft&&entryRight){
      entryLeft.position.x+=((46.5-1.86-(entryOpen?1.76:0))-entryLeft.position.x)*k;
      entryRight.position.x+=((46.5+1.86+(entryOpen?1.76:0))-entryRight.position.x)*k;
