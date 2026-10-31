@@ -137,7 +137,7 @@ export function earnings(s,id,automatic=false){
  if(aisle%5===0&&s.levels.soupTriple)amount*=3;
  if(aisle%5===1&&s.levels.waterDouble)amount*=2;
  if(automatic&&s.levels.robotBonus)amount=Math.ceil(amount*(1+.25*s.levels.robotBonus));
- return amount+(s.levels.retailMargin||0>>1)+(automatic?(s.levels.robotCommission||0):0);
+ return amount+Math.floor((s.levels.retailMargin||0)/2)+(automatic?(s.levels.robotCommission||0):0);
 }
 export function place(s,id,automatic=false){
  if(!Number.isInteger(id)||id<0||id>=TOTAL_CELLS||s.fill[id]>=SLOTS)return 0;
