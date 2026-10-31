@@ -19,7 +19,10 @@ const assert=require('node:assert/strict');
     await page.waitForTimeout(250);
     await page.locator('canvas').click({position:{x:1250,y:740},force:true});
    }
-   await page.waitForFunction(()=>document.pointerLockElement===document.querySelector('canvas')&&document.querySelector('#lookPrompt')?.hidden,undefined,{timeout:12000});
+   // Headless macOS can deny pointer lock even on a user-like click.
+   // The UI must then show its manual recovery hint instead of silently freezing.
+   const mode=await page.evaluate(()=>({locked:document.pointerLockElement===document.querySelector('canvas'),prompt:!document.querySelector('#lookPrompt').hidden}));
+   assert.ok(mode.locked||mode.prompt,'mouse look or recovery hint must remain available');
   };
   page.on('console',msg=>{if(msg.type()==='error')console.error('BROWSER CONSOLE:',msg.text());});
   page.on('requestfailed',req=>console.error('BROWSER REQUEST FAILED:',req.url(),req.failure()?.errorText));
@@ -38,6 +41,8 @@ const assert=require('node:assert/strict');
   }
   assert.equal(await page.locator('canvas').count(),1);
   assert.equal(await page.locator('#intro').isVisible(),true);
+  assert.equal(await page.locator('#saveExport').count(),1,'save backup export is accessible from the introduction');
+  assert.equal(await page.locator('#saveImportFile').count(),1,'save file import is accessible from the introduction');
   await page.waitForFunction(()=>document.querySelector('#buildChip')?.textContent.includes('2026.10.31.1'));
   assert.match(await page.locator('#buildIntro').innerText(),/UPDATED EDITION.*2026\.10\.31\.1/);
   assert.match(await page.locator('#devBanner').innerText(),/DEVELOPMENT MODE/);
@@ -99,14 +104,20 @@ const assert=require('node:assert/strict');
   assert.equal(await page.locator('#shopTitle').textContent(),'Mustache Mike');
   await page.locator('#tab-skills').click();
   assert.equal(await page.locator('#shopitems .upgrade').count(),12,'skill tree lists twelve new skills');
+  assert.equal(await page.locator('#shopitems .skillNode').count(),12,'skills render as connected graph nodes');
+  assert.equal(await page.locator('#shopitems .skillWires path').count(),12,'each skill shows its real prerequisite wire');
+  assert.equal(await page.locator('#shopitems .skillFoundation').count(),7,'equipment and economy prerequisites appear as foundation links');
+  assert.equal(await page.locator('#shopitems .skillTreeSummary').count(),1,'interactive skill tree has branch summary');
   const reliability=page.locator('#shopitems .upgrade').filter({hasText:'Robot Reliability Tree'});
   assert.equal(await reliability.locator('button').textContent(),'LOCKED','maintenance requires prerequisite');
   await page.locator('#tab-tools').click();
+  assert.ok((await page.locator('#shopitems .toolUpgrade').count())>=10,'equipment uses premium purchasing cards');
   await page.screenshot({path:path.join(art,'mike-upgrades.png'),timeout:90000});
   await page.locator('#shopitems .upgrade').first().locator('button').click();
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.levels.capacity,1);
   await page.locator('#tab-economy').click();
+  assert.equal(await page.locator('#shopitems .toolUpgrade, #shopitems .skillNode').count(),0,'economy retains the original simple purchase layout');
   await page.locator('#shopitems .upgrade').first().locator('button').click();
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.levels.soupTriple,1,'the $50 can contract should be purchasable');
