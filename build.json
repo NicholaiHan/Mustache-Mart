@@ -1,5 +1,5 @@
 {
-  "version": "2026.10.31.2",
+  "version": "2026.10.31.3",
   "name": "Skill Tree, Robot Maintenance & Visual Refresh",
   "build_date": "2026-10-31",
   "includes": [
@@ -12,7 +12,7 @@
     "Half-price robot, ladder and belt resale",
     "Single FIRE EXIT on first-floor back-left wall",
     "Grand-opening door locked until all 15 floors stocked",
-    "$500 opt-in development funds at /#dev",
+    "One-click $500 development mode and cash refill, plus saved progress indicator",
     "Five original illustrated HUD status icons",
     "Physical rear gantry and conveyor direction markings",
     "Hex-fastened reinforced shelving and more detailed checkout registers",
@@ -37,7 +37,7 @@
     "E repair with up to four actions, reduced by technician training",
     "Mike per-robot aisle selection and sequential move to next unfinished aisle",
     "Sell each placed claw for half cost by X or Mike",
-    "Inward-opening left-wall exit, detailed brickwork and refined elevator door",
+    "Premium inward-opening left-wall FIRE EXIT, exposed staggered brickwork and refined elevator door",
     "Removed checkout floor bollards and obscuring colored aisle flags",
     "Eight-stage, 30-simulation-per-stage regression suite"
   ]
