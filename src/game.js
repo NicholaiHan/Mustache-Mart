@@ -903,6 +903,36 @@ renderer.domElement.addEventListener('click',()=>{if(running)pointerRequest();})
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 $('play').addEventListener('click',resume);
 $('reset').addEventListener('click',e=>{e.stopPropagation();if(confirm('Erase your new 15-floor save and restart?')){localStorage.removeItem(SAVE_KEY);location.reload();}});
+// Browser localStorage is isolated by host+port. Portable save files provide
+// deliberate, lossless transfer without clearing either browser origin.
+$('saveExport').addEventListener('click',()=>{
+ try{
+  save();
+  const data=serialize(s);
+  const url=URL.createObjectURL(new Blob([data],{type:'application/json'}));
+  const a=document.createElement('a');
+  a.href=url;a.download='mustache-mart-save-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  $('saveTransferStatus').textContent='Backup downloaded. Keep this file somewhere safe.';
+ }catch(err){$('saveTransferStatus').textContent='Export failed. Check whether browser downloads are allowed.';}
+});
+$('saveImportFile').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ const status=$('saveTransferStatus');
+ try{
+  if(file.size>5000000)throw new Error('File is too large for a Mustache Mart save.');
+  const raw=await file.text();const data=JSON.parse(raw);
+  if(![3,4].includes(data?.version)||!Array.isArray(data.fill)||data.fill.length<10000||!Number.isFinite(data.money))
+   throw new Error('This file is not a compatible Mustache Mart save.');
+  const restored=loadState(raw);
+  if(!confirm('Import this save? It will replace progress on this browser address only. Your backup file and any save on another port will not be deleted.')){status.textContent='Import canceled; progress unchanged.';return;}
+  localStorage.setItem(SAVE_KEY,serialize(restored));
+  status.textContent='Save imported. Reloading your game…';
+  location.reload();
+ }catch(err){status.textContent='Import not completed: '+err.message;}
+ finally{e.target.value='';}
+});
 $('shopClose').addEventListener('click',resume);
 for(const category of ['tools','skills','economy'])$('tab-'+category).addEventListener('click',()=>{shopCategory=category;renderShop();});
 $('elevatorClose').addEventListener('click',resume);
