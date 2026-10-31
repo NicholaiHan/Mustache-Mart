@@ -155,10 +155,14 @@ function buildShell(){
   const category=['PANTRY','DRINKS','HOUSEHOLD','SNACKS'][i%4];
   const hangerL=round(.042,1.07,.05,gunmetal);hangerL.position.set(x-1.58,CEILING_Y-2.3,z);
   const hangerR=round(.042,1.07,.05,gunmetal);hangerR.position.set(x+1.58,CEILING_Y-2.3,z);
-  const signShell=round(3.45,.89,.12,themeColors[i%4]);signShell.position.set(x,CEILING_Y-3.05,z);
-  const front=textLabel('AISLE '+String(i+1).padStart(2,'0')+'  /  '+category,3.18,.57,themeColors[i%4],'#f5f7ee',35,'interior');
-  front.position.set(x,CEILING_Y-3.05,z+.07);add(front);
-  const edge=round(3.5,.045,.17,ivory);edge.position.set(x,CEILING_Y-3.53,z);
+  // No colored background slabs/flags in front of the writing: the actual
+  // category/name is printed on a readable, single dark hanging sign face.
+  const plate=round(3.48,.72,.06,'#3b5050');plate.position.set(x,CEILING_Y-3.05,z);
+  const front=textLabel('AISLE '+String(i+1).padStart(2,'0')+'  /  '+category,3.24,.58,'#3b5050','#f5f7ee',37,'interior');
+  front.position.set(x,CEILING_Y-3.05,z+.115);add(front);
+  const edge=round(3.5,.05,.14,themeColors[i%4]);edge.position.set(x,CEILING_Y-3.45,z);
+  const labelNum=textLabel(String(i+1).padStart(2,'0'),.46,.30,'#f5f7ee','#374b49',34,'interior');
+  labelNum.position.set(x+1.28,CEILING_Y-3.05,z+.155);add(labelNum);
   for(const sz of [20,51,81]){
    const outlet=round(.12,.12,.16,gunmetal);outlet.position.set(x,CEILING_Y-.27,sz);
    const vent=round(1.55,.04,.42,'#cdd3ce');vent.position.set(x,CEILING_Y-.32,sz+1.5);
