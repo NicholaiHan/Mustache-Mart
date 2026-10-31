@@ -146,9 +146,17 @@ const assert=require('node:assert/strict');
   await page.locator('#shopitems .upgrade').filter({hasText:'Mustache Stocker Bot'}).first().locator('button').first().click();
   await page.waitForFunction(()=>!document.querySelector('#shop').classList.contains('open'));
   assert.equal(await page.evaluate(()=>window.__martTest.snapshot().placementRobotId!==null),true);
-  await page.evaluate(()=>window.__martTest.teleport(8,60.7));
+  // Aim the placement ray at a clear floor tile, not at shelving or a checkout.
+  await page.evaluate(()=>{window.__martTest.teleport(8,60.7);window.__martTest.setLook(0,-.6);});
+  await page.waitForTimeout(250);
+  await page.mouse.move(640,400);
   await page.mouse.click(640,400);
-  await page.waitForFunction(()=>window.__martTest.snapshot().placementRobotId===null);
+  try{
+   await page.waitForFunction(()=>window.__martTest.snapshot().placementRobotId===null,undefined,{timeout:12000});
+  }catch(error){
+   console.error('ROBOT PLACEMENT DIAGNOSTICS:',JSON.stringify(await page.evaluate(()=>({snap:window.__martTest.snapshot(),message:document.querySelector('#toast')?.textContent}))));
+   throw error;
+  }
   let robotSnap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(robotSnap.robotCount,1);
   console.log('PASS: Mike sells an independent robot, click-to-place activates it in chosen aisle');
