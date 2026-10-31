@@ -41,14 +41,17 @@ const assert=require('node:assert/strict');
   }
   assert.equal(await page.locator('canvas').count(),1);
   assert.equal(await page.locator('#intro').isVisible(),true);
+  assert.equal(await page.locator('#devEnable').isVisible(),true,'developer-money controls visible on title screen');
+  assert.match(await page.locator('#devEnable').textContent(),/Refill developer cash/);
+  assert.match(await page.locator('#saveOriginStatus').textContent(),/THIS BROWSER SAVE/);
   assert.equal(await page.locator('#saveExport').count(),1,'save backup export is accessible from the introduction');
   assert.equal(await page.locator('#saveImportFile').count(),1,'save file import is accessible from the introduction');
-  await page.waitForFunction(()=>document.querySelector('#buildChip')?.textContent.includes('2026.10.31.2'));
-  assert.match(await page.locator('#buildIntro').innerText(),/UPDATED EDITION.*2026\.10\.31\.2/);
+  await page.waitForFunction(()=>document.querySelector('#buildChip')?.textContent.includes('2026.10.31.3'));
+  assert.match(await page.locator('#buildIntro').innerText(),/UPDATED EDITION.*2026\.10\.31\.3/);
   assert.match(await page.locator('#devBanner').innerText(),/DEVELOPMENT MODE/);
   assert.equal(await page.locator('#devBanner').isVisible(),true);
   const build=await page.evaluate(async()=>await (await fetch('./build.json')).json());
-  assert.equal(build.version,'2026.10.31.2');
+  assert.equal(build.version,'2026.10.31.3');
   console.log('PASS: game prints latest build badge, features, manifest and $500 dev banner');
 
   assert.equal(await page.evaluate(()=>window.__martTest.snapshot().money),50000,'development account starts with precisely $500');
@@ -69,6 +72,8 @@ const assert=require('node:assert/strict');
   await importedReload;
   await page.waitForFunction(()=>window.__martTest?.snapshot().money===50123&&document.querySelector('#loading')?.hidden,undefined,{timeout:45000});
   assert.equal(await page.evaluate(()=>window.__martTest.snapshot().money),50123,'imported money persists across beforeunload and reload');
+  await page.locator('#devEnable').click();
+  assert.ok((await page.evaluate(()=>window.__martTest.snapshot().money))>=50000,'developer refill keeps at least $500');
   assert.equal(await page.locator('#intro').isVisible(),true);
   console.log('PASS: exported save downloads and confirmed import persists through reload without overwrite');
 
@@ -303,7 +308,7 @@ const assert=require('node:assert/strict');
   await ending.waitForFunction(()=>getComputedStyle(document.querySelector('#bank')).display!=='none',undefined,{timeout:45000});
   assert.match(await ending.locator('#bank').textContent(),/WENT BANKRUPT/);
   assert.match(await ending.locator('#thanks').textContent(),/Thanks for Playing!/);
-  await ending.screenshot({path:path.join(dir,'bankruptcy.png')});
+  await ending.screenshot({path:path.join(dir,'bankruptcy.png'),timeout:90000});
   console.log('PASS: 20 accelerating cycles reach empty grand opening bankruptcy finale');
   assert.deepEqual(errors,[]);
   await context.close();
