@@ -175,14 +175,8 @@ function buildShell(){
    const rib=round(.055,.45,.04,'#a2b8a9');rib.position.set(x+.57,.35,-6.65+dz);
   }
  }
- for(const x of [39.5,52.8,65.2,78.5]){
-  const bollard=new THREE.Mesh(new THREE.CylinderGeometry(.09,.13,.84,12),
-    new THREE.MeshStandardMaterial({color:'#a2aba6',metalness:.6,roughness:.34}));
-  bollard.position.set(x,.42,-5.4);add(bollard);
-  const ring=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.055,12),
-    new THREE.MeshStandardMaterial({color:'#d2b075',metalness:.35,roughness:.43}));
-  ring.position.set(x,.84,-5.4);add(ring);
- }
+ // Removed floor-level cashier queue bollards: they looked like random nubs
+ // and cluttered the approach to the payment registers.
  const staffing=textLabel('EMPLOYEE ACCESS  •  CHECK-IN',5.7,.63,'#e9ebe3','#42594d',29,'interior');
  staffing.position.set(13.6,5.35,-12.14);add(staffing);
  const receiver=textLabel('GOODS RECEIVING  •  LOAD HERE',7,.9,'#d8c088','#303a3a',43);
