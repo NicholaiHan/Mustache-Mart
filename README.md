@@ -6,7 +6,7 @@ A first-person supermarket stocking and automation prototype with **15 huge floo
 
 **Do not use an old downloaded `mustache-mart.zip`, old Electron app, or previously extracted folder.** The obsolete small ZIP has been removed from GitHub. The complete game is always in the live `main` branch archive.
 
-1. Copy the **whole** block below into Terminal. It downloads the current complete game, checks the ZIP, keeps the former folder under a dated backup name, and runs the new copy on **port 8011** so any old server on 8000 cannot interfere:
+1. Copy the **whole** block below into Terminal. It downloads the current complete game, checks the ZIP, keeps the former folder under a dated backup name, and runs the game on **port 8000** by default to reconnect to older browser saves. Stop any older server on 8000 with Control+C first:
 
 ```bash
 cd "$HOME/Desktop" || exit
@@ -20,11 +20,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8011/#dev** in Chrome or Safari. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.31.2** and the introduction must list the new cash registers, Mike, ladders and fire exit.
-3. **Development mode** (the `#dev` suffix) gives **at least $500** for testing. Stop the server with **Control+C**.
-4. Port **8011 is deliberately different from 8000**: existing browser saves at port 8000 are still retained, but do not appear automatically at 8011 (browser storage is origin-specific). For continuing the same saved progress after verifying the build, stop the older port-8000 server, then in the downloaded folder run `node server.cjs` and open `http://127.0.0.1:8000/#dev`.
+2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.31.3** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+3. **Development mode** (the `#dev` suffix) gives **at least $500** for testing. The title screen also has a **Refill developer cash to $500** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
+4. **Recovery:** Your skills and stocked shelves are saved by browser + exact host + port. The launcher now defaults to **8000**, where older saves are most likely. If you instead played on **8011**, run `PORT=8011 bash PLAY_LATEST_MAC.sh` and open `http://127.0.0.1:8011/#dev` in your original browser. Do not click Reset. Use **Download save backup** on the origin holding progress, then **Import save backup** on the origin you want to play from. The original save remains intact.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.31.2** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.31.3** is shown.
 
 ## Play on your MacBook
 
@@ -187,3 +187,10 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - **Equipment & automation**: Modernized product cards with upgrade progress, prices, readiness and purchase feedback. Robot and claw management remain accessible. **Economy contracts keep their existing simple layout.**
 - **Transfer your progress between local ports**: The introduction has Download save backup and Import save backup. To recover an old save on port 8000, start this same updated folder with `PORT=8000 bash PLAY_LATEST_MAC.sh` (stop any existing server on 8000 first), open `http://127.0.0.1:8000/#dev` in your original browser and choose **Download save backup**. Then restart normally with `bash PLAY_LATEST_MAC.sh`, open `http://127.0.0.1:8011/#dev`, and use **Import save backup**. This replaces only the destination port's save after confirmation. The original port's save and downloaded backup are retained.
 - The `#dev` suffix gives at least $500 for testing. No in-game money or progress is reset by the visual upgrade.
+
+
+## Build 2026.10.31.3 — Fire exit detail and save safety
+
+- **FIRE EXIT**: Rebuilt the inward-swinging back-left red steel door with structural framing, painted recessed panels, push-to-open panic bar, raised metal hardware, smoke seal, kick plate, illuminated emergency lamp and deeper brick alcove. The masonry's brick faces now sit in front of the opaque mortar backing, fixing a layering issue that hid brick detail. The brick obstruction still blocks any escape and the entrance completion rules are unchanged.
+- **Save origin**: The launcher defaults to **port 8000** instead of 8011, matching the original local save URL. Existing saves on 8011 are not deleted; use the explicit PORT override to view them. The opening screen displays your loaded stocked items and upgrade ranks, so an empty save on the wrong address is immediately apparent.
+- **Developer mode**: The title screen has an **Enable $500 Developer Mode** button even when the URL lacks #dev; inside developer mode the button becomes **Refill developer cash to $500**, which tops up the balance without modifying skill levels, shelf progress or other save fields.
