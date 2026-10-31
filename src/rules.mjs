@@ -169,7 +169,21 @@ export function hireRobot(s,paid=250,placed=false){
 export function assignRobot(s,id,f,a,bay){
  const r=s.robots.find(x=>x.id===id);
  if(!r||!Number.isInteger(a)||a<0||a>=AISLES||!Number.isInteger(bay)||bay<0||bay>=BAYS||f<0||f>=FLOORS)return false;
- r.floor=f;r.aisle=a;r.x=aisleX(a);r.z=bayZ(bay);r.placed=true;r.phase='supply';r.target=-1;r.carry=0;r.acc=0;r.liftY=0;r.source=null;
+ r.floor=f;r.aisle=a;r.homeAisle=a;r.x=aisleX(a);r.z=bayZ(bay);r.placed=true;r.phase='supply';r.target=-1;r.carry=0;r.acc=0;r.liftY=0;r.source=null;
+ return true;
+}
+export function setRobotAisle(s,id,aisle){
+ const r=s.robots.find(x=>x.id===id);
+ if(!r||!Number.isInteger(aisle)||aisle<0||aisle>=AISLES)return false;
+ r.homeAisle=aisle;r.aisle=aisle;r.target=-1;r.acc=0;
+ // Existing cargo is not destroyed by a reassignment.
+ if(!r.carry)r.phase='supply';
+ return true;
+}
+export function aisleComplete(s,f,a){
+ for(let side=0;side<2;side++)for(let bay=0;bay<BAYS;bay++)for(let tier=0;tier<TIERS;tier++){
+  if(s.fill[cellId(f,a,side,bay,tier)]<SLOTS)return false;
+ }
  return true;
 }
 export function sellRobot(s,id){
@@ -391,21 +405,28 @@ export function robotCanReach(s,r,id){
  return s.ladders.some(l=>l.floor===floor&&l.aisle===aisle&&Math.abs(l.bay-bay)<=1&&(tier<=2||s.levels.ladderPlus));
 }
 export function robotTarget(s,r){
- // Assign the closest *reachable* empty slot on the requested aisle.
- // If it is completely filled, rotate to the nearest aisle with work.
- let choice=-1,best=Infinity,preferred=r.aisle??0;
- for(let radius=0;radius<AISLES;radius++){
-  for(const a of [...new Set([preferred-radius,preferred+radius])]){
-   if(a<0||a>=AISLES)continue;
-   for(let bay=0;bay<BAYS;bay++)for(let side=0;side<2;side++)for(let tier=0;tier<TIERS;tier++){
-    const id=cellId(r.floor,a,side,bay,tier);
-    if(s.fill[id]>=SLOTS||!robotCanReach(s,r,id))continue;
-    const distance=Math.abs(r.x-aisleX(a))*1.8+Math.abs(r.z-bayZ(bay))+tier*.12;
-    if(distance<best){best=distance;choice=id;}
-   }
+ // Work on the player-selected aisle until that WHOLE aisle is finished.
+ // Then advance to the next unfinished aisle in ascending cyclic order.
+ const preferred=r.aisle??0;
+ let a=preferred;
+ if(aisleComplete(s,r.floor,a)){
+  let candidate=-1;
+  for(let offset=1;offset<AISLES;offset++){
+   const next=(a+offset)%AISLES;
+   if(!aisleComplete(s,r.floor,next)){candidate=next;break;}
   }
-  if(choice>=0)break;
+  if(candidate<0)return -1;
+  a=candidate;r.aisle=a;r.homeAisle=a;
  }
+ let choice=-1,best=Infinity;
+ for(let bay=0;bay<BAYS;bay++)for(let side=0;side<2;side++)for(let tier=0;tier<TIERS;tier++){
+  const id=cellId(r.floor,a,side,bay,tier);
+  if(s.fill[id]>=SLOTS||!robotCanReach(s,r,id))continue;
+  const distance=Math.abs(r.x-aisleX(a))*1.8+Math.abs(r.z-bayZ(bay))+tier*.12;
+  if(distance<best){best=distance;choice=id;}
+ }
+ // If inaccessible tall racks remain, wait for a ladder/lift upgrade instead
+ // of silently leaving an incomplete aisle.
  return choice;
 }
 export function robotSource(s,r){
