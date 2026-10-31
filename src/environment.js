@@ -161,8 +161,7 @@ function buildShell(){
   const front=textLabel('AISLE '+String(i+1).padStart(2,'0')+'  /  '+category,3.24,.58,'#3b5050','#f5f7ee',37,'interior');
   front.position.set(x,CEILING_Y-3.05,z+.115);add(front);
   const edge=round(3.5,.05,.14,themeColors[i%4]);edge.position.set(x,CEILING_Y-3.45,z);
-  const labelNum=textLabel(String(i+1).padStart(2,'0'),.46,.30,'#f5f7ee','#374b49',34,'interior');
-  labelNum.position.set(x+1.28,CEILING_Y-3.05,z+.155);add(labelNum);
+  // No extra numbered badge in front of the printed aisle category.
   for(const sz of [20,51,81]){
    const outlet=round(.12,.12,.16,gunmetal);outlet.position.set(x,CEILING_Y-.27,sz);
    const vent=round(1.55,.04,.42,'#cdd3ce');vent.position.set(x,CEILING_Y-.32,sz+1.5);
