@@ -279,11 +279,42 @@ function buildService(){
  const deskTerminal=round(.72,.41,.22,'#28373b');deskTerminal.position.set(2.66,1.49,-8.82);
  const deskGlow=round(.54,.23,.03,new THREE.MeshBasicMaterial({color:'#aad9ce'}));deskGlow.position.set(2.66,1.51,-8.683);
  mikeModel=makeMike(1.5,-10.48);
- const elevator=round(5.1,6.5,.6,'#71888c');elevator.position.set(23,3.25,-11.4);
- const seam=round(.09,6.1,.12,'#3b484e');seam.position.set(23,3.25,-11.03);
- const upper=round(5.6,.35,.7,'#404c50');upper.position.set(23,6.48,-11.34);
- const esign=textLabel('ELEVATOR  /  F01–F15',5.6,.75,'#e0e4db','#344541',39,'interior');
- esign.position.set(23,7.2,-11.02);add(esign);
+ // Refined flush stainless passenger lift with inset double-door leaves,
+ // floor indicator, recessed frame, side control station and detailed seams.
+ const brushed=new THREE.MeshStandardMaterial({color:'#b5c0c1',metalness:.79,roughness:.29});
+ const bronze=new THREE.MeshStandardMaterial({color:'#c8ad78',metalness:.62,roughness:.35});
+ const frame=round(5.52,6.7,.24,brushed);frame.position.set(23,3.35,-11.45);
+ const well=round(4.95,6.18,.19,'#263539');well.position.set(23,3.25,-11.25);
+ for(const sign of [-1,1]){
+  const leaf=round(2.37,5.84,.14,brushed);leaf.position.set(23+sign*1.18,3.16,-11.085);
+  for(const x of [23+sign*.2,23+sign*2.15]){
+   const bevel=round(.043,5.79,.035,'#707e80');bevel.position.set(x,3.16,-10.99);
+  }
+  const inset=round(1.77,4.91,.045,'#d3d7d4');inset.position.set(23+sign*1.19,3.24,-10.974);
+  const engraving=round(1.53,.037,.04,bronze);engraving.position.set(23+sign*1.19,.72,-10.942);
+  for(const y of [1.12,5.38]){
+   const accent=round(2.29,.035,.04,'#76878b');accent.position.set(23+sign*1.18,y,-10.96);
+  }
+ }
+ const centerGap=round(.055,5.9,.06,'#273b41');centerGap.position.set(23,3.17,-10.923);
+ const header=round(5.83,.45,.39,'#35494a');header.position.set(23,6.82,-11.4);
+ const floorDisplay=round(1.02,.34,.055,'#152629');floorDisplay.position.set(23,6.8,-11.166);
+ const displayText=textLabel(floorLabel(s.floor)+'   ↑',.87,.21,'#183a36','#95e5c0',29,'interior');
+ displayText.position.set(23,6.8,-11.126);add(displayText);
+ const title=textLabel('PASSENGER ELEVATOR  /  F01–F15',5.2,.53,'#394d4e','#f3f5ed',34,'interior');
+ title.position.set(23,7.37,-11.035);add(title);
+ const threshold=round(5.28,.09,.62,'#899899');threshold.position.set(23,.06,-10.82);
+ for(const sign of [-1,1]){
+   const jamb=round(.17,6.43,.31,brushed);jamb.position.set(23+sign*2.55,3.27,-11.11);
+   const seal=round(.035,6.12,.06,'#323f40');seal.position.set(23+sign*2.44,3.18,-10.926);
+ }
+ const callPanel=round(.44,1.05,.13,'#4c6063');callPanel.position.set(26.1,2.08,-11.04);
+ const callScreen=round(.32,.26,.04,new THREE.MeshBasicMaterial({color:'#a1e6c1'}));
+ callScreen.position.set(26.1,2.33,-10.965);
+ for(const y of [1.85,2.01]){
+  const button=new THREE.Mesh(new THREE.CylinderGeometry(.066,.066,.039,14),brushed);
+  button.rotation.x=Math.PI/2;button.position.set(26.1,y,-10.942);add(button);
+ }
  const receivingRack=round(4.3,3.8,.75,'#838f8d');receivingRack.position.set(7.7,1.9,96.4);
  for(let shelf=1;shelf<4;shelf++){const r=round(4.5,.11,1.2,'#c2c7c0');r.position.set(7.7,shelf*.98,96.4);}
  const dockTerminal=round(.85,1.1,.52,'#7a8b8c');dockTerminal.position.set(3.7,.59,95.8);
