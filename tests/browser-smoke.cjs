@@ -55,6 +55,21 @@ const assert=require('node:assert/strict');
   assert.equal(await page.evaluate(()=>window.__martTest.snapshot().checkoutCount),4,'four real checkout stations on floor 1');
   console.log('PASS: game renders fifteen-floor store with $500 developer account and four checkout lanes');
 
+  // Exercise real portable save download and import on the game's local origin.
+  const downloadStarted=page.waitForEvent('download',{timeout:20000});
+  await page.locator('#saveExport').click();
+  const saveDownload=await downloadStarted;
+  const saved=JSON.parse(fs.readFileSync(await saveDownload.path(),'utf8'));
+  assert.equal(saved.version,4,'exported save has compatible format');
+  assert.ok(Array.isArray(saved.fill)&&saved.fill.length>10000,'export includes entire fifteen-floor progress');
+  saved.money=50123;
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#saveImportFile').setInputFiles({name:'mustache-mart-test.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(saved))});
+  await page.waitForFunction(()=>window.__martTest?.snapshot().money===50123,undefined,{timeout:30000});
+  assert.equal(await page.evaluate(()=>window.__martTest.snapshot().money),50123,'imported money persists across beforeunload and reload');
+  assert.equal(await page.locator('#intro').isVisible(),true);
+  console.log('PASS: exported save downloads and confirmed import persists through reload without overwrite');
+
   await page.locator('#play').click();
   // Actual collision-safe loading position, not inside the receiving counter.
   await page.evaluate(()=>{window.__martTest.teleport(1.5,93.1);window.__martTest.setLook(Math.PI,-.07);});
