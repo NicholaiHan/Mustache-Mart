@@ -12,7 +12,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,repairRobot,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
+ floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -387,6 +387,19 @@ function renderShop(){
     relocate.addEventListener('click',()=>startRobotPlacement(r.id));
     const sell=document.createElement('button');sell.textContent='Sell for '+centsText(Math.floor(r.paid/2));
     sell.addEventListener('click',()=>{sellRobot(s,r.id);buildWorld();save();renderShop();uiUpdate();});
+    const chooser=document.createElement('select');chooser.setAttribute('aria-label','Choose aisle for stocker '+r.id);
+    for(let aisle=0;aisle<AISLES;aisle++){
+      const option=document.createElement('option');option.value=String(aisle);
+      option.textContent='Aisle '+(aisle+1);option.selected=aisle===(r.homeAisle??r.aisle);
+      chooser.append(option);
+    }
+    chooser.addEventListener('change',()=>{
+      if(setRobotAisle(s,r.id,Number(chooser.value))){
+        notify('Stocker #'+r.id+' assigned to Aisle '+(Number(chooser.value)+1)+'. Next unfinished aisle follows automatically.');
+        save();renderShop();
+      }
+    });
+    item.append(chooser);
     buttons.append(relocate,sell);item.append(buttons);list.append(item);
    }
   }
