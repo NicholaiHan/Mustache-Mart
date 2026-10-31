@@ -246,6 +246,15 @@ button:active:not(:disabled){transform:translateY(1px)}
 #saveTransfer .saveFileLabel input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 #saveTransferStatus{display:block;color:#6e543a;margin-top:8px;font-size:11px}
 
+
+/* Clearly visible dev mode controls and save provenance. Never erase user data. */
+#devControls{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:9px;margin:10px auto 8px;padding:10px;border:1px solid #bfcebc;border-radius:9px;background:#e5eee5}
+#devControls button{background:#274f43;color:#f5fff5;border:1px solid #477660;font-size:12px;box-shadow:none;padding:10px 14px}
+#devControls button:hover{background:#356651}
+#devControls small{font-size:11px;max-width:330px;line-height:1.4;text-align:left;color:#456254}
+#saveOriginStatus{background:#f3f5ef;border-left:4px solid #79a18c;border-radius:6px;padding:11px 12px;margin:10px 0;color:#294638;font-size:12px;line-height:1.5;text-align:left;font-weight:650}
+#saveTransfer a{color:#1d6653;text-decoration:underline}
+
 </style>
 </head>
 <body>
@@ -276,12 +285,17 @@ button:active:not(:disabled){transform:translateY(1px)}
     <div id="buildIntro">UPDATED EDITION · BUILD 2026.10.31.2
       <small>Custom HUD artwork · Industrial feeder claw · Reinforced shelves · Detailed registers · Fifteen floors</small>
     </div>
-    <div id="devBanner">DEVELOPMENT MODE · $500 minimum testing funds enabled</div>
+    <div id="devBanner">DEVELOPMENT MODE · 500 dollars in testing credit available</div>
+    <div id="devControls">
+      <button type="button" id="devEnable">Enable $500 Developer Mode</button>
+      <small id="devStatus" aria-live="polite">Developer Mode can be enabled here even if you forgot #dev in the address.</small>
+    </div>
+    <div id="saveOriginStatus" role="status" aria-live="polite"></div>
     <p><strong>15 floors. 144,000 products. One grand opening.</strong><br>The inventory warehouse is all the way at the BACK of the store. Begin by carrying a single can through long aisles. Earn 1¢ on lower racks, 2¢ using a step ladder and 3¢ with the telescopic ladder extension. Collect pay at the front window, then visit Mustache Mike for tools and economy contracts.</p>
     <p class="hint">WASD to walk · E to collect / stock · mouse or arrow keys to aim · E near Mike for upgrades · R at elevator · B to extend rear-fed conveyor · Space to jump (upgrade) · L to place a ladder · C to climb, W/S to move up/down · X to sell equipment · Buy a robot at Mike's, walk into an aisle and left-click to deploy.</p>
     <button id="play">Start your shift</button> <button id="reset">Reset this game's saved progress</button>
     <div id="saveTransfer"><strong>Save backup &amp; recovery</strong>
-      <p class="hint">Missing your progress after switching ports? Open your old port using the same browser, export the save, then import it here. This does not reset the old copy.</p>
+      <p class="hint">Missing skills after switching ports? Check <a href="http://127.0.0.1:8000/#dev" target="_blank" rel="noopener">port 8000</a> or <a href="http://127.0.0.1:8011/#dev" target="_blank" rel="noopener">port 8011</a> in the SAME browser; whichever one holds your original save is the correct one. If needed, export there, then import here. Your old save is not deleted.</p>
       <div class="saveActions"><button type="button" id="saveExport">Download save backup</button>
         <label for="saveImportFile" class="saveFileLabel">Import save backup
           <input id="saveImportFile" type="file" accept=".json,application/json">
@@ -289,7 +303,7 @@ button:active:not(:disabled){transform:translateY(1px)}
       </div>
       <small id="saveTransferStatus" aria-live="polite"></small>
     </div>
-    <p class="hint">Progress is saved per browser and port (8000 and 8011 have separate saves). To find older progress, reopen its original port in the same browser. Add #dev to the address for a minimum $500 testing balance. The game does not need Electron.</p>
+    <p class="hint">Your saved progress, including purchased skill levels, is stored in your browser at its original address and port. If your skills look reset, STOP and use the original browser and port (often 8000 instead of 8011). Do NOT click Reset. Import a backup here if you have one. Enable Developer Mode with the button above for $500 testing funds. No Electron needed.</p>
   </div>
 </div>
 <div class="dialog" id="shop" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
