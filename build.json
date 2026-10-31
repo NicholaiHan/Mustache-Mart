@@ -1,7 +1,7 @@
 {
-  "version": "2026.10.30.4",
-  "name": "Three-Item Conveyor Backpressure",
-  "build_date": "2026-10-30",
+  "version": "2026.10.31.1",
+  "name": "Skill Tree, Robot Maintenance & Visual Refresh",
+  "build_date": "2026-10-31",
   "includes": [
     "Robot Mike with white eyes and mustache",
     "Four powered cashier conveyors and payment terminals",
@@ -31,6 +31,14 @@
     "Claws only pick from reachable inventory and pause when their receiving belt is full",
     "Goods move one belt section at a time and cannot pass missing/full sections",
     "Claw/robot/player pickup and visual cartons all use shared per-segment inventory counts",
-    "30 congestion simulations preserve stock and previous saves safely migrate"
+    "30 congestion simulations preserve stock and previous saves safely migrate",
+    "12 real prerequisite-gated skill tree upgrades in four branches",
+    "Robot breakdown ranges: 30–50, 50–100, 200–300, 500–1000, then never",
+    "E repair with up to four actions, reduced by technician training",
+    "Mike per-robot aisle selection and sequential move to next unfinished aisle",
+    "Sell each placed claw for half cost by X or Mike",
+    "Inward-opening left-wall exit, detailed brickwork and refined elevator door",
+    "Removed checkout floor bollards and obscuring colored aisle flags",
+    "Eight-stage, 30-simulation-per-stage regression suite"
   ]
 }
