@@ -407,8 +407,9 @@ const SKILL_BRANCHES=['Handling','Automation','Maintenance','Retail'];
 const SKILL_X=[28,328,628,928];
 function makeUpgradeCard(u,view='economy'){
  const lv=s.levels[u.id],cost=price(u,lv),max=lv>=u.max;
+ const scrapRequired=u.id==='robot'&&s.robots.some(r=>r.wrecked);
  const unlocked=skillAvailable(s,u);
- const state=max?'maxed':!unlocked?'locked':s.money<cost?'unaffordable':'ready';
+ const state=max?'maxed':scrapRequired?'locked':!unlocked?'locked':s.money<cost?'unaffordable':'ready';
  const row=document.createElement('div');
  row.className='upgrade '+(view==='skills'?'skillNode ':view==='tools'?'toolUpgrade ':'')+'state-'+state;
  row.dataset.upgrade=u.id;
@@ -437,13 +438,13 @@ function makeUpgradeCard(u,view='economy'){
  const bottom=document.createElement('div');bottom.className='upgradeFooter';
  if(view!=='economy'){
   const badge=document.createElement('span');badge.className='upgradeStatus';
-  badge.textContent=max?'COMPLETE':!unlocked?'PREREQUISITE':s.money<cost?'FUNDS NEEDED':'READY';
+  badge.textContent=max?'COMPLETE':scrapRequired?'SELL CRAB WRECK FIRST':!unlocked?'PREREQUISITE':s.money<cost?'FUNDS NEEDED':'READY';
   bottom.append(badge);
  }
  const btn=document.createElement('button');btn.type='button';
- btn.textContent=max?'MAXED':!unlocked?'LOCKED':centsText(cost);
+ btn.textContent=max?'MAXED':scrapRequired?'SCRAP FIRST':!unlocked?'LOCKED':centsText(cost);
  btn.setAttribute('aria-label',max?u.name+' maxed':!unlocked?u.name+' locked': 'Purchase '+u.name+' for '+centsText(cost));
- btn.disabled=max||s.money<cost||!unlocked||(['cart','ladderPlus'].includes(u.id)&&!s.levels.ladder);
+ btn.disabled=max||scrapRequired||s.money<cost||!unlocked||(['cart','ladderPlus'].includes(u.id)&&!s.levels.ladder);
  btn.addEventListener('click',()=>{
   if(!purchase(s,u.id))return;
   if(u.id==='robot'){const bot=s.robots[s.robots.length-1];save();startRobotPlacement(bot.id);return;}
