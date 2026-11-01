@@ -505,9 +505,11 @@ function buildCreativeReceiving(){
  const R=(w,h,d,material,x,y,z)=>{const mesh=round(w,h,d,material,root);mesh.position.set(x,y,z);return mesh;};
  // Arch is lifted above the walkable pickup point (existing stock counter).
  for(const xx of [-3.55,6.35]){
-  R(.36,4.95,.43,steel,xx,5.4,95);
+  // Load-bearing columns extend down to the actual tiled floor.
+  R(.36,8.03,.43,steel,xx,4.015,95);
+  R(.72,.16,.78,dark,xx,.085,95);
+  R(.50,.13,.54,brass,xx,.21,95);
   R(.42,.16,.5,brass,xx,7.95,95);
-  R(.44,.24,.5,dark,xx,3.15,95);
  }
  R(10.35,.62,.63,steel,1.40,7.99,95);
  R(10.12,.11,.69,glow,1.40,8.37,95);
@@ -517,10 +519,7 @@ function buildCreativeReceiving(){
  marquee.position.set(1.4,7.05,94.30);root.add(marquee);
  const direction=textLabel('COLLECT  •  SCAN  •  DISPATCH',6.92,.36,'#1b4441','#e9f2de',31,'entrance');
  direction.position.set(1.4,6.35,94.25);root.add(direction);
- // A vintage analog-style mechanical counter is placed above head level.
- R(4.10,.75,.18,dark,1.45,5.48,94.26);
- const counter=textLabel('DOCK 01    /    SUPPLY ACTIVE',3.89,.40,'#1b3f3d','#bbffdf',32,'entrance');
- counter.position.set(1.45,5.5,94.12);root.add(counter);
+ // Keep the portal clean: no redundant DOCK 01 / SUPPLY ACTIVE sign.
  // Oversized curled mustache emblem suspended below the marquee, not a
  // freestanding obstruction in the collection path.
  for(const sign of [-1,1]){
@@ -677,8 +676,33 @@ function buildService(){
   const button=new THREE.Mesh(new THREE.CylinderGeometry(.066,.066,.039,14),brushed);
   button.rotation.x=Math.PI/2;button.position.set(26.1,y,-10.942);add(button);
  }
- const receivingRack=round(4.3,3.8,.75,'#838f8d');receivingRack.position.set(7.7,1.9,96.4);
- for(let shelf=1;shelf<4;shelf++){const r=round(4.5,.11,1.2,'#c2c7c0');r.position.set(7.7,shelf*.98,96.4);}
+ const receivingRack=round(.65,4.25,5.0,'#86918e');receivingRack.position.set(10.6,2.125,96.35);
+ // The former long rack wall is now perpendicular to the pickup counter:
+ // an orderly stockroom is tucked behind it, on the right-hand warehouse side.
+ const storage=new THREE.Group();storage.name='receivingBackroomCartons';add(storage);
+ const rackMetal=new THREE.MeshStandardMaterial({color:'#748582',metalness:.55,roughness:.4});
+ const cardboard=new THREE.MeshStandardMaterial({color:'#bb9568',metalness:.015,roughness:.9});
+ const cardboardLight=new THREE.MeshStandardMaterial({color:'#d8bb8d',metalness:.015,roughness:.86});
+ const tapeMaterial=new THREE.MeshStandardMaterial({color:'#f1e7ce',roughness:.82});
+ const stackLabel=new THREE.MeshStandardMaterial({color:'#f8f7ea',roughness:.92});
+ const stackInk=new THREE.MeshStandardMaterial({color:'#45504b',roughness:.9});
+ // The boxes sit on actual pallets behind the rotated dividing wall, not
+ // in the player's walkable receiving approach. Each carton has tape/labels.
+ for(const [row,x] of [12.5,15.3].entries())for(const [depth,z] of [94.25,97.0].entries()){
+  const pallet=round(2.2,.17,2.1,rackMetal,storage);pallet.position.set(x,.16,z);
+  for(let level=0;level<3;level++)for(let column=0;column<2;column++){
+   const xx=x+(column?.54:-.54)+(level%2?.12:0),yy=.55+level*.73;
+   const box=round(1.02,.67,.94,(row+depth+level+column)%3===0?cardboardLight:cardboard,storage);
+   box.position.set(xx,yy,z+(column?-.08:.08));box.rotation.y=(level%2?-.045:.035);
+   const strip=round(.10,.68,.95,tapeMaterial,storage);strip.position.set(xx,yy+.006,z+(column?-.08:.08));
+   const label=round(.28,.21,.014,stackLabel,storage);label.position.set(xx-.19,yy-.05,z+(column?-.08:.08)-.486);
+   const barcode=round(.19,.065,.016,stackInk,storage);barcode.position.set(xx-.19,yy-.06,z+(column?-.08:.08)-.497);
+  }
+ }
+ // Side-facing metal pallet rack bracing reinforces the stockroom feel.
+ for(const x of [11.9,16.7])for(const z of [93.2,98.1]){
+  const post=round(.11,3.4,.12,rackMetal,storage);post.position.set(x,1.72,z);
+ }
  const dockTerminal=round(.85,1.1,.52,'#7a8b8c');dockTerminal.position.set(3.7,.59,95.8);
  const dockScreen=round(.64,.43,.08,new THREE.MeshBasicMaterial({color:'#accfbd'}));dockScreen.position.set(3.7,.95,95.49);
  // Receiving workstation: hanging rack structure, scanners, pallet jack and boxes.
