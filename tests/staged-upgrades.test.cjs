@@ -95,7 +95,9 @@ test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
  assert.doesNotMatch(env,/const labelNum=/);
+ assert.doesNotMatch(env,/themeColors=|const plate=round\(3\.48|const edge=round\(3\.5/);
  assert.match(env,/AISLE '\+String\(i\+1\)/);
+ assert.match(env,/37,'entrance'\)/,'overhead sign faces approaching players');
  simulate(i=>{const s=r.newState();s.money=1000;r.place(s,r.cellId(0,i%10,0,i%r.BAYS,0),true);
   assert.equal(r.loadState(r.serialize(s)).stocked,1);
  });
