@@ -170,14 +170,28 @@ function buildEmployeeOfMonthPortrait(){
  group.userData={floor,subject:'Mustache Mike',job:MIKE_PORTRAIT_JOBS[floor][0]};
  // Occupies the front wall just to the right of the elevator frame.
  group.position.set(31,0,-12.19);add(group);
- const gold=new THREE.MeshStandardMaterial({color:'#bb8b37',metalness:.84,roughness:.25});
- const highlight=new THREE.MeshStandardMaterial({color:'#efcd78',metalness:.72,roughness:.29});
- const shadowGold=new THREE.MeshStandardMaterial({color:'#65502d',metalness:.72,roughness:.39});
- const velvet=new THREE.MeshStandardMaterial({color:'#152d2d',roughness:.87,metalness:.03});
+ // Gilded 24K-yellow frame, not dark bronze. Metallic-only materials
+ // read as brown in unlit WebGL scenes, so warm emissive highlights ensure
+ // the bright gold remains identifiable on every floor.
+ const gold=new THREE.MeshStandardMaterial({color:'#ffd029',metalness:.37,roughness:.22,emissive:'#8e5200',emissiveIntensity:.18});
+ const highlight=new THREE.MeshBasicMaterial({color:'#ffe77c'});
+ const shadowGold=new THREE.MeshStandardMaterial({color:'#b66e0a',metalness:.35,roughness:.29,emissive:'#5e3200',emissiveIntensity:.18});
+ const velvet=new THREE.MeshStandardMaterial({color:'#172c29',roughness:.92,metalness:.02});
  const backing=round(3.54,4.94,.18,shadowGold,group);backing.position.set(0,3.61,0);
  const outer=round(3.47,4.86,.17,gold,group);outer.position.set(0,3.61,.14);
  const inner=round(3.18,4.57,.11,highlight,group);inner.position.set(0,3.61,.265);
- const matte=round(2.98,4.35,.105,velvet,group);matte.position.set(0,3.61,.37);
+ const insetGold=round(3.34,4.74,.055,shadowGold,group);insetGold.position.set(0,3.61,.315);
+ const fineGold=round(3.11,4.49,.04,highlight,group);fineGold.position.set(0,3.61,.36);
+  const matte=round(2.98,4.35,.105,velvet,group);matte.position.set(0,3.61,.37);
+ // Four ornate gilded corner ornaments catch the light like a trophy.
+ for(const xx of [-1.46,1.46])for(const yy of [1.48,5.73]){
+  const corner=new THREE.Mesh(new THREE.SphereGeometry(.16,12,8),highlight);
+  corner.scale.set(1.65,.62,.39);corner.position.set(xx,yy,.42);group.add(corner);
+  const crest=round(.16,.26,.07,gold,group);crest.position.set(xx,yy,.43);
+ }
+ for(const x of [-1.50,1.50]){
+  const filigree=round(.055,3.5,.075,gold,group);filigree.position.set(x,3.64,.46);
+ }
  const photoTexture=new THREE.CanvasTexture(mikePortraitCanvas(floor));
  photoTexture.colorSpace=THREE.SRGBColorSpace;photoTexture.anisotropy=4;
  const image=new THREE.Mesh(new THREE.PlaneGeometry(2.73,3.15),
@@ -185,9 +199,9 @@ function buildEmployeeOfMonthPortrait(){
  image.name='uniqueWorkingPortrait';
  image.position.set(0,3.55,.454);group.add(image);
  // Etched title and nameplates in separate gold ribbons remain legible.
- const title=textLabel('EMPLOYEE OF THE MONTH',2.77,.32,'#e5bb60','#333322',28,'interior');
+ const title=textLabel('EMPLOYEE OF THE MONTH',2.77,.32,'#ffdd47','#293127',28,'interior');
  title.position.set(0,5.51,.463);group.add(title);
- const name=textLabel('Mustache Mike',2.75,.43,'#d7af58','#252d29',44,'interior');
+ const name=textLabel('Mustache Mike',2.75,.43,'#ffe159','#24332b',44,'interior');
  name.position.set(0,1.54,.466);group.add(name);
  const floorBadge=textLabel('AWARD • '+floorLabel(floor),1.35,.18,'#284340','#f4e0a4',26,'interior');
  floorBadge.position.set(0,1.21,.464);group.add(floorBadge);
