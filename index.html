@@ -361,6 +361,20 @@ button:active:not(:disabled){transform:translateY(1px)}
  background:#34574e;color:#f3faf4;font-size:11px;font-weight:760;cursor:pointer}
 .devCrabButtons button[aria-pressed="true"]{background:#e6c67c;border-color:#ffdf92;color:#27382f}
 @media(max-width:700px){#devCrabPanel{top:159px;right:9px;width:min(320px,calc(100vw - 18px))}}
+
+#saveRecoveryArea{padding:13px 15px;margin-top:13px;border:1px solid #b1c4b9;
+ border-radius:9px;background:#f0f5ef;color:#26443b;text-align:left}
+#saveRecoveryArea strong{font-size:14px}
+.saveRecoveryLinks{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 10px}
+.saveRecoveryLinks a{font-size:12px;background:#fff;padding:7px 9px;border:1px solid #9ab8a9;border-radius:6px;color:#205746}
+#scanSaveBackups{font-size:12px;padding:9px 12px;background:#2b5747;color:#fff;border:1px solid #2b5747}
+#saveRecoveryList{padding-top:8px;display:flex;flex-direction:column;gap:7px}
+.saveRecoveryEntry{display:flex;align-items:center;gap:9px;justify-content:space-between;
+ padding:8px;background:#fff;border:1px solid #cbd9cf;border-radius:8px}
+.saveRecoveryEntry>div{display:flex;flex-direction:column;gap:2px}
+.saveRecoveryEntry small{color:#517269;font-size:11px}
+.saveRecoveryEntry button{background:#e4f1e7;border:1px solid #729781;font-size:11px;padding:7px 10px}
+
 </style>
 </head>
 <body>
@@ -419,6 +433,19 @@ button:active:not(:disabled){transform:translateY(1px)}
         </label>
       </div>
       <small id="saveTransferStatus" aria-live="polite"></small>
+      <div id="saveRecoveryArea">
+        <strong>Find your previous progress</strong>
+        <p class="hint">Saved games are separate for each browser, host and port. Check these addresses in the SAME browser you used previously. If the old game shows your progress, download its save backup and import that file here. Your progress has not been deleted by changing the code on GitHub.</p>
+        <div class="saveRecoveryLinks">
+          <a href="http://127.0.0.1:8000/#dev" target="_blank" rel="noopener">127.0.0.1:8000</a>
+          <a href="http://localhost:8000/#dev" target="_blank" rel="noopener">localhost:8000</a>
+          <a href="http://127.0.0.1:8011/#dev" target="_blank" rel="noopener">127.0.0.1:8011</a>
+          <a href="http://localhost:8011/#dev" target="_blank" rel="noopener">localhost:8011</a>
+        </div>
+        <p class="hint">A port only loads if its game server is running. If you find your old save on another port, export it there first. Do not click Reset.</p>
+        <button type="button" id="scanSaveBackups">Find saved backups on this address</button>
+        <div id="saveRecoveryList" role="status" aria-live="polite"></div>
+      </div>
     </div>
     <p class="hint">Your saved progress, including purchased skill levels, is stored in your browser at its original address and port. If your skills look reset, STOP and use the original browser and port (often 8000 instead of 8011). Do NOT click Reset. Import a backup here if you have one. Enable Developer Mode with the button above for $500 testing funds. No Electron needed.</p>
   </div>
