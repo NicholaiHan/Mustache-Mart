@@ -990,6 +990,10 @@ function syncCrab(now){
   leg.joint.rotation.y=Math.sin(wave*1.4+leg.index*1.1)*.085;
  }
  const striking=now<crabSwingEnds;
+ for(const [i,lens] of (crabModel.userData.warningLights||[]).entries()){
+  // Warm idle indicator and an obvious red-orange flicker during a swing.
+  lens.visible=striking?Math.sin(wave*19+i*1.8)>-.5:Math.sin(wave*2+i*.7)>.36;
+ }
  for(const claw of crabModel.userData.jaws||[]){
   claw.rotation.y=Math.sin(wave*2)*.2+(striking?Math.sin(wave*23)*.95:0);
   claw.rotation.z=striking?Math.sin(wave*19)*.28:Math.sin(wave*2.5)*.09;
@@ -1385,6 +1389,15 @@ if(DEV_MODE){
   setFloor(floor){
    if(!Number.isInteger(floor)||floor<0||floor>=FLOORS)return false;
    s.floor=floor;buildWorld();V.x=31;V.z=-7;V.y=0;V.vy=0;return true;
+  },
+  crabDetailStats(){
+   if(!crabModel)return null;
+   const components={},names=['crabSegmentedCarapace','crabHydraulicCylinder','crabPolishedPistonRod','crabLegDriveGear',
+    'crabPincerRotaryJoint','crabCoolingVent','crabEyeBezel','crabArmorRivets','crabAnimatedWarningBeacon',
+    'crabSerratedPincerTeeth','crabExhaustLouver','crabShinArmor'];
+   crabModel.traverse(node=>{if(names.includes(node.name))components[node.name]=(components[node.name]||0)+1;});
+   return {components,...crabModel.userData.detailStats,walkingLegs:crabModel.userData.legs?.length||0,
+    animatedClaws:crabModel.userData.jaws?.length||0};
   },
   worldLayoutStats(){return {scaleX:world.scale.x,originX:world.position.x,
    width:113*world.scale.x,aisleSeparation:(toWideX(aisleX(1))-toWideX(aisleX(0))),
