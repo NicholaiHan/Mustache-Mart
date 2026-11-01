@@ -5,6 +5,7 @@ import {createCharacters} from './characters.js';
 import {createEquipment} from './equipment.js';
 import {createDoors} from './doors.js';
 import {createCheckout} from './checkout.js';
+import {restoreObjectProportions} from './visual-proportions.js';
 import {ladderHeight,canStockFromHeight} from './ladder.mjs';
 import {moveWithCollisions,isBlocked,blockedEquipment,PAYROLL_LAYOUT as PAY} from './collision.mjs';
 import {cartonTexture} from './textures.js';
@@ -168,13 +169,15 @@ function buildWorld(){
   // Only the model is scaled: raid timing, stock damage and saves are unchanged.
   // Keep the crab's previous compact physical silhouette even as the
   // aisles expand to 16m visually. Only cosmetic geometry changes.
-  crabModel.scale.set(.36,.68,.68);
+  crabModel.scale.set(.36/MAP_WIDTH_MULTIPLIER,.68,.68);
  }
  for(const platform of platformsOnFloor(s)){
   const model=makeCart();if(model){cartMeshes.push({platform,model});if(platform===s.cart)cartMesh=model;}
  }
  palletMesh=makePalletJack();placedClawMeshes=makeClaws();pileMeshes=makeStockPiles();
  ladderMesh=makeLadder();
+ // Normalize actual mesh widths, preserving intentionally wider aisle coordinates.
+ restoreObjectProportions(world,MAP_WIDTH_MULTIPLIER);
  uiUpdate();
 }
 // A transfer is recorded at the exact point the logical carton moves. A
@@ -985,7 +988,9 @@ function syncRobots(){
 function syncCrab(now){
  if(!crabModel)return;
  const p=s.crab.patrol[s.floor],wave=now*.001;
- crabModel.position.set(aisleX(p.aisle)+.16*Math.sin(wave*.8),.15*Math.sin(wave*3.6),p.z);
+ crabModel.position.set((p.x??aisleX(p.aisle))+.16*Math.sin(wave*.8),.15*Math.sin(wave*3.6),p.z);
+ crabModel.rotation.y+=((Math.abs((p.x??0)-aisleX(p.targetAisle??p.aisle))>.25?
+   ((p.x??0)<aisleX(p.targetAisle??p.aisle)?-Math.PI/2:Math.PI/2):0)-crabModel.rotation.y)*.06;
  for(const leg of crabModel.userData.legs||[]){
   leg.joint.rotation.z=Math.sin(wave*2.1+leg.index*1.6+leg.side)*.18;
   leg.joint.rotation.y=Math.sin(wave*1.4+leg.index*1.1)*.085;
