@@ -63,7 +63,9 @@ test('bots collect supplies and stock shelves, including unvisited floors',()=>{
  // manually repairs it. The test services the bot first, then verifies
  // that its work resumes even if the player changes floors.
  if(s2.robots[0].broken){
-   for(let i=0;i<4;i++)assert.equal(r.repairRobot(s2,s2.robots[0].id),true);
+   assert.equal(r.repairRobot(s2,s2.robots[0].id,5.9),true);
+   assert.equal(s2.robots[0].broken,true);
+   assert.equal(r.repairRobot(s2,s2.robots[0].id,.1),true);
  }
  assert.equal(s2.robots[0].broken,false);
  for(let i=0;i<500;i++)r.botStep(s2,s2.robots[0],.1);
