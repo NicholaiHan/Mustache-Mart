@@ -326,7 +326,7 @@ test('crab stage 3: 30 permanent spring-neck wrecks, required 25% scrap and repl
   assert.equal(s.levels.robot,s.robots.length);
   assert.equal(r.purchase(s,'robot'),true);
   assert.equal(s.robots[s.robots.length-1].wrecked,false);
-  assert.equal(s.robots[s.robots.length-1].placed,false);
+  assert.equal(s.robots[s.robots.length-1].placed,true,'replacement robot auto-spawns');
  });
 });
 
