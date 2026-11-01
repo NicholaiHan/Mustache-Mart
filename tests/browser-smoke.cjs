@@ -334,6 +334,41 @@ const assert=require('node:assert/strict');
   await page.screenshot({path:path.join(dir,'entrance-unlocked.png'),timeout:90000});
   console.log('PASS: floor elevator reaches F15 and rebuilds the 3D store');
 
+  // Isolated endgame boss QA: do not modify the ordinary gameplay save.
+  const crabContext=await browser.newContext({viewport:{width:1280,height:800}});
+  const crabPage=await crabContext.newPage();
+  crabPage.on('pageerror',e=>errors.push(e.message));
+  await crabPage.goto(root+'/#rich',{waitUntil:'load'});
+  await crabPage.waitForFunction(()=>document.querySelector('#loading')?.hidden,undefined,{timeout:45000});
+  assert.equal(await crabPage.evaluate(()=>window.__martTest.crabTest.status().unlocked),false);
+  const scene=await crabPage.evaluate(()=>{
+   const qa=window.__martTest.crabTest;
+   const unlocked=qa.completeFloors(7);
+   window.__martTest.setFloor(7);
+   const stocked=qa.stockTarget(7,3,12,2);
+   const botId=qa.spawnBot(7,3,12,400);
+   return {unlocked,stocked,botId,before:qa.status()};
+  });
+  assert.equal(scene.unlocked,true,'crab unlocks after seven complete floors');
+  assert.equal(scene.stocked,48);
+  assert.equal(scene.before.visible,true,'gigantic walking crab model is present on unfinished floor');
+  assert.match(await crabPage.locator('#crabStatus').textContent(),/MEGA CRAB ACTIVE/);
+  const raid=await crabPage.evaluate(()=>window.__martTest.crabTest.swing(7,3,12));
+  assert.equal(raid.fallen,48);
+  assert.deepEqual(raid.robots,[scene.botId]);
+  const after=await crabPage.evaluate(()=>window.__martTest.crabTest.status());
+  assert.ok(after.wreckModels>=1,'detached head and giant spring render as a wreck model');
+  assert.equal(after.piles.filter(p=>p.floor===7).reduce((a,p)=>a+p.count,0),48);
+  const destroyed=await crabPage.evaluate(id=>window.__martTest.crabTest.robot(id),scene.botId);
+  assert.equal(destroyed.wrecked,true);
+  await crabPage.evaluate(()=>{window.__martTest.teleport(38,45);window.__martTest.setLook(0,-.08);});
+  await crabPage.screenshot({path:path.join(art,'mega-crab-robot-wreck.png'),timeout:90000});
+  const refund=await crabPage.evaluate(id=>window.__martTest.crabTest.scrap(id),scene.botId);
+  assert.equal(refund,100,'destroyed $4 robot must return 25% scrap credit');
+  assert.equal(await crabPage.evaluate(()=>window.__martTest.crabTest.status().wrecked.length),0);
+  console.log('PASS: seven-floor crab boss appears, knocks stock to floor, permanently wrecks robot, and enforces 25% scrap');
+  await crabContext.close();
+
   await page.close();const ending=await context.newPage();
   ending.on('pageerror',e=>errors.push(e.message));
   await ending.goto(root+'/#ending-test',{waitUntil:'load'});
