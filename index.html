@@ -256,6 +256,37 @@ button:active:not(:disabled){transform:translateY(1px)}
 #saveTransfer a{color:#1d6653;text-decoration:underline}
 
 
+
+/* Two hidden, once-only surprise wagers with an in-game animated coin. */
+#secretFlipBtn{position:fixed;left:16px;bottom:123px;z-index:8;max-width:310px;
+ padding:11px 14px;border:1px solid #d8b75c;border-radius:11px;
+ background:linear-gradient(125deg,#241c25,#4d352c);color:#fbe8b6;
+ font-size:12px;font-weight:900;letter-spacing:.045em;box-shadow:0 5px 22px #140e1f69;
+ cursor:pointer}#secretFlipBtn[hidden]{display:none}
+#coinflip{background:rgba(14,13,24,.84);backdrop-filter:blur(8px)}
+#coinflip .panel{width:min(540px,96vw);text-align:center;border:2px solid #ddba69;
+ border-radius:23px;padding:30px;background:linear-gradient(165deg,#182c31,#141820 71%,#332534);
+ box-shadow:0 28px 90px #000a,0 0 0 5px #f2dba922;color:#f8ead1}
+#coinflip h2{font-size:clamp(27px,4vw,37px);letter-spacing:.11em;color:#ffdf96;margin:4px 0 15px}
+#coinflip .coin-eyebrow{letter-spacing:.29em;font-size:12px;font-weight:900;color:#c8d5cc}
+#coinflip .coin-emblem{position:relative;display:grid;place-content:center;
+ height:160px;width:160px;margin:16px auto 22px;border-radius:50%;
+ background:radial-gradient(circle at 30% 24%,#fff3c2,#ffd766 32%,#b77723 76%,#693718);
+ box-shadow:inset 0 0 0 6px #ffe9a4,inset 0 0 0 11px #8c511b,0 12px 40px #0008;
+ color:#5c361a;font-weight:1000;font-size:66px;transform-style:preserve-3d}
+#coinflip .coin-emblem.flip-result{animation:secretCoinSpin 1.15s cubic-bezier(.1,.75,.2,1)}
+#coinflip .coin-emblem span{font-size:13px;letter-spacing:.2em}
+@keyframes secretCoinSpin{0%{transform:rotateY(0) translateY(0)}35%{transform:rotateY(720deg) translateY(-28px)}
+ 100%{transform:rotateY(1440deg) translateY(0)}}
+#coinflip .coin-stake{color:#fff2c5;font-size:32px;font-weight:1000;font-variant-numeric:tabular-nums;margin:8px 0}
+#coinflip .coin-warning{font-size:14px;line-height:1.65;color:#e5d4c1;margin:8px 0 19px}
+#coinflip .coin-buttons{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin:18px auto 8px}
+#coinflip button{border-radius:10px;padding:11px 19px;background:#edc66a;border:1px solid #ffecba;color:#22212b;font-weight:900;cursor:pointer}
+#coinflip button:hover:not(:disabled){background:#ffe29d}
+#coinflip button:disabled{opacity:.45;cursor:not-allowed}
+#coinflip #coinLater{background:#324749;border-color:#768c85;color:#f0efe6}
+#coinflip .coin-outcome{font-size:18px;font-weight:900;color:#fff0bc;margin:12px 0}
+
 </style>
 </head>
 <body>
@@ -270,6 +301,7 @@ button:active:not(:disabled){transform:translateY(1px)}
   </div>
   <div class="pill" id="objective">Collect a can from the delivery dock, then stock the nearest shelf.</div>
   <div id="buildChip">UPDATED BUILD · 2026.10.31.9</div>
+  <button id="secretFlipBtn" type="button" hidden aria-label="Open your secret coin flip offer">✦ A SECRET OFFER AWAITS ✦</button>
 
   <div id="crosshair"></div>
   <div id="lookPrompt" hidden>CLICK ON THE GAME TO RESTORE MOUSE LOOK</div>
@@ -312,6 +344,21 @@ button:active:not(:disabled){transform:translateY(1px)}
  <div class="panel"><div class="shopHeader"><div class="mikePortrait" aria-hidden="true"><div class="eyes"><i></i><i></i></div><div class="moustache">⌣</div></div><div class="shopIdentity"><div class="shopEyebrow">MUSTACHE MART · CUSTOMER SERVICE</div><h2 id="shopTitle">Mustache Mike</h2><p>Concierge robotics · Equipment, automation and economy contracts</p></div></div>
   <p>Available funds: <strong id="shopMoney">$0.00</strong> · Collect manual wages at the payroll counter to fund upgrades.</p>
   <div id="shopTabs" role="group" aria-label="Upgrade categories"><button id="tab-tools" type="button" aria-pressed="true" class="selected">Equipment &amp; automation</button><button id="tab-skills" type="button" aria-pressed="false">Skill tree</button><button id="tab-economy" type="button" aria-pressed="false">Economy contracts</button></div><div id="shopitems"></div><button id="shopClose">Back to work (E / Click)</button>
+ </div>
+</div>
+<div class="dialog" id="coinflip" role="dialog" aria-modal="true" aria-labelledby="coinTitle" aria-describedby="coinDescription">
+ <div class="panel">
+  <div class="coin-eyebrow">MUSTACHE MART • HIDDEN EVENT</div>
+  <h2 id="coinTitle">A SECRET COIN FLIP</h2>
+  <div class="coin-emblem" id="coinEmblem" aria-hidden="true">✦<span>MM</span></div>
+  <div class="coin-stake" id="coinStake">$3,000.00</div>
+  <p class="coin-warning" id="coinDescription">One fair flip. Win double your stake or lose your stake.</p>
+  <div class="coin-outcome" id="coinOutcome" role="status" aria-live="polite"></div>
+  <div class="coin-buttons">
+   <button type="button" id="coinHeads">PICK HEADS</button>
+   <button type="button" id="coinTails">PICK TAILS</button>
+   <button type="button" id="coinLater">Not now</button>
+  </div>
  </div>
 </div>
 <div class="dialog" id="elevator" role="dialog" aria-modal="true" aria-labelledby="elevatorTitle">
