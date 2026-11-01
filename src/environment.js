@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {polishedTileTexture,matteWallTexture,productTexture,cartonTexture} from './textures.js';
+import {addPackedCarton,addInventoryPallet,cartonMaterials} from './carton-model.js';
 import {AISLES,BAYS,TIERS,SLOTS,CELLS_PER_FLOOR,DOCK,aisleX,bayZ,decode,floorLabel} from './rules.mjs';
 import {PAYROLL_LAYOUT as PAY} from './collision.mjs';
 // Architecture, walls, supermarket service counters, shelves, products.
@@ -413,20 +414,7 @@ function buildShell(){
    }
   }
  }
- // Front-wall structural panels mirror the ceiling's repeated support beams;
- // do not span the opening x=42.5..50.5 on the ground floor.
- for(let x=4;x<=94;x+=12){
-  if(s.floor===0&&x>38&&x<54)continue;
-  const panel=round(5.9,2.8,.055,wallInset);
-  panel.position.set(x,6.62,-12.31);
-  const topTrim=round(6,.09,.095,wallSteel);
-  topTrim.position.set(x,8.04,-12.25);
-  for(const offset of [-2.82,2.82]){
-   const frame=round(.085,2.67,.10,wallSteel);
-   frame.position.set(x+offset,6.60,-12.25);
-  }
- }
-
+ // Removed gray faux window-panel rectangles. Every glazing opening is the same recessed sky-blue system on all 15 floors.
  // Ceiling infrastructure: sprinkler mains, segmented cable trays and diffuse luminaires.
  for(const x of [5,51,95]){
    const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.087,.087,107,10),
@@ -549,16 +537,7 @@ function buildShell(){
  for(let y=1.2;y<8.2;y+=.7){
   const seam=cube(10.5,.055,.1,'#657577');seam.position.set(17,y,100.07);
  }
- const cartonMat=new THREE.MeshStandardMaterial({map:cartonTexture(),roughness:.89});
- for(let j=0;j<8;j++){
-  const x=30+(j%4)*3.5,z=95+Math.floor(j/4)*3.0;
-  const pallet=round(2.7,.22,2.4,'#9d8264');pallet.position.set(x,.14,z);
-  for(let a=0;a<2;a++)for(let b=0;b<2;b++)for(let level=0;level<2;level++){
-   const box=round(1.1,.75,.95,cartonMat);
-   box.position.set(x+(a-.5)*1.15,.64+level*.78,z+(b-.5)*1.07);
-   const tape=cube(.09,.77,.99,'#e1d9c4');tape.position.copy(box.position);tape.position.y+=.02;
-  }
- }
+ // Backroom cartons are now all staged BEHIND the inventory receiving divider in buildService().
  for(let z=91;z<98;z+=2.2){
   const stripe=cube(4,.02,.22,'#d9be6d');stripe.position.set(1.5,.035,z);
  }
@@ -596,20 +575,12 @@ function buildShell(){
    }
   }
  }
- // Everyday shopping baskets and service-barrier uprights by the front entry.
- for(const x of [31.7,34.5]){
-  const basket=round(1.15,.62,.72,'#597b70');basket.position.set(x,.36,-6.65);
-  const rim=round(1.28,.068,.84,'#e0c38b');rim.position.set(x,.7,-6.65);
-  for(const dz of [-.25,0,.25]){
-   const rib=round(.055,.45,.04,'#a2b8a9');rib.position.set(x+.57,.35,-6.65+dz);
-  }
- }
+ // Removed the two boxy basket props that blocked the Employee of the Month portrait sightline.
  // Removed floor-level cashier queue bollards: they looked like random nubs
  // and cluttered the approach to the payment registers.
  const staffing=textLabel('EMPLOYEE ACCESS  •  CHECK-IN',5.7,.63,'#e9ebe3','#42594d',29,'interior');
  staffing.position.set(13.6,5.35,-12.14);add(staffing);
- const receiver=textLabel('GOODS RECEIVING  •  LOAD HERE',7,.9,'#d8c088','#303a3a',43);
- receiver.position.set(DOCK.x,4.4,94.4);add(receiver);
+
 }
 function addKiosk(x,z,name,accent,facing='interior'){
  const platform=round(4,1.1,2.3,'#ffffff');platform.position.set(x,.55,z);
@@ -643,8 +614,7 @@ function buildCreativeReceiving(){
  R(7.42,.83,.28,dark,1.35,7.05,94.6);
  const marquee=textLabel('THE SUPPLY PORTAL',7.12,.56,'#163939','#ffe394',43,'entrance');
  marquee.position.set(1.4,7.05,94.30);root.add(marquee);
- const direction=textLabel('COLLECT  •  SCAN  •  DISPATCH',6.92,.36,'#1b4441','#e9f2de',31,'entrance');
- direction.position.set(1.4,6.35,94.25);root.add(direction);
+
  // Keep the portal clean: no redundant DOCK 01 / SUPPLY ACTIVE sign.
  // Oversized curled mustache emblem suspended below the marquee, not a
  // freestanding obstruction in the collection path.
@@ -671,8 +641,7 @@ function buildCreativeReceiving(){
  for(let i=0;i<9;i++){
   R(.35,.24,.09,i%2===0?mint:glow,-2.3+i*.94,9.67,99.68);
  }
- const upperLabel=textLabel('MUSTACHE MART   /   GOODS INBOUND',8.2,.42,'#294844','#ecf4d8',31,'entrance');
- upperLabel.position.set(1.45,10.44,99.67);root.add(upperLabel);
+
  // A floor-level receiving destination marker painted on the tiles.
  // It carries no solid collision and doesn't prevent the actual inventory E.
  const marker=textLabel('↓  PICKUP ZONE  ↓',5.4,.56,'#f4d472','#334f46',35,'interior');
@@ -806,37 +775,24 @@ function buildService(){
  // The former long rack wall is now perpendicular to the pickup counter:
  // an orderly stockroom is tucked behind it, on the right-hand warehouse side.
  const storage=new THREE.Group();storage.name='receivingBackroomCartons';add(storage);
- const rackMetal=new THREE.MeshStandardMaterial({color:'#748582',metalness:.55,roughness:.4});
- const cardboard=new THREE.MeshStandardMaterial({color:'#bb9568',metalness:.015,roughness:.9});
- const cardboardLight=new THREE.MeshStandardMaterial({color:'#d8bb8d',metalness:.015,roughness:.86});
- const tapeMaterial=new THREE.MeshStandardMaterial({color:'#f1e7ce',roughness:.82});
- const stackLabel=new THREE.MeshStandardMaterial({color:'#f8f7ea',roughness:.92});
- const stackInk=new THREE.MeshStandardMaterial({color:'#45504b',roughness:.9});
- // The boxes sit on actual pallets behind the rotated dividing wall, not
- // in the player's walkable receiving approach. Each carton has tape/labels.
- for(const [row,x] of [12.5,15.3].entries())for(const [depth,z] of [94.25,97.0].entries()){
-  const pallet=round(2.2,.17,2.1,rackMetal,storage);pallet.position.set(x,.16,z);
-  for(let level=0;level<3;level++)for(let column=0;column<2;column++){
-   const xx=x+(column?.54:-.54)+(level%2?.12:0),yy=.55+level*.73;
-   const box=round(1.02,.67,.94,(row+depth+level+column)%3===0?cardboardLight:cardboard,storage);
-   box.position.set(xx,yy,z+(column?-.08:.08));box.rotation.y=(level%2?-.045:.035);
-   const strip=round(.10,.68,.95,tapeMaterial,storage);strip.position.set(xx,yy+.006,z+(column?-.08:.08));
-   const label=round(.28,.21,.014,stackLabel,storage);label.position.set(xx-.19,yy-.05,z+(column?-.08:.08)-.486);
-   const barcode=round(.19,.065,.016,stackInk,storage);barcode.position.set(xx-.19,yy-.06,z+(column?-.08:.08)-.497);
+ const materials=cartonMaterials();
+ // All decorative pallets are now assembled behind the receiving divider,
+ // leaving the pickup pad and crosswalk unobstructed.
+ for(const [column,x] of [12.4,15.2,18.0].entries())for(const [row,z] of [94.4,97.3].entries()){
+  const pallet=addInventoryPallet({round,parent:storage,materials,x,z,width:2.25,depth:2.1});
+  for(let level=0;level<3;level++)for(let side=0;side<2;side++){
+   const box=addPackedCarton({round,parent:pallet,materials,
+    x:(side? .55:-.55),y:.66+level*.69,z:(level%2?-.17:.17),
+    variant:column+row+level+side,scale:1});
+   box.rotation.y=(level%2?-.035:.035);
   }
- }
- // Side-facing metal pallet rack bracing reinforces the stockroom feel.
- for(const x of [11.9,16.7])for(const z of [93.2,98.1]){
-  const post=round(.11,3.4,.12,rackMetal,storage);post.position.set(x,1.72,z);
  }
  const dockTerminal=round(.85,1.1,.52,'#7a8b8c');dockTerminal.position.set(3.7,.59,95.8);
  const dockScreen=round(.64,.43,.08,new THREE.MeshBasicMaterial({color:'#accfbd'}));dockScreen.position.set(3.7,.95,95.49);
  // Receiving workstation: hanging rack structure, scanners, pallet jack and boxes.
  const scanner=round(.15,.37,.26,'#32454b');scanner.position.set(4,.99,95.1);
  const scannerLight=round(.1,.052,.15,new THREE.MeshBasicMaterial({color:'#7fe6bb'}));scannerLight.position.set(4,1.2,95.02);
- const dataPanel=textLabel('SCAN  |  VERIFY  |  DISPATCH',4.0,.48,'#3c5652','#e5ecdf',31,'entrance');
- dataPanel.position.set(7.1,4.4,95.2);add(dataPanel);
- const receivingLabel=textLabel('INVENTORY  /  RECEIVING',5.4,.77,'#dfd9c4','#414d48',39,'entrance');receivingLabel.position.set(DOCK.x,5.7,94.35);add(receivingLabel);
+
  const entranceSign=textLabel('CUSTOMER SERVICE   |   PAYROLL',8.2,.76,'#e5e5db','#475752',39,'interior');
  entranceSign.position.set(9,6.2,-12.24);add(entranceSign);
  // Follow-through markers guide the player toward distant stock.
