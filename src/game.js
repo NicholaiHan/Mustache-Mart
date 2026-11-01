@@ -12,7 +12,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,skillAvailable,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,completedFloors,crabEnabled,advanceCrab,performCrabSwing,CRAB_UNLOCK_FLOORS,CRAB_ATTACK_SECONDS,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
+ floorStocked,itemsPerFloor,remaining,canOpenStore,FREE_BELT_PITCH,FREE_BELT_VECTORS,snapFreeCoordinate,freeBeltAt,placeFreeBelt,turnFreeBelt,takeFreeBelt,sellFreeBelt,deployFreeClaw,freeBeltConnected,completedFloors,crabEnabled,advanceCrab,performCrabSwing,CRAB_UNLOCK_FLOORS,CRAB_ATTACK_SECONDS,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -36,7 +36,7 @@ let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),a
 let doorInteractionHeld=false,ignoreMouseUntil=0,placementRobotId=null,placementSpot=null,robotGhost=null,climbingLadderId=null;
 let repairingRobotId=null,repairKeyConsumed=false;
 let currentFloor=-1,world=null,robotModels=new Map(),crabModel=null,crabSwingEnds=0,beltCrates=[],feederCrates=[],clawVisual=null,cartMesh=null,cartMeshes=[],ladderMesh=null,palletMesh=null,placedClawMeshes=[],pileMeshes=[];
-let selectedBeltAisle=0;
+let selectedBeltAisle=0,freeBeltDirection=0;
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
 let receiptTimeout=0,payrollTransactions=0;
 const NOTE='Easy shelves: 1¢ · ladder: 2¢ · upgraded ladder: 3¢ · deliveries at the BACK';
@@ -105,6 +105,7 @@ function buildWorld(){
  currentFloor=s.floor;beltCrates=[];feederCrates=[];clawVisual=null;cartMesh=null;cartMeshes=[];ladderMesh=null;palletMesh=null;placedClawMeshes=[];pileMeshes=[];robotModels=new Map();crabModel=null;robotGhost=null;
  buildShell();buildService();buildShelves();doors.build();checkout.build();makeReceivingSystem();
  for(let a=0;a<AISLES;a++)for(let segment=0;segment<s.belts[s.floor][a];segment++)makeBelt(s.floor,a,segment);
+ for(const b of s.freeBelts)if(b.floor===s.floor)makeBelt(s.floor,Math.max(0,Math.min(AISLES-1,Math.round((b.x-8)/10))),0,b);
  for(const robot of s.robots)if(robot.placed&&robot.floor===s.floor)robotModels.set(robot.id,botAppearance(robot));
  if(s.crab.unlocked&&floorStocked(s,s.floor)<itemsPerFloor)crabModel=makeMegaCrab();
  for(const platform of platformsOnFloor(s)){
@@ -227,7 +228,7 @@ function act(source='keyboard'){
  if(collectNearbyPile()){notify('Collected product from your pallet drop-off.');return;}
  if(V.carry<capacity(s)){
   const source=nearestBeltStock();
-  if(source&&takeBelt(s,s.floor,source.aisle,source.segment)){V.carry++;notify('Picked up one delivered conveyor product.');return;}
+  if(source&&((source.freeId&&takeFreeBelt(s,source.freeId))||(!source.freeId&&takeBelt(s,s.floor,source.aisle,source.segment)))){V.carry++;notify('Picked up one delivered conveyor product.');return;}
  }
  if(manualStock())return;
  // With empty hands, E is an accessible alternative to C for gripping a ladder.
@@ -258,8 +259,26 @@ function handlePalletCargo(){
  if(count){notify('Loaded '+count+' products · '+s.pallet.load+'/'+palletCapacity(s)+' capacity. Drive to an aisle with WASD.');save();return;}
  notify(s.pallet.load?'Drive to the front of an aisle, then press U to unload.':'Park near rear inventory to load the pallet jack.');
 }
+function nearestFreeBelt(distance=3.1){
+ let closest=null,best=distance;
+ for(const b of s.freeBelts){
+  if(b.floor!==s.floor)continue;
+  const d=Math.hypot(V.x-b.x,V.z-b.z);
+  if(d<best){closest=b;best=d;}
+ }
+ return closest;
+}
+function freeBeltPlacement(){
+ const heading=FREE_BELT_VECTORS[freeBeltDirection];
+ // Place in the chosen direction, not an aisle-specific path or warehouse
+ // checkpoint. World-grid snapping allows clean joins with other segments.
+ return {x:snapFreeCoordinate(V.x+heading[0]*2.65),z:snapFreeCoordinate(V.z+heading[1]*2.65)};
+}
 function installClaw(){
  if(!s.clawInventory.length){notify('Buy an Automated Item Claw from Mike first.');return;}
+ const free=nearestFreeBelt(3.4);
+ if(free){const claw=deployFreeClaw(s,free.id);if(!claw){notify('A claw is already supplying this segment.');return;}
+  buildWorld();save();notify('Claw linked to free conveyor #'+free.id+' · Supply from nearby dock or stock piles.');return;}
  const a=nearestAisle(),n=s.belts[s.floor][a],bay=n?BAYS-n:nearestBay();
  if(!n||Math.abs(V.x-(aisleX(a)+1.4))>4.4||Math.abs(V.z-bayZ(bay))>5.0){
   notify('Install a belt first, then stand near the belt endpoint and press K.');return;
@@ -269,9 +288,11 @@ function installClaw(){
  buildWorld();save();notify('Item claw installed. It draws ONLY from nearby inventory or pallet piles, then supplies the belt.');
 }
 function turnBelt(){
+ const free=nearestFreeBelt(2.7);
+ if(free){const dir=turnFreeBelt(s,free.id);buildWorld();save();notify('Custom conveyor #'+free.id+' now faces '+['NORTH','EAST','SOUTH','WEST'][dir]+'.');return;}
  const a=nearestAisle(),n=s.belts[s.floor][a];
  if(!n||Math.abs(V.x-(aisleX(a)+1.4))>4.4||Math.abs(V.z-bayZ(BAYS-n))>5){
-   notify('Stand at the FRONT TIP of a conveyor and press Z to rotate its output.');return;
+   freeBeltDirection=(freeBeltDirection+1)%4;notify('Free-placement direction: '+['NORTH (-Z)','EAST (+X)','SOUTH (+Z)','WEST (-X)'][freeBeltDirection]+'. B places a new belt ahead.');return;
  }
  const angle=rotateBelt(s,s.floor,a,n-1);buildWorld();save();
  notify('Belt outlet turned '+['FORWARD','RIGHT','REVERSE','LEFT'][angle]+'. Right/left transfers only to a connected adjacent belt.');
@@ -294,6 +315,7 @@ function nearestBeltStock(){
    if(d<dist){dist=d;best={aisle:a,segment:seg,x,z};}
   }
  }
+ for(const b of s.freeBelts){if(b.floor!==s.floor||!b.items)continue;const d=Math.hypot(V.x-b.x,V.z-b.z);if(d<dist){dist=d;best={freeId:b.id,x:b.x,z:b.z};}}
  return best;
 }
 function startRobotPlacement(id){
@@ -341,6 +363,9 @@ function sellNearby(){
   const d=Math.hypot(V.x-r.x,V.z-r.z);
   if(d<dist){dist=d;best={type:'robot',id:r.id};}
  }
+ if(!best||best.type!=='ladder')for(const b of s.freeBelts.filter(b=>b.floor===s.floor)){
+  const d=Math.hypot(V.x-b.x,V.z-b.z);if(d<dist){dist=d;best={type:'freeBelt',id:b.id};}
+ }
  if(!best||best.type!=='ladder')for(let a=0;a<AISLES;a++){
   const n=s.belts[s.floor][a];if(!n)continue;
   const z=bayZ(BAYS-n),d=Math.hypot(V.x-(aisleX(a)+1.4),V.z-z);
@@ -348,7 +373,7 @@ function sellNearby(){
  }
  if(!best){notify('Walk close to a robot, item claw, ladder, or END conveyor segment and press X.');return;}
  const wasWrecked=best.type==='robot'&&!!s.robots.find(r=>r.id===best.id)?.wrecked;
- const refund=best.type==='ladder'?sellLadder(s,best.id):best.type==='robot'?sellRobot(s,best.id):best.type==='claw'?sellClaw(s,best.id):sellBelt(s,s.floor,best.a,best.seg);
+ const refund=best.type==='ladder'?sellLadder(s,best.id):best.type==='robot'?sellRobot(s,best.id):best.type==='claw'?sellClaw(s,best.id):best.type==='freeBelt'?sellFreeBelt(s,best.id):sellBelt(s,s.floor,best.a,best.seg);
  if(!refund){notify('Cannot sell that equipment.');return;}
  if(best.type==='ladder'&&climbingLadderId===best.id){climbingLadderId=null;V.y=0;V.vy=0;}
  buildWorld();save();
@@ -625,25 +650,27 @@ function placeLadder(){
  buildWorld();save();notify('Ladder placed · C to climb, W/S to go up/down, X to sell.');
 }
 function buildNextBelt(){
- // Building begins at the physical stock dock: choose an aisle with [ / ].
- // Once the rear source is connected, extend that aisle from its frontmost tip.
- const atDock=nearby(DOCK.x,DOCK.z,5.0);
- const a=atDock?selectedBeltAisle:nearestAisle(),n=s.belts[s.floor][a];
- if(atDock&&n>0){
-   notify('AISLE '+(a+1)+' already fed. To extend, go to the FRONT end of its belt, press B there.');
-   return;
+ const atDock=nearby(DOCK.x,DOCK.z,5),a=atDock?selectedBeltAisle:nearestAisle(),n=s.belts[s.floor][a];
+ // Existing old-style rear-to-front aisle networks remain available so
+ // previously purchased conveyors and stock-routing workflows keep working.
+ const legacyTip=Math.abs(V.x-aisleX(a))<2.7&&Math.abs(V.z-bayZ(BAYS-1-n))<4.2;
+ if((atDock||legacyTip)&&freeBeltDirection===0){
+  if(atDock&&n>0){notify('Aisle conveyor already connected. Approach its tip to extend, or turn with Z to start a free route.');return;}
+  if(n>=BAYS){notify('This legacy aisle conveyor is full. Use Z and B to start a free route.');return;}
+  if(!buildBelt(s,s.floor,a,n)){notify('Need '+centsText(beltCost(s,s.floor,a))+' to build.');return;}
+  buildWorld();save();notify('Extended connected aisle conveyor · B adds sections at its tip.');return;
  }
- if(!atDock&&(Math.abs(V.x-aisleX(a))>2.7||n>=BAYS||Math.abs(V.z-bayZ(BAYS-1-n))>4.2)){
-  notify('Start at BACK RECEIVING: use [ / ] to choose aisle, then B. For more segments, stand at the belt’s front end.');return;
+ // Otherwise B works anywhere physically unobstructed on the current floor.
+ const pos=freeBeltPlacement();
+ const cost=12+Math.floor(s.freeBelts.filter(b=>b.floor===s.floor).length*.65);
+ const piece=placeFreeBelt(s,s.floor,pos.x,pos.z,freeBeltDirection,(x,z)=>
+  !isBlocked(x,z,s.floor,.72)&&!blockedEquipment(s,x,z,.72));
+ if(!piece){
+  notify('Cannot place conveyor there. Need '+centsText(cost)+' and open space ahead · Z rotate direction · B place.');return;
  }
- if(n>=BAYS){notify('That belt is at its maximum safe length.');return;}
- const cost=beltCost(s,s.floor,a);
- if(!buildBelt(s,s.floor,a,n)){notify('Need '+centsText(cost)+' to build an aisle conveyor connection.');return;}
- // Rebuild once to add the newly connected overhead chute, solid direction
- // markings and a moving feeder package, not a visually disconnected segment.
  buildWorld();save();
- notify('AISLE '+(a+1)+' · '+(n===0?'Connected to stock claw':'Added forward segment')+
-   ' · Products move forward and stop when the destination buffer fills.');
+ notify('FREE CONVEYOR #'+piece.id+' · '+['NORTH','EAST','SOUTH','WEST'][piece.dir]+
+  ' · B adds ahead · Z rotate near belt · K attach claw · X sell · Every tile transports 3 actual packages max.');
 }
 function updatePrompt(){
  let msg='';
@@ -660,9 +687,10 @@ function updatePrompt(){
  else if(nearbyPlatform(3.6))msg='F ride motorized ladder platform · WASD move · Space raise · Ctrl lower';
  else if(s.claws.some(c=>c.floor===s.floor&&nearby(c.x,c.z,3.5))){
   const claw=s.claws.find(c=>c.floor===s.floor&&nearby(c.x,c.z,3.5));
-  const seg=clawReceivingSegment(s,claw);
-  const filled=seg>=0?s.beltItems[s.floor][claw.aisle][seg]:0;
-  msg=seg<0?'CLAW DISCONNECTED · Build a conveyor beside it':
+  const free=claw.freeBeltId?s.freeBelts.find(b=>b.id===claw.freeBeltId):null;
+  const seg=free?-1:clawReceivingSegment(s,claw);
+  const filled=free?free.items:seg>=0?s.beltItems[s.floor][claw.aisle][seg]:0;
+  msg=seg<0&&!free?'CLAW DISCONNECTED · Build a conveyor beside it':
       filled>=BELT_CAPACITY?'CLAW PAUSED · Receiving belt '+filled+'/'+BELT_CAPACITY+' FULL · Clear downstream or collect a carton':
       !nearestClawSource(s,claw)?'CLAW IDLE · Place inventory beside it with pallet jack':
       'CLAW LOADING · '+filled+'/'+BELT_CAPACITY+' cartons in segment · Moves only if next belt has space';
@@ -672,19 +700,19 @@ function updatePrompt(){
  else if(climbingLadderId!==null)msg='CLIMBING · W up · S down · C release · Hold E to stock';
 
  else if(nearestLadder(1.8))msg='E or C · Grab ladder · Hold W to climb / S to descend · X sell';
- else if(nearestBeltStock())msg='E · Take conveyor stock · X sell LAST segment';
+ else if(nearestBeltStock())msg='E · Take conveyor stock · X sell a nearby conveyor';
  else if(doors.nearFire(V.x,V.z))msg='E · '+(doors.isFireOpen()?'Close':'Open')+' FIRE EXIT (brick wall behind)';
  else if(doors.nearEntrance(V.x,V.z))
    msg=canOpenStore(s)?'E · Unlock the grand opening and slide open the doors':'E · You have to stock the building before opening';
  else if(checkout.nearest(V.x,V.z)>=0)msg='E · Check cashier terminal · Checkout belts active · Customer payments begin on opening';
- else if(nearby(DOCK.x,DOCK.z,5.0))msg='RECEIVING CLAW: SELECT AISLE '+(selectedBeltAisle+1)+' WITH [ / ] · PRESS B TO CONNECT · E TO PICK UP';
+ else if(nearby(DOCK.x,DOCK.z,5.0))msg='RECEIVING · E COLLECT · B BUILD · Z ROTATE FREE BELT DIRECTION · K CONNECT CLAW';
  else if(nearby(1.5,-7,4.0))msg='E · Speak with Mustache Mike · E or Close returns to mouse look';
  else if(nearby(PAY.x,PAY.customerZ,PAY.interactionRadius))msg='E · Collect '+centsText(s.pending)+' at the WALL-MOUNTED payroll window';
  else if(nearby(23,-9,4.4))msg='E or R · Ride elevator to floors 1–15';
  else if(V.z>=11){
    const id=cellToStock();
    if(id>=0)msg='Hold E · Stock '+['LOW (1¢)','SECOND (1¢)','LADDER (2¢)','EXTENDED LADDER (3¢)'][id%TIERS]+(canReach(id%TIERS)?'':' · NEEDS A HIGHER ACCESS UPGRADE')+' · B builds conveyor';
-   else msg='Look toward a nearby shelf · B build conveyor · L deploy ladder';
+   else msg='B place belt in any clear area · Z change its facing · K connect claw · L ladder';
  }
  if(msg){$('prompt').hidden=false;$('prompt').textContent=msg;}else $('prompt').hidden=true;
  const pickup=$('pickupStatus');
@@ -692,10 +720,10 @@ function updatePrompt(){
  if(!pickup.hidden)pickup.textContent='RECEIVING CLAW  •  AISLE '+(selectedBeltAisle+1)+'  •  [ / ] SELECT   •  B BUILD   •  E PICK UP';
  const panel=$('routingStatus');
  if(panel){
-  const count=s.belts[s.floor].filter(v=>v>0).length;
+  const count=s.belts[s.floor].filter(v=>v>0).length+s.freeBelts.filter(b=>b.floor===s.floor).length;
   panel.hidden=!!modal||!nearby(DOCK.x,DOCK.z,8.0);
   if(!panel.hidden)panel.textContent='INVENTORY → CLAW → AISLE '+String(selectedBeltAisle+1).padStart(2,'0')+
-   '  |  Connected: '+count+'/'+AISLES+'  |  Items on line: '+s.beltStock[s.floor][selectedBeltAisle]+'/'+(s.belts[s.floor][selectedBeltAisle]*BELT_CAPACITY)+'  |  Max 3/segment · [ / ] choose';
+   '  |  Built paths: '+count+'  |  Items on legacy line: '+s.beltStock[s.floor][selectedBeltAisle]+'/'+(s.belts[s.floor][selectedBeltAisle]*BELT_CAPACITY)+'  |  Max 3/segment · [ / ] choose';
  }
 }
 function createEndingBodies(){
@@ -867,7 +895,8 @@ function animate(now){
   for(const entry of placedClawMeshes){
    const claw=s.claws.find(c=>c.id===entry.id);
    if(!claw)continue;
-   const ready=beltInput(s,claw)&&!!nearestClawSource(s,claw);
+   const free=claw.freeBeltId?s.freeBelts.find(b=>b.id===claw.freeBeltId):null;
+   const ready=(free?free.items<BELT_CAPACITY:beltInput(s,claw))&&!!nearestClawSource(s,claw);
    entry.gripping.position.y=ready?Math.sin(now*.004+entry.id)*.25:0;
    entry.box.visible=ready;
   }
@@ -889,16 +918,18 @@ function animate(now){
    }
   }
   for(const b of beltCrates){
-   const actual=s.beltItems[s.floor][b.aisle][b.segment]||0;
+   const free=b.freeId?s.freeBelts.find(p=>p.id===b.freeId):null;
+   const actual=free?free.items:(s.beltItems[s.floor][b.aisle][b.segment]||0);
    b.crate.visible=b.slot<actual;
    // Animate only a REAL parcel with a connected, non-full destination.
    // Blocked and terminal belts are completely still.
-   const direction=s.beltDirection[s.floor][b.aisle][b.segment]||0;
+   const direction=free?free.dir:(s.beltDirection[s.floor][b.aisle][b.segment]||0);
    const destA=b.aisle+(direction===1?1:direction===3?-1:0);
    const destSeg=b.segment+(direction===0?1:direction===2?-1:0);
-   const hasNext=destA>=0&&destA<AISLES&&destSeg>=0&&
-      destSeg<(s.belts[s.floor][destA]||0);
-   const space=hasNext&&s.beltItems[s.floor][destA][destSeg]<BELT_CAPACITY;
+   const dx=FREE_BELT_VECTORS[direction][0]*FREE_BELT_PITCH,dz=FREE_BELT_VECTORS[direction][1]*FREE_BELT_PITCH;
+   const nextFree=free?freeBeltAt(s,s.floor,free.x+dx,free.z+dz):null;
+   const hasNext=free?!!nextFree:destA>=0&&destA<AISLES&&destSeg>=0&&destSeg<(s.belts[s.floor][destA]||0);
+   const space=free?!!nextFree&&nextFree.items<BELT_CAPACITY:hasNext&&s.beltItems[s.floor][destA][destSeg]<BELT_CAPACITY;
    const pct=space&&b.slot===actual-1&&actual>0?
       (s.beltFlowTimer/BELT_MOVE_SECONDS):0;
    b.crate.position.set(0,.87,.78-b.slot*.78-pct*.43);
@@ -1108,6 +1139,10 @@ if(DEV_MODE){
   doorStatus(){return {fire:doors.isFireOpen(),entrance:doors.isEntranceOpen()};},
   checkBlocked(x,z){return isBlocked(x,z,s.floor)||blockedEquipment(s,x,z);},
   advanceConveyors(seconds){advanceBelts(s,Math.max(0,Math.min(120,Number(seconds)||0)));return s.beltStock[s.floor].slice();},
+   placeFreeBelt(x,z,dir=0){const b=placeFreeBelt(s,s.floor,x,z,dir,(px,pz)=>!isBlocked(px,pz,s.floor,.72)&&!blockedEquipment(s,px,pz,.72));if(b)buildWorld();return b?.id||null;},
+   freeBelts(){return s.freeBelts.map(b=>({...b}));},
+   deployFreeClaw(id){s.clawInventory.push({paid:450});const c=deployFreeClaw(s,id);if(c)buildWorld();return c?.id||null;},
+   turnFreeBelt(id){const angle=turnFreeBelt(s,id);if(angle>=0)buildWorld();return angle;},
    move(dx,dz){const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));V.x=next.x;V.z=next.z;return next;},
    snapshot(){return {beltItems:s.beltItems[s.floor].map(row=>row.slice()),selectedBeltAisle,feedCrates:feederCrates.length,devMode:DEV_MODE,checkoutCount:s.floor===0?4:0,x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,platformCount:s.platforms.length,activePlatformId:s.cart.id,levels:{...s.levels}};}
  };
