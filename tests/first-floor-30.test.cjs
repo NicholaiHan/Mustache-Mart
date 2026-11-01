@@ -10,8 +10,8 @@ test('30 accelerated first-floor sessions: interaction systems, upgrades, payout
  const reports=[];
  for(let session=0;session<30;session++){
   const s=r.newState();
-  // Every session begins with precisely the requested $500 development cash.
-  s.money=50000;
+  // Every session begins with precisely the new $5,000 development cash.
+  s.money=500000;
   assert.equal(r.floorStocked(s,0),0);
   assert.equal(r.canOpenStore(s),false);
   // Manual receiving -> low-band shelf -> physical payroll.
@@ -20,7 +20,7 @@ test('30 accelerated first-floor sessions: interaction systems, upgrades, payout
   assert.equal(s.pending,1);
   assert.equal(r.payOut(s),1);
   assert.equal(s.pending,0);
-  assert.equal(s.money,50001);
+  assert.equal(s.money,500001);
   // Exercise every shop group, automation and economy contract.
   for(const id of [
    'capacity','speed','jump','ladder','ladderPlus','ladderUnit',
@@ -30,7 +30,7 @@ test('30 accelerated first-floor sessions: interaction systems, upgrades, payout
    assert.equal(r.purchase(s,id),true,'session '+session+': shop upgrade '+id);
   }
   assert.equal(s.robots.length,2);
-  assert.ok(s.robots.every(bot=>!bot.placed));
+  assert.ok(s.robots.every(bot=>bot.placed),'purchased stockers spawn immediately');
   const targetA=session%r.AISLES,targetB=(session+3)%r.AISLES;
   assert.equal(r.assignRobot(s,s.robots[0].id,0,targetA,25),true);
   assert.equal(r.assignRobot(s,s.robots[1].id,0,targetB,15),true);
