@@ -22,6 +22,10 @@ const PUBLIC_FILES = new Map([
   ['/src/ladder.mjs', ['src/ladder.mjs', 'text/javascript; charset=utf-8']],
   ['/src/textures.js', ['src/textures.js', 'text/javascript; charset=utf-8']],
   ['/src/collision.mjs', ['src/collision.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/visual-proportions.js', ['src/visual-proportions.js', 'text/javascript; charset=utf-8']],
+  ['/src/elevator-ui.js', ['src/elevator-ui.js', 'text/javascript; charset=utf-8']],
+  ['/src/carton-model.js', ['src/carton-model.js', 'text/javascript; charset=utf-8']],
+  ['/src/natural-crab.js', ['src/natural-crab.js', 'text/javascript; charset=utf-8']],
   ['/vendor/three.module.js', ['vendor/three.module.js', 'text/javascript; charset=utf-8']]
 ]);
 const HEADERS = {
