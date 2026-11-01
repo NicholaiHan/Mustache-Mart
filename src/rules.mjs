@@ -5,6 +5,12 @@ export const CENTS=[1,1,2,3], SAVE_KEY='mustacheMartV4';
 export const BELT_CAPACITY=3, BELT_MOVE_SECONDS=.85, CLAW_PICK_SECONDS=1.45;
 export const CRAB_UNLOCK_FLOORS=7, CRAB_ATTACK_SECONDS=20*60;
 export const COIN_FLIP_FIRST_STAKE=300000; // $3,000 in stored cents
+// Render-only widening. Logical aisle coordinates and all saved items remain
+// unchanged. Drawing the entire showroom on a centered, wider X-axis avoids
+// invalidating legacy robots, conveyors, tools, or historical saves.
+export const MAP_WIDTH_MULTIPLIER=1.30, MAP_WIDTH_CENTER=46.5;
+export const toWideX=x=>MAP_WIDTH_CENTER+(x-MAP_WIDTH_CENTER)*MAP_WIDTH_MULTIPLIER;
+export const fromWideX=x=>MAP_WIDTH_CENTER+(x-MAP_WIDTH_CENTER)/MAP_WIDTH_MULTIPLIER;
 export const aisleX=a=>8+a*10, bayZ=b=>13+b*2.65;
 export const DOCK={x:1.5,z:96};
 export const floorLabel=f=>'F'+String(f+1).padStart(2,'0');
