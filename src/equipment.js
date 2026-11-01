@@ -16,49 +16,87 @@ export function industrialWheel(parent,x,y,z,r=.26){
 }
 
 export function createEquipment({s,round,getWorld,getLadder,getBeltCrates,getFeedCrates,setClawVisual}){
+// Shared materials keep hundreds of seamless conveyor segments inexpensive.
+const beltSteel=equipmentMaterial('#a6b2b3',.72,.29);
+const beltRim=equipmentMaterial('#68797b',.63,.36);
+const beltRubber=equipmentMaterial('#252e31',.07,.83);
+const beltGroove=equipmentMaterial('#455155',.12,.75);
+const beltGold=equipmentMaterial('#bb934f',.31,.48);
+const beltShadow=equipmentMaterial('#172125',.08,.74);
+const beltStripe=equipmentMaterial('#c1d4d0',.07,.55);
+const beltCardboard=equipmentMaterial('#bca582',0,.9);
 function makeBelt(f,a,segment){
  const group=new THREE.Group();getWorld().add(group);
+ group.name='continuousConveyorSection';
  group.position.set(aisleX(a)+1.4,0,bayZ(BAYS-1-segment));
- group.rotation.y=-(s.beltDirection?.[f]?.[a]?.[segment]||0)*Math.PI/2;
- const steel=equipmentMaterial('#a2adae',.65,.32);
- const rubber=equipmentMaterial('#2a373b',.09,.88);
- const orange=equipmentMaterial('#e2a753',.25,.45);
- const dark=equipmentMaterial('#4c5c60',.52,.38);
- const light=equipmentMaterial('#f3e8cb',0,.74);
- const frame=round(1.1,.19,2.55,steel,group);frame.position.y=.45;
- const surface=round(.88,.063,2.4,rubber,group);surface.position.y=.57;
+ const direction=s.beltDirection?.[f]?.[a]?.[segment]||0;
+ group.rotation.y=-direction*Math.PI/2;
+ // Bays are 2.65m apart. The 2.68m working ribbon overlaps its neighbors
+ // by just 3cm, removing visible gaps while preserving individual sections
+ // for routing, placement, resale, and independent inventory quantities.
+ const pitch=2.65,skinLength=2.68;
+ const chassis=round(1.25,.21,pitch,beltSteel,group);chassis.position.y=.43;
+ const recessed=round(1.13,.071,skinLength,beltShadow,group);recessed.position.y=.565;
+ const continuousRubber=round(.96,.054,skinLength,beltRubber,group);
+ continuousRubber.position.y=.607;
+ // Continuous slim side guides sit beyond the belt, not as isolated plates.
  for(const side of [-1,1]){
-   const rail=round(.08,.26,2.55,steel,group);rail.position.set(side*.51,.68,0);
-   const rubberGuard=round(.035,.055,2.35,dark,group);rubberGuard.position.set(side*.44,.805,0);
-   for(const z of [-.91,.91]){
-    const foot=round(.13,.44,.18,steel,group);foot.position.set(side*.43,.22,z);
-    const plate=round(.24,.045,.27,dark,group);plate.position.set(side*.43,.03,z);
-    const bolt=round(.055,.04,.06,orange,group);bolt.position.set(side*.43,.063,z);
+  const rail=round(.085,.19,skinLength,beltRim,group);rail.position.set(side*.583,.684,0);
+  const liner=round(.035,.035,skinLength,beltGroove,group);liner.position.set(side*.524,.765,0);
+  const reflectiveEdge=round(.018,.025,skinLength,beltStripe,group);
+  reflectiveEdge.position.set(side*.634,.67,0);
+  // Low-profile support frames are periodic instead of repeating at every join.
+  if(segment%2===0){
+   for(const z of [-.99,.99]){
+    const foot=round(.16,.43,.17,beltSteel,group);foot.position.set(side*.52,.23,z);
+    const base=round(.26,.045,.28,beltShadow,group);base.position.set(side*.52,.045,z);
+    const joint=round(.09,.045,.09,beltGold,group);joint.position.set(side*.52,.082,z);
    }
-   for(const z of [-.93,.93]){
-    const fastener=round(.065,.055,.065,dark,group);fastener.position.set(side*.51,.81,z);
-   }
+  }
+  for(const z of [-1.08,1.08]){
+   const rivet=round(.042,.024,.042,beltGold,group);
+   rivet.position.set(side*.594,.792,z);
+  }
  }
- for(let i=0;i<7;i++)cylinder(.057,.89,steel,group,0,.61,(i-3)*.31,Math.PI/2);
- // White lane chevrons show actual direction: toward the FRONT (-Z).
- for(let j=0;j<3;j++){
-   for(const side of [-1,1]){
-     const arrow=round(.035,.009,.29,light,group);
-     arrow.rotation.y=side*.64;arrow.position.set(side*.12,.613,-.70+j*.7);
-   }
+ // Fine transverse rubber tread grooves create a single textured industrial
+ // belt, not visible gaps or seven exposed roller cylinders per bay.
+ for(let j=-5;j<=5;j++){
+  const rib=round(.91,.008,.018,beltGroove,group);rib.position.set(0,.641,j*.225);
  }
- // Motor gearbox, hazard protection, and intake roller.
- const motor=round(.22,.28,.42,dark,group);motor.position.set(.69,.44,.85);
- const guard=round(.075,.18,.44,orange,group);guard.position.set(.56,.66,-.86);
- const axle=round(.065,.18,.13,steel,group);axle.position.set(.71,.58,.62);
- // Three physically distinct stock positions per segment. All start hidden:
- // a conveyor is NEVER decorated with fake products when it is empty.
- const cardboard=equipmentMaterial('#bca582',0,.9);
+ // Discrete direction marks repeat across bays while the belt stays continuous.
+ for(const z of [-.78,.15,.99]){
+  const shaft=round(.025,.009,.27,beltStripe,group);shaft.position.set(0,.648,z);
+  for(const side of [-1,1]){
+   const tip=round(.025,.01,.14,beltStripe,group);
+   tip.position.set(side*.047,.65,z-.17);tip.rotation.y=side*.63;
+  }
+ }
+ // Only the rear intake and forward outlet expose pulley housings and drive
+ // motors. Intermediate joints now read as one uninterrupted moving surface.
+ const lastSection=segment===(s.belts[f]?.[a]||1)-1;
+ if(segment===0||lastSection){
+  const end=segment===0?1:-1;
+  const pulley=new THREE.Mesh(new THREE.CylinderGeometry(.135,.135,1.04,12),beltRim);
+  pulley.rotation.z=Math.PI/2;pulley.position.set(0,.62,end*1.22);group.add(pulley);
+  const shroud=round(.12,.22,.32,beltSteel,group);shroud.position.set(.67,.52,end*1.10);
+  if(segment===0){
+   const motor=round(.28,.29,.43,beltShadow,group);motor.position.set(.79,.43,1.02);
+   const collar=round(.12,.19,.20,beltGold,group);collar.position.set(.83,.55,.82);
+  }
+ }
+ // One pivot disc makes a routed 90-degree outlet visibly jointed.
+ if(direction){
+  const turnTable=new THREE.Mesh(new THREE.CylinderGeometry(.45,.45,.026,18),beltRim);
+  turnTable.position.set(0,.622,-1.16);group.add(turnTable);
+  const turnInset=new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,.028,18),beltRubber);
+  turnInset.position.set(0,.642,-1.16);group.add(turnInset);
+ }
+ // Three physical stock slots; never place cosmetic fake inventory on an empty belt.
  for(let slot=0;slot<3;slot++){
-  const crate=round(.59,.37,.48,cardboard,group);
-  crate.position.set(0,.87,.78-slot*.78);
+  const crate=round(.59,.37,.48,beltCardboard,group);
+  crate.position.set(0,.88,.78-slot*.78);
   crate.visible=false;
-  const tape=round(.056,.382,.49,light,crate);tape.position.set(0,0,.03);
+  const tape=round(.056,.382,.49,beltStripe,crate);tape.position.set(0,0,.03);
   getBeltCrates().push({crate,segment,aisle:a,slot});
  }
  return group;
