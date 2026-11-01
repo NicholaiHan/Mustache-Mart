@@ -284,7 +284,9 @@ button:active:not(:disabled){transform:translateY(1px)}
 #coinflip button{border-radius:10px;padding:11px 19px;background:#edc66a;border:1px solid #ffecba;color:#22212b;font-weight:900;cursor:pointer}
 #coinflip button:hover:not(:disabled){background:#ffe29d}
 #coinflip button:disabled{opacity:.45;cursor:not-allowed}
-#coinflip #coinLater{background:#324749;border-color:#768c85;color:#f0efe6}
+#coinflip #coinTails{background:#324749;border-color:#768c85;color:#f0efe6}
+#coinflip #coinClose{background:#324749;border-color:#768c85;color:#f0efe6}
+#coinflip button[hidden]{display:none}
 #coinflip .coin-outcome{font-size:18px;font-weight:900;color:#fff0bc;margin:12px 0}
 
 </style>
@@ -301,7 +303,7 @@ button:active:not(:disabled){transform:translateY(1px)}
   </div>
   <div class="pill" id="objective">Collect a can from the delivery dock, then stock the nearest shelf.</div>
   <div id="buildChip">UPDATED BUILD · 2026.11.01.1</div>
-  <button id="secretFlipBtn" type="button" hidden aria-label="Open your secret coin flip offer">✦ A SECRET OFFER AWAITS ✦</button>
+
 
   <div id="crosshair"></div>
   <div id="lookPrompt" hidden>CLICK ON THE GAME TO RESTORE MOUSE LOOK</div>
@@ -352,12 +354,12 @@ button:active:not(:disabled){transform:translateY(1px)}
   <h2 id="coinTitle">A SECRET COIN FLIP</h2>
   <div class="coin-emblem" id="coinEmblem" aria-hidden="true">✦<span>MM</span></div>
   <div class="coin-stake" id="coinStake">$3,000.00</div>
-  <p class="coin-warning" id="coinDescription">One fair flip. Win double your stake or lose your stake.</p>
+  <p class="coin-warning" id="coinDescription">One fair flip. Choose YES to gamble or NO to decline permanently. There is no waiting option.</p>
   <div class="coin-outcome" id="coinOutcome" role="status" aria-live="polite"></div>
   <div class="coin-buttons">
-   <button type="button" id="coinHeads">PICK HEADS</button>
-   <button type="button" id="coinTails">PICK TAILS</button>
-   <button type="button" id="coinLater">Not now</button>
+   <button type="button" id="coinHeads">YES · FLIP THE COIN</button>
+   <button type="button" id="coinTails">NO · DECLINE FOREVER</button>
+   <button type="button" id="coinClose" hidden>Return to the store</button>
   </div>
  </div>
 </div>
