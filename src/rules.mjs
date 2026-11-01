@@ -19,7 +19,7 @@ export const UPGRADES=[
 {id:'cartSpeed',name:'Platform Drive Motor',detail:'Improve your motorized ladder platform driving speed.',base:110,factor:1.65,max:10},
 {id:'palletCapacity',name:'Pallet Jack Capacity',detail:'Increase carrying from 1/20 aisle through 1/16, 1/8, 1/4, 1/2, up to ONE whole aisle. Expensive logistics investment.',base:10000,factor:5,max:5},
 {id:'itemClaw',name:'Automated Item Claw',detail:'One placeable claw picks from the nearest stocked inventory source and feeds a connected conveyor. Use K to deploy.',base:450,factor:1.35,max:40},
-{id:'robot',name:'Mustache Stocker Bot',detail:'Buy a separate robot, then walk it to an aisle and left-click to deploy. Sell intact robots for 50%; crab-destroyed robots must be scrapped for 25% before replacement.',base:250,factor:1.38,max:70},
+{id:'robot',name:'Mustache Stocker Bot',detail:'Spawns immediately into the first unoccupied aisle on your working floor; if all aisles have bots, joins the nearest least-crowded aisle. Move robots from Mike’s management pad. Intact bots sell for 50%; crab wrecks for 25%.',base:250,factor:1.38,max:70},
 {id:'robotLift',name:'Motorized Robot Ladder',detail:'All robot stockers gain a portable powered lift to climb high shelves while moving.',base:850,factor:1,max:1},
 {id:'robotSpeed',name:'Robot Espresso',detail:'Faster robot movement and stocking.',base:160,factor:1.52,max:12},
 {id:'autoPay',name:'Automatic Payroll Terminal',detail:'Deposit wages instantly without visiting the desk.',base:420,factor:1,max:1},
@@ -167,7 +167,7 @@ export function purchase(s,id){
  if(id==='ladderPlus'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
  s.money-=cost;s.money+=Math.floor(cost*Math.min(.1,(s.levels.cashback||0)*.02));s.levels[id]++;if(id==='robotReliability'&&s.levels.robotReliability===4){
   for(const bot of s.robots){if(bot.wrecked)continue;bot.broken=false;bot.stockedSinceService=0;bot.repairProgress=0;bot.breakAt=Infinity;}
- }if(id==='robot')hireRobot(s,cost,false);if(id==='ladder'||id==='ladderUnit')s.ladderInventory.push({kind:id,paid:cost});if(id==='itemClaw')s.clawInventory.push({paid:cost});
+ }if(id==='robot'){const bot=hireRobot(s,cost,true);if(bot)autoPlaceRobot(s,bot.id,s.floor);}if(id==='ladder'||id==='ladderUnit')s.ladderInventory.push({kind:id,paid:cost});if(id==='itemClaw')s.clawInventory.push({paid:cost});
  if(id==='cart'){
   const index=s.platforms.length;
   const p={id:s.platformNextId++,floor:s.floor,aisle:index%AISLES,z:16.2,
@@ -271,6 +271,44 @@ export function hireRobot(s,paid=250,placed=false){
  const r={id:s.robotNextId++,floor:f,aisle:0,homeAisle:0,stockedSinceService:0,breakdowns:0,breakAt:0,broken:false,wrecked:false,repairProgress:0,x:DOCK.x,z:REAR_CROSSWALK,placed,paid,phase:'supply',target:-1,carry:0,acc:0,liftY:0,source:null};
  s.robots.push(r);return r;
 }
+// Automatic stocking robot dispatch on purchase, analogous to an installed
+// motorized platform. Prefer the player's current unfinished floor; if already
+// completed, pick the next floor with empty shelves.
+export function chooseRobotSpawnAisle(s,floor=s.floor){
+ if(!Number.isInteger(floor)||floor<0||floor>=FLOORS)return -1;
+ const counts=Array(AISLES).fill(0);
+ for(const bot of s.robots){
+  if(bot.placed&&!bot.wrecked&&bot.floor===floor)counts[bot.homeAisle??bot.aisle]++;
+ }
+ const empty=counts.findIndex(n=>n===0);
+ if(empty>=0)return empty;
+ // Full occupancy: nearest aisle to Mike's dock-side origin wins ties;
+ // otherwise fill the least-occupied aisle before stacking more robots.
+ return counts.reduce((best,count,i)=>count<counts[best]?i:best,0);
+}
+export function moveRobotFromMike(s,id,floor,aisle){
+ const bot=s.robots.find(r=>r.id===id);
+ if(!bot||bot.wrecked||!Number.isInteger(floor)||floor<0||floor>=FLOORS||
+ !Number.isInteger(aisle)||aisle<0||aisle>=AISLES)return false;
+ // Separate workers inside a heavily occupied aisle so they don't materialize
+ // in exactly the same spot and block each other.
+ const residents=s.robots.filter(r=>r.id!==id&&r.placed&&!r.wrecked&&r.floor===floor&&(r.homeAisle??r.aisle)===aisle);
+ const bay=Math.max(8,29-Math.min(16,residents.length*2));
+ bot.floor=floor;bot.homeAisle=aisle;bot.aisle=aisle;
+ bot.x=aisleX(aisle);bot.z=bayZ(bay);bot.placed=true;
+ bot.target=-1;bot.acc=0;bot.liftY=0;bot.source=null;
+ bot.phase=bot.carry>0?'shelf':'supply';
+ return true;
+}
+export function autoPlaceRobot(s,id,preferredFloor=s.floor){
+ const bot=s.robots.find(r=>r.id===id);
+ if(!bot||bot.wrecked)return false;
+ const target=preferredFloor>=0&&preferredFloor<FLOORS&&floorStocked(s,preferredFloor)<itemsPerFloor?preferredFloor:nextRobotFloor(s);
+ const floor=target<0||target===null?Math.max(0,Math.min(FLOORS-1,preferredFloor)):target;
+ const aisle=chooseRobotSpawnAisle(s,floor);
+ return moveRobotFromMike(s,id,floor,aisle);
+}
+
 export function assignRobot(s,id,f,a,bay){
  const r=s.robots.find(x=>x.id===id);
  if(!r||r.wrecked||!Number.isInteger(a)||a<0||a>=AISLES||!Number.isInteger(bay)||bay<0||bay>=BAYS||f<0||f>=FLOORS)return false;
