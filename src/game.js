@@ -1101,6 +1101,10 @@ window.addEventListener('keydown',e=>{
   e.preventDefault();resume();return;
  }
  if(modal||ending)return;
+ // Dev-only shortcuts work even with pointer lock: Shift+J / Shift+K / Shift+N.
+ if(DEV_MODE&&e.shiftKey&&['KeyJ','KeyK','KeyN'].includes(e.code)){
+  e.preventDefault();changeDevCrab(e.code==='KeyJ'?'on':e.code==='KeyK'?'off':'auto');return;
+ }
  // Mustache Mike is interacted with using E, not a click or Q shortcut.
  if(e.code==='KeyR'&&!s.pallet.driving&&!s.cart.mounted)openElevator();
  if(e.code==='KeyL')placeLadder();
@@ -1268,6 +1272,18 @@ if(DEV_MODE){
   setFloor(floor){
    if(!Number.isInteger(floor)||floor<0||floor>=FLOORS)return false;
    s.floor=floor;buildWorld();V.x=31;V.z=-7;V.y=0;V.vy=0;return true;
+  },
+  architectureStats(){
+   let windows=0,cutWallSections=0,screws=0,vents=0,pipeBrackets=0,freeWindowOverlays=0;
+   world.traverse(object=>{
+    if(object.name==='recessedBlueWindow'&&object.userData?.structuralOpening)windows++;
+    if(object.name==='integratedDaylightWall')cutWallSections++;
+    if(object.name==='pipeAndVentScrews')screws+=object.count;
+    if(object.name==='boltedVentHousing')vents++;
+    if(object.name==='sprinklerPipeBracket')pipeBrackets++;
+    if(object.name==='lightBlueWindow')freeWindowOverlays++;
+   });
+   return {windows,cutWallSections,screws,vents,pipeBrackets,freeWindowOverlays};
   },
   portraitInfo(){
    const portraits=world.children.filter(child=>child.name==='employeeOfMonthPortrait');
