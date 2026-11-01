@@ -919,9 +919,9 @@ function animate(now){
    const moved=drivePallet(s,forward,side,dt,(x,z)=>!isBlocked(x,z,s.floor));
    V.x=s.pallet.x;V.z=s.pallet.z;V.y=0;V.vy=0;
   }else if(s.cart.mounted){
-   drivePlatform(s,forward,side,dt,(x,z)=>!isBlocked(x,z,s.floor));
+   drivePlatform(s,forward,side,dt,(x,z)=>!isBlocked(x,z,s.floor,.87)&&!blockedEquipment(s,x,z,.87));
    liftPlatform(s,(held.Space?1:0)-(held.ControlLeft||held.ControlRight?1:0),dt);
-   V.x=aisleX(s.cart.aisle);V.z=s.cart.z;V.y=s.cart.liftHeight+1.15;V.vy=0;
+   V.x=s.cart.x??aisleX(s.cart.aisle);V.z=s.cart.z;V.y=s.cart.liftHeight+1.15;V.vy=0;
   }else if(climbingLadderId!==null){
    const l=s.ladders.find(l=>l.id===climbingLadderId&&l.floor===s.floor);
    if(!l){climbingLadderId=null;V.y=0;}
@@ -958,7 +958,7 @@ function animate(now){
   for(const {platform,model} of cartMeshes){
    model.visible=platform.floor===s.floor;
    if(model.visible){
-    model.position.set(aisleX(platform.aisle),0,platform.z);
+    model.position.set(platform.x??aisleX(platform.aisle),0,platform.z);
     const lift=model.getObjectByName('riderPlatform');
     if(lift)lift.position.y=platform.liftHeight;
    }
@@ -1213,7 +1213,7 @@ if(DEV_MODE){
   setCarry(count){V.carry=Math.min(capacity(s),Math.max(0,count));},
   setUpgrade(id,level){if(id in s.levels)s.levels[id]=level;},
   giveClaw(){s.clawInventory.push({paid:450});return s.clawInventory.length;},
-  logistics(){return {claws:s.claws.length,clawInventory:s.clawInventory.length,palletLoad:s.pallet.load,palletCapacity:palletCapacity(s),palletDriving:s.pallet.driving,cartMounted:s.cart.mounted,cartHeight:s.cart.liftHeight,platforms:s.platforms.map(p=>({id:p.id,floor:p.floor,aisle:p.aisle,z:p.z,liftHeight:p.liftHeight,mounted:p.mounted})),stockPiles:s.stockPiles.map(x=>({...x})),beltDirections:s.beltDirection[s.floor].map(x=>x.slice())};},
+  logistics(){return {claws:s.claws.length,clawInventory:s.clawInventory.length,palletLoad:s.pallet.load,palletCapacity:palletCapacity(s),palletDriving:s.pallet.driving,cartMounted:s.cart.mounted,cartHeight:s.cart.liftHeight,platforms:s.platforms.map(p=>({id:p.id,floor:p.floor,aisle:p.aisle,x:p.x??aisleX(p.aisle),z:p.z,liftHeight:p.liftHeight,mounted:p.mounted})),stockPiles:s.stockPiles.map(x=>({...x})),beltDirections:s.beltDirection[s.floor].map(x=>x.slice())};},
 
   setCompletion(value){s.fill.fill(value?SLOTS:0);s.stocked=value?TOTAL_ITEMS:0;},
   doorStatus(){return {fire:doors.isFireOpen(),entrance:doors.isEntranceOpen()};},
