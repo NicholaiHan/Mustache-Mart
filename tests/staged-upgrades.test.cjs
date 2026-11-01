@@ -151,6 +151,31 @@ test('stage 7: 30 checkout unobstructed floor simulations',()=>{
   assert.equal(r.loadState(r.serialize(s)).stocked,1);
  });
 });
+test('visual stage A: 30 continuous conveyor and stock-preservation simulations',()=>{
+ const equipment=source('equipment.js');
+ assert.match(equipment,/const pitch=2\.65,skinLength=2\.68/,'ribbon overlaps the 2.65m pitch');
+ assert.match(equipment,/const continuousRubber=/,'belt has a continuous rubber surface');
+ assert.match(equipment,/continuousConveyorSection/);
+ assert.doesNotMatch(equipment,/for\(let i=0;i<7;i\)cylinder/,'remove repeated exposed rollers');
+ simulate(i=>{
+  const s=r.newState(),floor=i%r.FLOORS,aisle=1+i%9,count=37+i;
+  s.money=100000;
+  for(let seg=0;seg<1+i%7;seg++)assert.equal(r.buildBelt(s,floor,aisle,seg),true);
+  assert.equal(r.purchase(s,'itemClaw'),true);
+  s.stockPiles.push({floor,aisle,x:r.aisleX(aisle)+2.1,z:r.bayZ(r.BAYS-1),count});
+  const claw=r.deployClaw(s,floor,aisle,r.BAYS-1);assert.ok(claw);
+  r.advanceBelts(s,15);
+  const beltTotal=s.beltItems[floor][aisle].reduce((a,b)=>a+b,0);
+  const pileTotal=s.stockPiles.filter(p=>p.floor===floor&&p.aisle===aisle).reduce((a,p)=>a+p.count,0);
+  assert.equal(beltTotal+pileTotal,count,'new geometry cannot spawn or lose products');
+  assert.ok(beltTotal>=0&&beltTotal<=3*s.belts[floor][aisle]);
+  assert.equal(r.loadState(r.serialize(s)).beltStock[floor][aisle],beltTotal);
+  const rotated=r.rotateBelt(s,floor,aisle,s.belts[floor][aisle]-1);
+  assert.equal(rotated,1,'directed outlet still rotates');
+  assert.equal(r.advanceBelts(s,8)>=0,true);
+  assert.equal(s.beltStock[floor][aisle]+s.stockPiles.filter(p=>p.floor===floor&&p.aisle===aisle).reduce((sum,p)=>sum+p.count,0),count);
+ });
+});
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
