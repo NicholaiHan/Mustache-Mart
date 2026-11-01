@@ -67,7 +67,7 @@ function makeMike(x,z){
  const name=textLabel('M I K E',.55,.17,'#e8d1ac','#354146',37,'interior');
  name.position.set(0,1.51,.515);guy.add(name);
  const pedestalLight=round(.61,.07,.09,mint,guy);pedestalLight.position.set(0,.43,.45);
- guy.userData.serviceRobot=true;guy.position.set(x,0,z);
+ guy.userData.serviceRobot=true;guy.userData.keepProportion=true;guy.position.set(x,0,z);
  return guy;
 }
 
@@ -81,6 +81,7 @@ function makeMegaCrab(){return createNaturalCrab({getWorld});}
 // exposed coiled spring instead of a neck, and scattered screws and bolts.
 function wreckedBotAppearance(robot){
  const root=new THREE.Group();getWorld().add(root);
+ root.userData.keepProportion=true;
  root.name='crabDestroyedStocker';root.userData.wrecked=true;
  const shell=equipmentMaterial('#b9c5c2',.28,.44);
  const steel=equipmentMaterial('#d6d5d0',.84,.25);
@@ -178,7 +179,7 @@ function botAppearance(r){
   liftingJack.position.set(0,.98,.12);
  }
  // Without the motorized lift, the entire robot moves up a PLAYER-PLACED ladder.
- b.position.set(r.x,0,r.z);return b;
+ b.userData.keepProportion=true;b.position.set(r.x,0,r.z);return b;
 }
 
 return {makeMike,botAppearance,makeMegaCrab};
