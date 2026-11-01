@@ -63,7 +63,8 @@ test('robots select closest reachable empty bay; fixed ladders or a moving lift 
  assert.equal(r.purchase(s,'ladder'),true);
  assert.equal(r.purchase(s,'ladderPlus'),true);
  assert.ok(r.deployLadder(s,0,0,18));
- assert.equal(r.robotCanReach(s,bot,top),true);
+ assert.equal(r.robotCanReach(s,bot,r.cellId(0,0,0,18,2)),true,'deployed tall ladder reaches upper racks');
+ assert.equal(r.robotCanReach(s,bot,top),false,'topmost shelf must use the automatic robot ladder');
  assert.equal(r.purchase(s,'robotLift'),true);
  assert.equal(r.robotCanReach(s,bot,r.cellId(0,0,0,28,3)),true);
 });
