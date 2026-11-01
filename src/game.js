@@ -11,7 +11,7 @@ import {cartonTexture} from './textures.js';
 import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
- capacity,walkSpeed,price,skillAvailable,purchase,autoPlaceRobot,moveRobotFromMike,chooseRobotSpawnAisle,refreshCoinOffers,coinFlipStake,markCoinOfferSeen,resolveCoinFlip,COIN_FLIP_FIRST_STAKE,payOut,place,earnings,buildBelt,beltCost,incomplete,
+ capacity,walkSpeed,price,skillAvailable,purchase,autoPlaceRobot,moveRobotFromMike,chooseRobotSpawnAisle,refreshCoinOffers,coinFlipStake,markCoinOfferSeen,declineCoinFlip,acceptCoinFlip,resolveCoinFlip,COIN_FLIP_FIRST_STAKE,payOut,place,earnings,buildBelt,beltCost,incomplete,
  floorStocked,itemsPerFloor,remaining,canOpenStore,FREE_BELT_PITCH,FREE_BELT_VECTORS,snapFreeCoordinate,freeBeltAt,placeFreeBelt,turnFreeBelt,takeFreeBelt,sellFreeBelt,deployFreeClaw,freeBeltConnected,completedFloors,crabEnabled,advanceCrab,performCrabSwing,CRAB_UNLOCK_FLOORS,CRAB_ATTACK_SECONDS,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
@@ -398,80 +398,64 @@ function pointerRequest(){
 function upcomingCoinOffer(){
  for(const key of ['cash','floor3']){
   const entry=s.coinOffers[key];
-  if(entry.unlocked&&!entry.played&&coinFlipStake(s,key)>0&&!entry.seen)return key;
+  if(entry.unlocked&&!entry.played&&!entry.declined&&coinFlipStake(s,key)>0&&!entry.seen)return key;
  }
- return null;
-}
-function nextPlayableCoinOffer(){
- for(const key of ['cash','floor3'])if(coinFlipStake(s,key)>0)return key;
  return null;
 }
 function renderCoinFlip(){
  const key=activeCoinOffer;if(!key)return;
- const entry=s.coinOffers[key],stake=coinFlipStake(s,key);
- const second=key==='floor3';
+ const stake=coinFlipStake(s,key),second=key==='floor3';
  $('coinTitle').textContent=second?'FLOOR 3 · ALL-IN COIN FLIP':'THE $3,000 SECRET FLIP';
- $('coinStake').textContent=second?centsText(s.money)+' AT STAKE':centsText(COIN_FLIP_FIRST_STAKE)+' AT STAKE';
+ $('coinStake').textContent=centsText(stake|| (second?s.money:COIN_FLIP_FIRST_STAKE))+' AT STAKE';
  $('coinDescription').textContent=second?
-  'You finished Floor 3. This is your second one-time offer: wager your ENTIRE CURRENT CASH BALANCE. Win and your balance doubles; lose and it becomes $0.00. Pending wages are not part of your cash balance.':
-  'You first reached $3,000 cash. Stake exactly $3,000: if your account has exactly $3,000, heads or tails will give you $6,000 on a win, or $0 on a loss. Any other cash stays outside this bet.';
- $('coinOutcome').textContent=stake?'One fair 50/50 flip. Pick a side.':'Not enough cash for this offer. Earn more and return when ready.';
- $('coinEmblem').classList.remove('flip-result');
- $('coinEmblem').innerHTML='✦<span>MM</span>';
- $('coinHeads').disabled=$('coinTails').disabled=!stake;
+  'You finished Floor 3. YES flips a fair coin for your ENTIRE CURRENT CASH BALANCE. Heads doubles your money; tails takes ALL of it. NO permanently rejects this offer. This is your only decision.':
+  'You have reached $3,000 cash. YES flips a fair coin: HEADS wins another $3,000, TAILS loses $3,000. NO permanently rejects the offer. There is no waiting or retrying.';
+ $('coinOutcome').textContent=stake?'Choose YES to risk this amount or NO to refuse forever. No postponing.':
+  'You need the full wager in your account before deciding.';
+ $('coinEmblem').classList.remove('flip-result');$('coinEmblem').innerHTML='✦<span>MM</span>';
  $('coinHeads').hidden=$('coinTails').hidden=false;
- $('coinLater').textContent='Not now';
+ $('coinHeads').disabled=!stake;$('coinTails').disabled=false;
+ $('coinHeads').textContent='YES · FLIP THE COIN';
+ $('coinTails').textContent='NO · DECLINE FOREVER';
+ $('coinClose').hidden=true;
 }
 function openCoinFlip(key){
- if(!['cash','floor3'].includes(key)||!s.coinOffers[key].unlocked||s.coinOffers[key].played)return false;
- activeCoinOffer=key;
- markCoinOfferSeen(s,key);
- renderCoinFlip();save();
- show('coinflip');return true;
+ if(!['cash','floor3'].includes(key)||!s.coinOffers[key].unlocked||s.coinOffers[key].played||s.coinOffers[key].declined)return false;
+ activeCoinOffer=key;markCoinOfferSeen(s,key);renderCoinFlip();save();show('coinflip');return true;
 }
 function closeCoinFlip(){
- activeCoinOffer=null;save();
- // Restores pointer-lock recovery the same way existing shop menus do.
- resume();
+ activeCoinOffer=null;save();resume();
 }
 function updateSecretCoinOffer(){
  const newly=refreshCoinOffers(s);
  if(newly.length)save();
- const eligible=['cash','floor3'].filter(key=>s.coinOffers[key].unlocked&&!s.coinOffers[key].played);
- const offer=$('secretFlipBtn');
- offer.hidden=eligible.length===0;
- if(eligible.length){
-  const playable=eligible.filter(key=>coinFlipStake(s,key)>0);
-  offer.textContent=playable.length?'✦ SECRET COIN FLIP OFFER · '+playable.length+' AVAILABLE ✦':
-   '✦ SECRET FLIP LOCKED · '+centsText(COIN_FLIP_FIRST_STAKE)+' CASH REQUIRED ✦';
- }
  if(!modal&&running){
   const unseen=upcomingCoinOffer();
   if(unseen)openCoinFlip(unseen);
  }
 }
-function flipCoinChoice(choice){
- const key=activeCoinOffer;
- if(!key||modal!=='coinflip')return;
- // crypto random coin (with fair Math.random fallback for unusual browsers).
+function acceptSecretCoin(){
+ const key=activeCoinOffer;if(!key||modal!=='coinflip')return;
  const unit=typeof crypto!=='undefined'&&crypto.getRandomValues?
   crypto.getRandomValues(new Uint32Array(1))[0]/4294967296:Math.random();
- const result=resolveCoinFlip(s,key,choice,unit);
+ const result=acceptCoinFlip(s,key,unit);
  if(!result){renderCoinFlip();return;}
- // Commit the result immediately, BEFORE any cosmetic spinning animation.
  save();uiUpdate();showSaveOrigin();
  const coin=$('coinEmblem');coin.classList.remove('flip-result');
- coin.textContent=result.landed==='heads'?'H':'T';void coin.offsetWidth;
- coin.classList.add('flip-result');
- $('coinOutcome').textContent=(result.won?'YOU WON! ':'YOU LOST. ')+
-  'Landed '+result.landed.toUpperCase()+' · '+(result.won?'+':'−')+centsText(result.stake)+
-  ' · NEW BALANCE '+centsText(result.balanceAfter);
+ coin.textContent=result.won?'H':'T';void coin.offsetWidth;coin.classList.add('flip-result');
+ $('coinOutcome').textContent=(result.won?'HEADS · YOU WON! ':'TAILS · YOU LOST. ')+
+  (result.won?'+':'−')+centsText(result.stake)+' · NEW BALANCE '+centsText(result.balanceAfter);
  $('coinDescription').textContent=result.won?
-  'The secret coin doubled your stake! This offer is now permanently used.':
-  'The secret coin took your stake. This offer is now permanently used.';
+  'You won the one-time coin flip. Your result is permanently saved.':
+  'You lost the one-time coin flip. Your result is permanently saved.';
  $('coinHeads').hidden=$('coinTails').hidden=true;
- $('coinLater').textContent='Return to Mustache Mart';
- $('secretFlipBtn').hidden=!['cash','floor3'].some(e=>s.coinOffers[e].unlocked&&!s.coinOffers[e].played);
+ $('coinClose').hidden=false;
+}
+function rejectSecretCoin(){
+ const key=activeCoinOffer;if(!key||modal!=='coinflip')return;
+ if(!declineCoinFlip(s,key))return;
+ save();closeCoinFlip();
+ notify('SECRET OFFER DECLINED · This coin flip will never return.');
 }
 
 function show(id){
@@ -490,14 +474,9 @@ function resume(){
  renderer.domElement.focus({preventScroll:true});
  pointerRequest();
 }
-$('secretFlipBtn').addEventListener('click',()=>{
- const key=nextPlayableCoinOffer()||['cash','floor3'].find(k=>s.coinOffers[k].unlocked&&!s.coinOffers[k].played);
- if(key)openCoinFlip(key);
-});
-$('coinHeads').addEventListener('click',()=>flipCoinChoice('heads'));
-$('coinTails').addEventListener('click',()=>flipCoinChoice('tails'));
-$('coinLater').addEventListener('click',closeCoinFlip);
-
+$('coinHeads').addEventListener('click',acceptSecretCoin);
+$('coinTails').addEventListener('click',rejectSecretCoin);
+$('coinClose').addEventListener('click',closeCoinFlip);
 function openShop(){
  if(!nearby(1.5,-7,4.6)){notify('Find Mustache Mike at the front customer service counter.');return;}
  // No mouse click interaction: E only, consistent with payroll / checkout.
@@ -1042,7 +1021,7 @@ window.addEventListener('keydown',e=>{
  if(e.code==='Escape'){
   e.preventDefault();held={};mouseDown=false;actionClock=0;cancelRepairHold();
   if(cancelPlacement())return;
-  if(modal==='coinflip')closeCoinFlip();
+  if(modal==='coinflip'){notify('SECRET COIN OFFER · Choose YES or NO. You cannot postpone this decision.');}
   else if(modal==='shop'||modal==='elevator'||modal==='intro')resume();
   else if(!ending){show('intro');$('play').textContent='Resume shift';}
   return;
@@ -1234,7 +1213,9 @@ if(DEV_MODE){
     setCash(cents){s.money=Math.max(0,Math.floor(cents));updateSecretCoinOffer();uiUpdate();return s.money;},
     finishThirdFloor(){for(let id=2*CELLS_PER_FLOOR;id<3*CELLS_PER_FLOOR;id++){s.stocked+=SLOTS-s.fill[id];s.fill[id]=SLOTS;}updateSecretCoinOffer();return s.coinOffers.floor3.unlocked;},
     refresh(){updateSecretCoinOffer();return JSON.parse(JSON.stringify(s.coinOffers));},
-    flip(event,choice,unit){const result=resolveCoinFlip(s,event,choice,unit);if(result){save();uiUpdate();}return result;}
+    flip(event,choice,unit){const result=resolveCoinFlip(s,event,choice,unit);if(result){save();uiUpdate();}return result;},
+    accept(event,unit){const result=acceptCoinFlip(s,event,unit);if(result){save();uiUpdate();}return result;},
+    decline(event){const ok=declineCoinFlip(s,event);if(ok)save();return ok;}
    },
    deployFreeClaw(id){s.clawInventory.push({paid:450});const c=deployFreeClaw(s,id);if(c)buildWorld();return c?.id||null;},
    turnFreeBelt(id){const angle=turnFreeBelt(s,id);if(angle>=0)buildWorld();return angle;},
