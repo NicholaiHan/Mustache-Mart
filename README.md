@@ -20,11 +20,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.5** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.6** and the introduction must list the new cash registers, Mike, ladders and fire exit.
 3. **Development mode** (the `#dev` suffix) gives **at least $5,000** for testing. The title screen also has a **Refill developer cash to $5,000** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
 4. **Recovery:** Your skills and stocked shelves are saved by browser + exact host + port. The launcher now defaults to **8000**, where older saves are most likely. If you instead played on **8011**, run `PORT=8011 bash PLAY_LATEST_MAC.sh` and open `http://127.0.0.1:8011/#dev` in your original browser. Do not click Reset. Use **Download save backup** on the origin holding progress, then **Import save backup** on the origin you want to play from. The original save remains intact.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.5** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.6** is shown.
 
 ## Play on your MacBook
 
@@ -292,3 +292,12 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - Scaled the **entire** giant crab mesh (shell, walking legs, hydraulic pincers, eye lenses and armor) to about **two-thirds of its prior height and depth**, with a comparable reduction in apparent width. Current world-model dimensions: `scale(.44, .68, .68)` rather than `scale(.65, 1, 1)`. The crab remains visible in the widened aisles but takes up much less screen space.
 - Patrol route, animation, the one-swing-per-20-minute attack cycle, fallen stock, destroyed robots, developer spawn/remove options, and all saved progress are untouched. The shrink is cosmetic only.
 - Regression tests run 30 deterministic raid/save checks and rendered-browser tests verify the three model scale dimensions.
+
+
+## Build 2026.11.01.6 — Wider aisles and highly detailed robotic crab
+
+- **Even wider supermarket aisles:** The 15-floor showroom is visually **60% wider than the original map**, increasing its X-axis width from 146.9 m in the previous build to **180.8 m**, with aisle-center spacing of **16 m instead of 13 m**. Logical aisle coordinates, stocking cell IDs, conveyor routes, robot assignments, equipment and old browser saves remain unchanged. World rendering, player movement, picking, and camera positions continue to use reversible width transformations.
+- **Crab stays compact:** The full crab model is kept approximately the same on-screen physical width after widening through a slightly smaller local horizontal scale (`0.36` instead of `0.44`, while retaining `0.68` height/depth). It moves through the extra aisle space without becoming huge again.
+- **Industrial crab detail pass:** Added five overlapping armor plates, beveled joints and side access hatches, heat exhaust and cooling louvers, aqua front optic sensors in alloy bezels, retractable mandibles, eight visible hydraulic/piston leg systems with knee gears and bolts, reinforcing shin guards and stabilizer feet, rotary pincer joints, serrated alloy teeth, warning/hazard stripes, fluid lines and four animated amber warning lights. Armor rivets use a single instanced mesh for performance.
+- **Existing game behavior unchanged:** 20-minute raid clocks, 7-floor unlock, claw destruction, robot scrapping, saved progression and developer spawn/remove commands still operate. Warning beacons blink more rapidly when a claw strike occurs. This is a cosmetic/model and visual-width upgrade, not a save wipe.
+- **Testing:** 30 simulated legacy-save geometry cases and 30 simulated crab-raid cases were added, with live browser checks of part counts, crab scale, and actual 180.8 m rendered width.
