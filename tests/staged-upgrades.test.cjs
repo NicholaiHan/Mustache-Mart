@@ -190,6 +190,24 @@ test('visual stage B: 30 aisle-top flag removal and progress retention checks',(
   assert.equal(restored.money,1235);
  });
 });
+test('visual stage C: 30 detailed wall and doorway clearance simulations',()=>{
+ const env=source('environment.js');
+ assert.match(env,/Recessed electrical\/service panels, vents/);
+ assert.match(env,/const vent=round\(\.105,1\.36,2\.9/);
+ assert.match(env,/const spine=round\(\.07,7\.65/);
+ assert.match(env,/const diffuse=round\(\.055,\.10,3\.35/);
+ assert.match(env,/if\(side==='LEFT'&&s\.floor===0&&z>80&&z<90\)continue/);
+ assert.match(env,/if\(s\.floor===0&&x>38&&x<54\)continue/);
+ simulate(i=>{
+  const s=r.newState();s.floor=i%r.FLOORS;s.money=250;
+  // Structural walls stay solid; floor interaction points remain unchanged.
+  assert.equal(r.loadState(r.serialize(s)).floor,s.floor);
+  assert.equal(r.place(s,r.cellId(s.floor,i%r.AISLES,0,i%r.BAYS,0),true)>0,true);
+  assert.equal(s.stocked,1);
+  // The opening logic is still gated by actual shelving progress.
+  assert.equal(r.canOpenStore(s),false);
+ });
+});
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
