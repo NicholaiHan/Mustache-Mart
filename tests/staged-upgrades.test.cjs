@@ -765,7 +765,7 @@ test('wider store stage: 30 reversible X geometry and legacy aisle coordinates p
  assert.match(game,/world\.scale\.x=MAP_WIDTH_MULTIPLIER/);
  assert.match(game,/camera\.position\.set\(toWideX\(V\.x\)/);
  assert.match(game,/fromWideX\(point\.x\)/);
- assert.match(game,/crabModel\.scale\.x=\.65/);
+ assert.match(game,/crabModel\.scale\.set\(\.44,\.68,\.68\)/);
  simulate(i=>{
   const x=r.aisleX(i%r.AISLES),left=r.aisleX(0),right=r.aisleX(9);
   assert.equal(r.MAP_WIDTH_MULTIPLIER,1.30);
@@ -793,8 +793,30 @@ test('crab lane stage: 30 large moving crab patrols remain inside broadened aisl
   assert.ok(state.crab.patrol[f].z>=14&&state.crab.patrol[f].z<=90);
   assert.ok(state.crab.patrol[f].z!==prior||i%2===0);
   assert.equal(events.length,0);
-  const crabDiameterLogical=10.4*.65,wideLaneWidth=(10-1.69)*r.MAP_WIDTH_MULTIPLIER;
+  const crabDiameterLogical=10.4*.44,wideLaneWidth=(10-1.69)*r.MAP_WIDTH_MULTIPLIER;
   assert.ok(crabDiameterLogical<wideLaneWidth,'resized crab fits visible widened corridor');
+ });
+});
+test('smaller crab: 30 cosmetic shrink checks preserve 15-floor raids and save state',()=>{
+ const game=source('game.js');
+ assert.match(game,/crabModel\\.scale\\.set\\(\\.44,\\.68,\\.68\\)/);
+ simulate(i=>{
+  const state=r.newState();state.money=7300+i;state.floor=i%r.FLOORS;
+  const savedBefore=r.serialize(state);
+  const eventFloor=i%r.FLOORS;
+  r.setDeveloperCrab(state,'on');
+  assert.equal(r.crabEnabled(state,true),true);
+  const before=state.crab.attacks[eventFloor];
+  const events=r.advanceCrab(state,1200,true);
+  assert.equal(events.length,r.FLOORS,'raid scheduling remains unchanged');
+  assert.equal(state.crab.attacks[eventFloor],before+1);
+  assert.equal(state.money,7300+i,'shrinking the visual crab does not touch cash');
+  assert.equal(state.stocked,0,'shrinking the visual crab does not touch stocking progress');
+  const loaded=r.loadState(r.serialize(state));
+  assert.equal(loaded.floor,eventFloor);
+  assert.equal(loaded.money,7300+i);
+  assert.equal(loaded.crab.attacks[eventFloor],before+1);
+  assert.ok(savedBefore.includes('\"fill\"'));
  });
 });
 test('window detail stage: 30 decoration positions do not intersect clerestory aperture heights',()=>{
