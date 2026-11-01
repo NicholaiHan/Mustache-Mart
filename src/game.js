@@ -1101,6 +1101,14 @@ window.addEventListener('keydown',e=>{
   e.preventDefault();resume();return;
  }
  if(modal||ending)return;
+ // Developer cursor toggle: release mouse look with Tab to click debug HUD
+ // buttons, then click on the canvas to resume normal first-person look.
+ if(DEV_MODE&&e.code==='Tab'){
+  e.preventDefault();
+  if(document.pointerLockElement===renderer.domElement)document.exitPointerLock?.();
+  else pointerRequest();
+  return;
+ }
  // Dev-only shortcuts work even with pointer lock: Shift+J / Shift+K / Shift+N.
  if(DEV_MODE&&e.shiftKey&&['KeyJ','KeyK','KeyN'].includes(e.code)){
   e.preventDefault();changeDevCrab(e.code==='KeyJ'?'on':e.code==='KeyK'?'off':'auto');return;
