@@ -2,13 +2,17 @@
 const test=require('node:test'),assert=require('node:assert/strict'),path=require('node:path'),{pathToFileURL}=require('node:url');
 let r;
 test.before(async()=>{r=await import(pathToFileURL(path.resolve(__dirname,'../src/rules.mjs')).href);});
-test('robots are purchased separately from upgrades, placed manually, and can be sold for half',()=>{
+test('purchased robots spawn into free aisles, can be moved with Mike, and sell for half',()=>{
  const s=r.newState();s.money=20000;
  assert.equal(r.purchase(s,'robot'),true);
  const bot=s.robots[0],cost=bot.paid;
- assert.equal(bot.placed,false);
- for(let i=0;i<500;i++)r.botStep(s,bot,.1);
- assert.equal(s.stocked,0,'unplaced robots must not stock automatically');
+ assert.equal(bot.placed,true,'robot immediately starts working when bought');
+ assert.equal(bot.floor,0);
+ assert.equal(bot.homeAisle,0,'first purchase enters aisle 1');
+ assert.equal(bot.x,r.aisleX(0));
+ assert.equal(r.moveRobotFromMike(s,bot.id,3,4),true);
+ assert.equal(bot.floor,3);assert.equal(bot.homeAisle,4);
+ assert.equal(r.moveRobotFromMike(s,bot.id,0,0),true);
  assert.equal(r.purchase(s,'robotSpeed'),true);
  assert.equal(r.purchase(s,'robotLift'),true);
  assert.equal(s.levels.robot,1);
