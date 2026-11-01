@@ -21,7 +21,7 @@ export const UPGRADES=[
 {id:'palletCapacity',name:'Pallet Jack Capacity',detail:'Increase carrying from 1/20 aisle through 1/16, 1/8, 1/4, 1/2, up to ONE whole aisle. Expensive logistics investment.',base:10000,factor:5,max:5},
 {id:'itemClaw',name:'Automated Item Claw',detail:'One placeable claw picks from the nearest stocked inventory source and feeds a connected conveyor. Use K to deploy.',base:450,factor:1.35,max:40},
 {id:'robot',name:'Mustache Stocker Bot',detail:'Spawns immediately into the first unoccupied aisle on your working floor; if all aisles have bots, joins the nearest least-crowded aisle. Move robots from Mike’s management pad. Intact bots sell for 50%; crab wrecks for 25%.',base:250,factor:1.38,max:70},
-{id:'robotLift',name:'Motorized Robot Ladder',detail:'All robot stockers gain a portable powered lift to climb high shelves while moving.',base:850,factor:1,max:1},
+{id:'robotLift',name:'Motorized Robot Ladder',detail:'Required for robots to reach the TOPMOST shelf. Without the powered auto ladder, bots need a placed tall ladder for upper shelves and can never stock the top shelf.',base:850,factor:1,max:1},
 {id:'robotSpeed',name:'Robot Espresso',detail:'Faster robot movement and stocking.',base:160,factor:1.52,max:12},
 {id:'autoPay',name:'Automatic Payroll Terminal',detail:'Deposit wages instantly without visiting the desk.',base:420,factor:1,max:1},
 {id:'soupTriple',name:'Canned Goods Supercontract',detail:'ALL canned goods pay 3× their normal cents. A $50 investment.',base:5000,factor:1,max:1,category:'economy'},
@@ -126,7 +126,8 @@ export function loadState(text){
  s.levels.robot=s.robots.length;
  const normalizePlatform=(c,id)=>({id:limit(c?.id,1000000)||id,
   floor:limit(c?.floor,FLOORS-1),aisle:limit(c?.aisle,AISLES-1),
-  z:Math.max(11,Math.min(94,Number(c?.z)||13)),acc:0,
+  x:Number.isFinite(Number(c?.x))?Math.max(-7,Math.min(100,Number(c.x))):aisleX(limit(c?.aisle,AISLES-1)),
+  z:Math.max(-9,Math.min(98,Number(c?.z)||13)),acc:0,
   liftHeight:Math.max(0,Math.min(10,Number(c?.liftHeight)||0)),
   mounted:false,paid:limit(c?.paid,10000000)});
  if(Array.isArray(d.platforms)&&d.platforms.length){
@@ -244,7 +245,7 @@ export function purchase(s,id){
  }if(id==='robot'){const bot=hireRobot(s,cost,false);if(bot)autoPlaceRobot(s,bot.id,s.floor);}if(id==='ladder'||id==='ladderUnit')s.ladderInventory.push({kind:id,paid:cost});if(id==='itemClaw')s.clawInventory.push({paid:cost});
  if(id==='cart'){
   const index=s.platforms.length;
-  const p={id:s.platformNextId++,floor:s.floor,aisle:index%AISLES,z:16.2,
+  const p={id:s.platformNextId++,floor:s.floor,aisle:index%AISLES,x:aisleX(index%AISLES),z:16.2,
    acc:0,liftHeight:0,mounted:false,paid:cost};
   s.platforms.push(p);
   if(s.platforms.length===1)s.cart=p;
@@ -684,8 +685,10 @@ function approach(r,x,z,dt,speed){
 export function robotCanReach(s,r,id){
  const {floor,aisle,bay,tier}=decode(id);
  if(tier<2)return true;
+ if(tier===3)return !!s.levels.robotLift; // Top shelf strictly requires the AUTOMATIC robot ladder.
  if(s.levels.robotLift)return true;
- return s.ladders.some(l=>l.floor===floor&&l.aisle===aisle&&Math.abs(l.bay-bay)<=1&&(tier<=2||s.levels.ladderPlus));
+ // Next-highest shelf requires a physically deployed EXTENDED tall ladder.
+ return !!s.levels.ladderPlus&&s.ladders.some(l=>l.floor===floor&&l.aisle===aisle&&Math.abs(l.bay-bay)<=1);
 }
 export function robotTarget(s,r){
  // Work on the player-selected aisle until that WHOLE aisle is finished.
@@ -817,7 +820,7 @@ export const platformsOnFloor=(s,floor=s.floor)=>(s.platforms||[]).filter(p=>p.f
 export function closestPlatform(s,x,z,floor=s.floor,maxDistance=3.6){
  let best=null,dist=maxDistance;
  for(const p of platformsOnFloor(s,floor)){
-  const d=Math.hypot(x-aisleX(p.aisle),z-p.z);
+  const d=Math.hypot(x-(p.x??aisleX(p.aisle)),z-p.z);
   if(d<dist){best=p;dist=d;}
  }
  return best;
@@ -831,20 +834,25 @@ export function selectPlatform(s,id){
 }
 export function drivePlatform(s,forward,side,dt,canTravel=null){
  if(!s.levels.cart||!s.cart.mounted||dt<=0)return false;
- const c=s.cart;
- const speed=1.4+s.levels.cartSpeed*.31;
- const nx=aisleX(c.aisle)+Math.max(-1,Math.min(1,side))*dt*speed;
- const nz=c.z-Math.max(-1,Math.min(1,forward))*dt*speed;
- // A motorized lifting platform stays aligned with its aisle and cannot float
- // sideways into the racks. Horizontal WASD input is reserved for future
- // cross-aisle transitions; at the rear crosswalk it may choose another aisle.
- let targetAisle=c.aisle;
- if(c.z>92&&Math.abs(side)>0.2){targetAisle=Math.max(0,Math.min(AISLES-1,c.aisle+Math.sign(side)));}
- if(nz<bayZ(0)-1||nz>94)return false;
- // Individually purchased lifts must not drive through one another.
- if((s.platforms||[]).some(p=>p.id!==c.id&&p.floor===c.floor&&Math.hypot(aisleX(p.aisle)-aisleX(targetAisle),p.z-nz)<1.9))return false;
- if(canTravel&&!canTravel(aisleX(targetAisle),nz))return false;
- c.aisle=targetAisle;c.z=nz;
+ const c=s.cart,speed=1.4+s.levels.cartSpeed*.31;
+ const originX=c.x??aisleX(c.aisle);
+ const dx=Math.max(-1,Math.min(1,side))*dt*speed;
+ const dz=-Math.max(-1,Math.min(1,forward))*dt*speed;
+ // Full WASD platform travel across aisles AND free store areas. Real obstacle
+ // checks prevent cutting through shelves, other lifts or service counters.
+ const permitted=(x,z)=>{
+  if(x< -7||x>100||z< -9||z>98)return false;
+  if((s.platforms||[]).some(p=>p.id!==c.id&&p.floor===c.floor&&Math.hypot((p.x??aisleX(p.aisle))-x,p.z-z)<1.95))return false;
+  return !canTravel||!!canTravel(x,z);
+ };
+ let nx=originX,nz=c.z;
+ if(permitted(originX+dx,c.z+dz)){nx+=dx;nz+=dz;}
+ else{
+  if(dx&&permitted(originX+dx,c.z))nx+=dx;
+  if(dz&&permitted(nx,c.z+dz))nz+=dz;
+ }
+ if(nx===originX&&nz===c.z)return false;
+ c.x=nx;c.z=nz;c.aisle=Math.max(0,Math.min(AISLES-1,Math.round((c.x-8)/10)));
  return true;
 }
 export function liftPlatform(s,up,dt){
