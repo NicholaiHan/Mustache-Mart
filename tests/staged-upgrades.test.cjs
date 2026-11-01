@@ -444,6 +444,102 @@ test('new stage: 30 automatic robot dispatch, least-crowded fallback and Mike mo
  });
 });
 
+test('hidden coin flip stage 1: 30 exact $3,000 wagers, fair sides, deferrals, and save continuity',()=>{
+ const rules=source('rules.mjs');
+ assert.match(rules,/COIN_FLIP_FIRST_STAKE=300000/);
+ simulate(i=>{
+  const s=r.newState();
+  s.money=299999;
+  assert.deepEqual(r.refreshCoinOffers(s),[]);
+  s.money=300000+(i%3)*50000;
+  assert.deepEqual(r.refreshCoinOffers(s),['cash']);
+  assert.equal(r.coinFlipStake(s,'cash'),300000);
+  assert.equal(r.coinFlipStake(s,'floor3'),0);
+  assert.equal(r.markCoinOfferSeen(s,'cash'),true);
+  const deferred=r.loadState(r.serialize(s));
+  assert.equal(deferred.coinOffers.cash.seen,true);
+  assert.equal(deferred.coinOffers.cash.played,false);
+  deferred.money=299999;
+  assert.equal(r.coinFlipStake(deferred,'cash'),0,'no first flip without the original $3k cash currently held');
+  assert.equal(r.resolveCoinFlip(deferred,'cash','heads',0),null,'a rejected attempt cannot count as played');
+  deferred.money=s.money;
+  const winning=i%2===0,choice=i%3===0?'heads':'tails';
+  const unit=winning?(choice==='heads'?.2:.8):(choice==='heads'?.8:.2);
+  const before=deferred.money;
+  const result=r.resolveCoinFlip(deferred,'cash',choice,unit);
+  assert.equal(result.won,winning);
+  assert.equal(result.stake,300000);
+  assert.equal(result.landed,choice==='heads'?(winning?'heads':'tails'):(winning?'tails':'heads'));
+  assert.equal(deferred.money,before+(winning?300000:-300000));
+  assert.equal(r.coinFlipStake(deferred,'cash'),0,'no repeat offers or wagers');
+  assert.equal(r.resolveCoinFlip(deferred,'cash',choice,.2),null);
+  const loaded=r.loadState(r.serialize(deferred));
+  assert.equal(loaded.money,deferred.money);
+  assert.equal(loaded.coinOffers.cash.played,true);
+  assert.deepEqual(loaded.coinOffers.cash.result,deferred.coinOffers.cash.result);
+  assert.equal(r.resolveCoinFlip(loaded,'cash','tails',.9),null,'reloading cannot redo used bet');
+ });
+});
+test('hidden coin flip stage 2: 30 Floor 3 all-in cash wagers and no duplicate milestone offers',()=>{
+ simulate(i=>{
+  const s=r.newState();
+  s.money=1200+(i*7100);
+  assert.deepEqual(r.refreshCoinOffers(s),[]);
+  const f=2,base=f*r.CELLS_PER_FLOOR;
+  s.fill.fill(r.SLOTS,base,base+r.CELLS_PER_FLOOR-1);
+  s.stocked=(r.CELLS_PER_FLOOR-1)*r.SLOTS;
+  assert.deepEqual(r.refreshCoinOffers(s),[],'Floor 3 must actually be complete, not 99.9%');
+  s.fill[base+r.CELLS_PER_FLOOR-1]=r.SLOTS;
+  s.stocked+=r.SLOTS;
+  assert.deepEqual(r.refreshCoinOffers(s),['floor3']);
+  assert.equal(r.refreshCoinOffers(s).length,0,'single milestone');
+  assert.equal(r.coinFlipStake(s,'floor3'),s.money);
+  assert.equal(r.markCoinOfferSeen(s,'floor3'),true);
+  const saved=r.loadState(r.serialize(s));
+  assert.equal(saved.coinOffers.floor3.seen,true);
+  const original=saved.money;
+  const win=i%2===0;
+  const landed=win?.25:.75;
+  const result=r.resolveCoinFlip(saved,'floor3','heads',landed);
+  assert.equal(result.stake,original);
+  assert.equal(result.won,win);
+  assert.equal(saved.money,win?original*2:0);
+  assert.equal(r.coinFlipStake(saved,'floor3'),0);
+  assert.equal(r.resolveCoinFlip(saved,'floor3','heads',.25),null,'one-time all-in');
+  const restored=r.loadState(r.serialize(saved));
+  assert.equal(restored.money,saved.money);
+  assert.equal(restored.coinOffers.floor3.played,true);
+  // A $3k cash offer can still unlock later: both milestones are independent.
+  restored.money=300000;
+  assert.deepEqual(r.refreshCoinOffers(restored),['cash']);
+  assert.equal(r.coinFlipStake(restored,'cash'),300000);
+ });
+});
+test('hidden coin flip stage 3: 30 all-in balance changes, zero-cash gating, and invalid inputs',()=>{
+ simulate(i=>{
+  const s=r.newState();s.money=300000;
+  r.refreshCoinOffers(s);
+  const first=r.resolveCoinFlip(s,'cash','heads',.1);
+  assert.equal(s.money,600000);
+  assert.equal(first.won,true);
+  // Flip #2 stakes the balance WHEN accepted, not when Floor 3 was unlocked.
+  const b=2*r.CELLS_PER_FLOOR;s.fill.fill(r.SLOTS,b,b+r.CELLS_PER_FLOOR);s.stocked=r.itemsPerFloor;
+  assert.deepEqual(r.refreshCoinOffers(s),['floor3']);
+  s.money=0;
+  assert.equal(r.coinFlipStake(s,'floor3'),0);
+  assert.equal(r.resolveCoinFlip(s,'floor3','heads',.1),null);
+  s.money=7000+i;
+  assert.equal(r.resolveCoinFlip(s,'floor3','sideways',.5),null,'must pick heads or tails');
+  assert.equal(r.resolveCoinFlip(s,'floor3','heads',1),null,'unit random value must be < 1');
+  assert.equal(r.resolveCoinFlip(s,'floor3','heads',-1),null,'unit random value must be nonnegative');
+  const stake=s.money;
+  const result=r.resolveCoinFlip(s,'floor3','tails',i%2?.2:.8);
+  assert.equal(result.stake,stake);
+  assert.equal(s.money,i%2?0:stake*2);
+  assert.equal(r.coinFlipStake(s,'floor3'),0);
+  assert.equal(r.loadState(r.serialize(s)).coinOffers.floor3.played,true);
+ });
+});
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
