@@ -256,14 +256,6 @@ button:active:not(:disabled){transform:translateY(1px)}
 #saveTransfer a{color:#1d6653;text-decoration:underline}
 
 
-/* Seven-floor late-game giant robot crab warning and per-floor countdown. */
-#crabStatus{position:fixed;top:124px;right:17px;max-width:370px;z-index:4;
- background:#263c3cde;color:#d7e4dd;border:1px solid #7b978b;padding:9px 13px;
- font-size:11px;letter-spacing:.04em;font-weight:900;line-height:1.45;text-align:right}
-#crabStatus.crabActive{color:#ffdfb8;background:#5a2424e8;border-color:#e18e55;
- box-shadow:0 3px 15px #2b17194f}
-@media(max-width:700px){#crabStatus{top:136px;right:8px;max-width:230px;font-size:10px}}
-
 </style>
 </head>
 <body>
@@ -278,7 +270,7 @@ button:active:not(:disabled){transform:translateY(1px)}
   </div>
   <div class="pill" id="objective">Collect a can from the delivery dock, then stock the nearest shelf.</div>
   <div id="buildChip">UPDATED BUILD · 2026.10.31.7</div>
-  <div id="crabStatus" aria-live="polite" class="pill">CRAB ALERT LOCKED · COMPLETE 7 FLOORS (0/7)</div>
+
   <div id="crosshair"></div>
   <div id="lookPrompt" hidden>CLICK ON THE GAME TO RESTORE MOUSE LOOK</div>
   <div id="prompt" class="pill" hidden></div>
