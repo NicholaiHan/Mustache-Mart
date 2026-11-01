@@ -56,9 +56,10 @@ if(!validSave(ORIGINAL_SAVE_DATA)){
 }
 if(validSave(ORIGINAL_SAVE_DATA))archiveSave(ORIGINAL_SAVE_DATA,'PRE-UPDATE SAVED PROGRESS');
 let s=loadState(ORIGINAL_SAVE_DATA);
-// Explicit opt-in dev mode: restore at least $5,000 in test cash without touching normal saves.
+// Explicit opt-in dev mode: restore at least $100,000 in test cash without touching normal saves.
 const DEV_MODE=location.hash==='#rich'||location.hash==='#dev';
-if(DEV_MODE)s.money=Math.max(s.money,500000);
+const DEV_CASH_CENTS=10_000_000; // $100,000, never replace larger existing balances
+if(DEV_MODE)s.money=Math.max(s.money,DEV_CASH_CENTS);
 if(DEV_MODE){const banner=document.getElementById('devBanner');if(banner)banner.style.display='block';}
 fetch('./build.json',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(new Error('build manifest missing')))
 .then(build=>{
@@ -1256,8 +1257,8 @@ function showSaveOrigin(){
  const locationLabel=location.protocol+'//'+location.host;
  status.textContent='THIS BROWSER SAVE · '+locationLabel+' · '+s.stocked.toLocaleString()+' products stocked · '+totalRanks+' total upgrade ranks · '+centsText(s.money)+' cash. '+(!ORIGINAL_SAVE_DATA?'No previous saved game found at THIS address. Try the other local host/port options below.':'Loaded '+ORIGINAL_SAVE_SOURCE+' on this browser address.');
  const btn=$('devEnable');
- btn.textContent=DEV_MODE?'Refill developer cash to $5,000':'Enable $5,000 Developer Mode';
- $('devStatus').textContent=DEV_MODE?'Developer Mode ON · Refill this account to at least $5,000 whenever needed.':'Developer Mode OFF · Enable without losing existing shelf or skill progress.';
+ btn.textContent=DEV_MODE?'Refill developer cash to $100,000':'Enable $100,000 Developer Mode';
+ $('devStatus').textContent=DEV_MODE?'Developer Mode ON · Refill this account to at least $100,000 whenever needed.':'Developer Mode OFF · Enable without losing existing shelf or skill progress.';
 }
 // Only user-selected archived backups may replace an existing valid save.
 // This panel cannot access another browser or host+port, so it explicitly
@@ -1293,7 +1294,7 @@ function showRecoveryCandidates(){
    if(validSave(current))archiveSave(current,'BEFORE MANUAL RESTORE');
    const candidate=loadState(entry.data);
    // Preserve complete original 15-floor stocking state and purchased skills.
-   s=candidate;if(DEV_MODE)s.money=Math.max(s.money,500000);
+   s=candidate;if(DEV_MODE)s.money=Math.max(s.money,DEV_CASH_CENTS);
    localStorage.setItem(SAVE_KEY,serialize(s));
    location.reload();
   });
@@ -1311,7 +1312,7 @@ $('devEnable').addEventListener('click',()=>{
   return;
  }
  const previous=s.money;
- s.money=Math.max(s.money,500000);
+ s.money=Math.max(s.money,DEV_CASH_CENTS);
  save();uiUpdate();showSaveOrigin();
  notify(s.money===previous?'Developer funds ready · '+centsText(s.money):'Developer account refilled to '+centsText(s.money));
 });
@@ -1346,7 +1347,7 @@ $('saveImportFile').addEventListener('change',async e=>{
   // Update the live state before reloading, because beforeunload calls save().
   // Otherwise that handler could overwrite the imported backup with old data.
   s=restored;
-  if(DEV_MODE)s.money=Math.max(s.money,500000);
+  if(DEV_MODE)s.money=Math.max(s.money,DEV_CASH_CENTS);
   save();
   status.textContent='Save imported. Reloading your game…';
   location.reload();
