@@ -37,6 +37,7 @@ let doorInteractionHeld=false,ignoreMouseUntil=0,placementRobotId=null,placement
 let repairingRobotId=null,repairKeyConsumed=false;
 let currentFloor=-1,world=null,robotModels=new Map(),crabModel=null,crabSwingEnds=0,beltCrates=[],feederCrates=[],clawVisual=null,cartMesh=null,cartMeshes=[],ladderMesh=null,palletMesh=null,placedClawMeshes=[],pileMeshes=[];
 let selectedBeltAisle=0,freeBeltDirection=0;
+let flyingCartons=[],incomingCartonCounts=new Map();
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
 let activeCoinOffer=null;
 let receiptTimeout=0,payrollTransactions=0;
@@ -103,7 +104,7 @@ const checkout=createCheckout({getWorld:()=>world,getFloor:()=>s.floor,round,tex
 function buildWorld(){
  clearWorld(world);
  world=new THREE.Group();scene.add(world);
- currentFloor=s.floor;beltCrates=[];feederCrates=[];clawVisual=null;cartMesh=null;cartMeshes=[];ladderMesh=null;palletMesh=null;placedClawMeshes=[];pileMeshes=[];robotModels=new Map();crabModel=null;robotGhost=null;
+ currentFloor=s.floor;flyingCartons=[];incomingCartonCounts=new Map();beltCrates=[];feederCrates=[];clawVisual=null;cartMesh=null;cartMeshes=[];ladderMesh=null;palletMesh=null;placedClawMeshes=[];pileMeshes=[];robotModels=new Map();crabModel=null;robotGhost=null;
  buildShell();buildService();buildShelves();doors.build();checkout.build();makeReceivingSystem();
  for(let a=0;a<AISLES;a++)for(let segment=0;segment<s.belts[s.floor][a];segment++)makeBelt(s.floor,a,segment);
  for(const b of s.freeBelts)if(b.floor===s.floor)makeBelt(s.floor,Math.max(0,Math.min(AISLES-1,Math.round((b.x-8)/10))),0,b);
@@ -115,6 +116,57 @@ function buildWorld(){
  palletMesh=makePalletJack();placedClawMeshes=makeClaws();pileMeshes=makeStockPiles();
  ladderMesh=makeLadder();
  uiUpdate();
+}
+// A transfer is recorded at the exact point the logical carton moves. A
+// rendered carton now travels visibly from the old segment to the next one,
+// and its destination slot remains hidden until the moving carton arrives.
+// No duplicated inventory is produced; graphics are transient only.
+function beltRenderKey(type,id,a,segment){
+ return type==='free'?'free:'+id:'legacy:'+a+':'+segment;
+}
+function enqueueBeltVisualTransfer(event){
+ if(event.floor!==s.floor||flyingCartons.length>=110)return;
+ const fromKey=event.type==='free'?beltRenderKey('free',event.fromId):
+  beltRenderKey('legacy',0,event.fromAisle,event.fromSegment);
+ const toKey=event.type==='free'?beltRenderKey('free',event.toId):
+  beltRenderKey('legacy',0,event.toAisle,event.toSegment);
+ const entries=key=>beltCrates.filter(b=>b.freeId?
+  key==='free:'+b.freeId:key==='legacy:'+b.aisle+':'+b.segment);
+ const from=entries(fromKey),to=entries(toKey);
+ if(!from.length||!to.length)return;
+ // Source slot is the old lead carton removed by the transfer; destination
+ // slot is the newly occupied slot in the receiving belt section.
+ const fromCount=event.type==='free'?(s.freeBelts.find(b=>b.id===event.fromId)?.items||0):
+  (s.beltItems[event.floor][event.fromAisle][event.fromSegment]||0);
+ const toCount=event.type==='free'?(s.freeBelts.find(b=>b.id===event.toId)?.items||0):
+  (s.beltItems[event.floor][event.toAisle][event.toSegment]||0);
+ const src=from.find(b=>b.slot===Math.min(2,fromCount))||from[0];
+ const dst=to.find(b=>b.slot===Math.min(2,Math.max(0,toCount-1)))||to[0];
+ if(!src?.crate||!dst?.crate)return;
+ world.updateMatrixWorld(true);
+ const start=src.crate.getWorldPosition(new THREE.Vector3());
+ const finish=dst.crate.getWorldPosition(new THREE.Vector3());
+ if(start.distanceTo(finish)>14)return;
+ const graphic=src.crate.clone(true);
+ graphic.name='movingRealConveyorCarton';graphic.visible=true;
+ graphic.position.copy(start);
+ graphic.quaternion.copy(src.crate.getWorldQuaternion(new THREE.Quaternion()));
+ world.add(graphic);
+ flyingCartons.push({graphic,start,finish,fromRotation:graphic.quaternion.clone(),
+  toRotation:dst.crate.getWorldQuaternion(new THREE.Quaternion()),toKey,
+  started:performance.now(),duration:650});
+}
+function updateFlyingCartons(now){
+ incomingCartonCounts=new Map();
+ for(let i=flyingCartons.length-1;i>=0;i--){
+  const flight=flyingCartons[i],t=Math.max(0,Math.min(1,(now-flight.started)/flight.duration));
+  if(t>=1){world.remove(flight.graphic);flyingCartons.splice(i,1);continue;}
+  const smooth=t*t*(3-2*t);
+  flight.graphic.position.lerpVectors(flight.start,flight.finish,smooth);
+  flight.graphic.position.y+=Math.sin(Math.PI*t)*.055;
+  flight.graphic.quaternion.copy(flight.fromRotation).slerp(flight.toRotation,smooth);
+  incomingCartonCounts.set(flight.toKey,(incomingCartonCounts.get(flight.toKey)||0)+1);
+ }
 }
 function nearestAisle(){let a=Math.round((V.x-8)/10);return Math.max(0,Math.min(AISLES-1,a));}
 function nearestBay(){return Math.max(0,Math.min(BAYS-1,Math.round((V.z-13)/2.65)));}
@@ -948,7 +1000,7 @@ function animate(now){
  }
  if(!ending){
   tickCrabRaids(elapsed,now);
-  advanceBelts(s,Math.min(elapsed,2));
+  advanceBelts(s,Math.min(elapsed,2),enqueueBeltVisualTransfer);
   for(const r of s.robots){
    const prevTarget=r.target,prevCount=prevTarget>=0?s.fill[prevTarget]:-1;
    const id=botStep(s,r,dt);
@@ -996,10 +1048,13 @@ function animate(now){
      f.crate.rotation.y=Math.sin(now*.0004+f.aisle)*.04;
    }
   }
+  updateFlyingCartons(now);
   for(const b of beltCrates){
    const free=b.freeId?s.freeBelts.find(p=>p.id===b.freeId):null;
    const actual=free?free.items:(s.beltItems[s.floor][b.aisle][b.segment]||0);
-   b.crate.visible=b.slot<actual;
+   const key=b.freeId?'free:'+b.freeId:'legacy:'+b.aisle+':'+b.segment;
+   const arrivals=incomingCartonCounts.get(key)||0;
+   b.crate.visible=b.slot<Math.max(0,actual-arrivals);
    // Animate only a REAL parcel with a connected, non-full destination.
    // Blocked and terminal belts are completely still.
    const direction=free?free.dir:(s.beltDirection[s.floor][b.aisle][b.segment]||0);
@@ -1011,7 +1066,7 @@ function animate(now){
    const space=free?!!nextFree&&nextFree.items<BELT_CAPACITY:hasNext&&s.beltItems[s.floor][destA][destSeg]<BELT_CAPACITY;
    const pct=space&&b.slot===actual-1&&actual>0?
       (s.beltFlowTimer/BELT_MOVE_SECONDS):0;
-   b.crate.position.set(0,.87,.78-b.slot*.78-pct*.43);
+   b.crate.position.set(0,.87,.78-b.slot*.78-pct*.6);
   }
   // Completion alone does NOT trigger the ending. Open the front doors with E.
  }
@@ -1221,6 +1276,7 @@ if(DEV_MODE){
   advanceConveyors(seconds){advanceBelts(s,Math.max(0,Math.min(120,Number(seconds)||0)));return s.beltStock[s.floor].slice();},
    placeFreeBelt(x,z,dir=0){const b=placeFreeBelt(s,s.floor,x,z,dir,(px,pz)=>!isBlocked(px,pz,s.floor,.72)&&!blockedEquipment(s,px,pz,.72));if(b)buildWorld();return b?.id||null;},
    freeBelts(){return s.freeBelts.map(b=>({...b}));},
+   conveyorVisuals(){return {moving:flyingCartons.length,renderedCrates:beltCrates.length,keys:[...incomingCartonCounts.keys()]};},
    robots(){return s.robots.map(r=>({id:r.id,floor:r.floor,aisle:r.aisle,homeAisle:r.homeAisle,placed:r.placed,carry:r.carry,wrecked:r.wrecked}));},
    coinOffers(){return JSON.parse(JSON.stringify(s.coinOffers));},
    coinTest:{
