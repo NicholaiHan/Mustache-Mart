@@ -595,6 +595,16 @@ test('conveyor interpolation: 30 real cargo-event conservation and corner-routin
   assert.equal(r.loadState(r.serialize(s)).freeBelts.reduce((sum,b)=>sum+b.items,0),2);
   // Event-callback frame interpolation is purely cosmetic and never alters stocks.
   assert.equal(events.filter(e=>e.type==='free').length,1);
+  // The original aisle conveyor also emits a real parcel transfer event;
+  // both legacy and free-directed belts share the same visual tween.
+  const aisle=i%r.AISLES,oldBelts=r.newState();oldBelts.money=1000;
+  assert.equal(r.buildBelt(oldBelts,f,aisle,0),true);
+  assert.equal(r.buildBelt(oldBelts,f,aisle,1),true);
+  oldBelts.beltItems[f][aisle][0]=1;oldBelts.beltStock[f][aisle]=1;
+  const originalEvents=[];
+  r.advanceBelts(oldBelts,1,e=>originalEvents.push(e));
+  assert.equal(originalEvents.filter(e=>e.type==='legacy').length,1);
+  assert.equal(oldBelts.beltStock[f][aisle],1);
  });
 });
 test('robot ladder gating: 30 tall-ladder and exclusive auto-top-shelf cases',()=>{
