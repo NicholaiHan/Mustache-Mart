@@ -26,6 +26,33 @@ test('stage 2: 30 elevator-safe gameplay simulations',()=>{
   assert.equal(r.loadState(r.serialize(s)).stocked,1);
  });
 });
+test('new stage: 30 multi-platform ladder purchase, driving, collision and save simulations',()=>{
+ simulate(i=>{
+  const s=r.newState();s.money=1e9;
+  assert.equal(r.purchase(s,'ladder'),true);
+  for(let n=0;n<6;n++)assert.equal(r.purchase(s,'cart'),true);
+  assert.equal(s.platforms.length,6);
+  assert.equal(s.levels.cart,6);
+  assert.equal(new Set(s.platforms.map(p=>p.id)).size,6);
+  assert.equal(new Set(s.platforms.map(p=>p.aisle)).size,6);
+  const selected=s.platforms[i%6],other=s.platforms[(i+1)%6];
+  const old=other.z;
+  assert.equal(r.selectPlatform(s,selected.id),true);
+  assert.equal(s.cart.id,selected.id);
+  assert.equal(s.platforms.filter(p=>p.mounted).length,1);
+  assert.equal(r.closestPlatform(s,r.aisleX(selected.aisle),selected.z).id,selected.id);
+  assert.equal(r.drivePlatform(s,1,0,.4,()=>true),true);
+  assert.notEqual(selected.z,16.2);
+  assert.equal(other.z,old);
+  assert.ok(r.liftPlatform(s,1,.4)>0);
+  const loaded=r.loadState(r.serialize(s));
+  assert.equal(loaded.platforms.length,6);
+  assert.equal(loaded.levels.cart,6);
+  assert.equal(loaded.cart.id,selected.id);
+  assert.equal(loaded.platforms.filter(p=>p.mounted).length,0);
+  assert.ok(loaded.platforms.some(p=>p.id===selected.id&&p.liftHeight>0));
+ });
+});
 test('stage 3: 30 left-fire-exit and inventory regression simulations',()=>{
  const door=source('doors.js');
  assert.match(door,/firePivot\.position\.set\(-9\.37/);
