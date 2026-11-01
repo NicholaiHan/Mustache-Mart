@@ -158,6 +158,8 @@ export const skillAvailable=(s,u)=>!u.requires||Object.entries(u.requires).every
 export function purchase(s,id){
  const u=UPGRADES.find(x=>x.id===id);if(!u)return false;
  const level=s.levels[id],cost=price(u,level);if(level>=u.max||s.money<cost||!skillAvailable(s,u))return false;
+ // Salvage the permanently destroyed crab victim first. This frees the slot.
+ if(id==='robot'&&s.robots.some(r=>r.wrecked))return false;
  if(id==='cart'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
  if(id==='ladderPlus'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
  s.money-=cost;s.money+=Math.floor(cost*Math.min(.1,(s.levels.cashback||0)*.02));s.levels[id]++;if(id==='robotReliability'&&s.levels.robotReliability===4){
@@ -416,7 +418,7 @@ export function takeBelt(s,f,a,segment=null){
 // player is on another floor. All randomness is seeded and persists in saves.
 export const completedFloors=s=>Array.from({length:FLOORS},(_,f)=>floorStocked(s,f)===itemsPerFloor).filter(Boolean).length;
 export function crabEnabled(s){
- if(!s.crab.unlocked&&completedFloors(s)>=CRAB_UNLOCK_FLOORS)s.crab.unlocked=true;
+ if(!s.crab.unlocked&&s.stocked>=CRAB_UNLOCK_FLOORS*itemsPerFloor&&completedFloors(s)>=CRAB_UNLOCK_FLOORS)s.crab.unlocked=true;
  return s.crab.unlocked;
 }
 function crabRandom(s){
