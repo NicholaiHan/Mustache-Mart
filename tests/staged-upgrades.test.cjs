@@ -176,6 +176,20 @@ test('visual stage A: 30 continuous conveyor and stock-preservation simulations'
   assert.equal(s.beltStock[floor][aisle]+s.stockPiles.filter(p=>p.floor===floor&&p.aisle===aisle).reduce((sum,p)=>sum+p.count,0),count);
  });
 });
+test('visual stage B: 30 aisle-top flag removal and progress retention checks',()=>{
+ const environment=source('environment.js');
+ assert.doesNotMatch(environment,/const highTag=/);
+ assert.doesNotMatch(environment,/highTag\.position|add\(highTag\)/);
+ assert.match(environment,/const aisleLabel=textLabel/,'main aisle labels remain');
+ assert.match(environment,/const front=textLabel\('AISLE /,'front sign remains readable');
+ simulate(i=>{
+  const s=r.newState();s.money=1234;const a=i%r.AISLES,b=i%r.BAYS;
+  r.place(s,r.cellId(i%r.FLOORS,a,0,b,0),true);
+  const restored=r.loadState(r.serialize(s));
+  assert.equal(restored.stocked,1);
+  assert.equal(restored.money,1235);
+ });
+});
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
