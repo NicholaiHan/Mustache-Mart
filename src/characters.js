@@ -70,7 +70,109 @@ function makeMike(x,z){
  return guy;
 }
 
+
+// Boss hazard: a giant industrial robot crab, about 10m across with active
+// jointed legs and oversized hydraulic pincers. Only one model on the
+// currently viewed floor is rendered; the rules track all floors independently.
+function makeMegaCrab(){
+ const root=new THREE.Group();root.name='megaRobotCrab';getWorld().add(root);
+ const shell=equipmentMaterial('#9a3d31',.62,.29);
+ const bright=equipmentMaterial('#d36341',.45,.38);
+ const dark=equipmentMaterial('#28363a',.58,.38);
+ const steel=equipmentMaterial('#aab9b8',.82,.23);
+ const gold=equipmentMaterial('#dca94d',.68,.27);
+ const glow=new THREE.MeshBasicMaterial({color:'#fb8d52'});
+ const body=new THREE.Mesh(new THREE.SphereGeometry(2.45,24,16),shell);
+ body.scale.set(1.35,.64,1.05);body.position.y=3.4;root.add(body);
+ const armor=round(4.1,.28,3.75,bright,root);armor.position.set(0,4.16,.08);
+ for(const side of [-1,1]){
+  const lens=new THREE.Mesh(new THREE.SphereGeometry(.48,16,12),glow);
+  lens.position.set(side*1.26,3.76,-1.65);root.add(lens);
+  const brow=round(.96,.16,.31,dark,root);brow.position.set(side*1.28,4.18,-1.62);
+ }
+ const jaws=[],legs=[];
+ for(const side of [-1,1]){
+  for(let i=0;i<4;i++){
+   const hip=new THREE.Group();hip.position.set(side*2.0,3.36,-1.7+i*1.17);root.add(hip);
+   const upper=round(2.75,.34,.42,steel,hip);
+   upper.position.set(side*1.35,-.34,0);upper.rotation.z=side*.35;
+   const piston=round(1.22,.23,.28,gold,hip);piston.position.set(side*1.85,-.6,0);
+   const knee=new THREE.Mesh(new THREE.SphereGeometry(.36,12,10),dark);
+   knee.position.set(side*2.6,-.86,0);hip.add(knee);
+   const shin=round(.39,2.45,.38,shell,hip);shin.position.set(side*2.77,-2.0,0);shin.rotation.z=-side*.16;
+   const foot=round(.72,.28,.9,dark,hip);foot.position.set(side*2.87,-3.09,.08);
+   legs.push({joint:hip,index:i,side});
+  }
+  const arm=new THREE.Group();arm.position.set(side*2.05,3.54,-1.55);root.add(arm);
+  const forearm=round(2.85,.49,.67,steel,arm);forearm.position.set(side*1.25,-.1,-.49);
+  const grip=new THREE.Group();grip.position.set(side*2.7,-.12,-.52);arm.add(grip);
+  const pincer=round(1.46,.77,1.2,bright,grip);pincer.position.set(side*.27,0,-.38);
+  for(const sign of [-1,1]){
+   const tooth=round(.28,.59,1.0,dark,grip);
+   tooth.position.set(side*.88,sign*.37,-1.10);tooth.rotation.y=sign*.25;
+  }
+  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.14,10),gold);
+  bolt.rotation.z=Math.PI/2;bolt.position.set(side*.2,.4,-.05);grip.add(bolt);
+  jaws.push(arm);
+ }
+ const spine=round(3.5,.32,.38,dark,root);spine.position.set(0,4.0,1.08);
+ for(let i=0;i<6;i++){
+  const light=round(.24,.09,.10,gold,root);light.position.set(-1.5+i*.61,4.23,.92);
+ }
+ root.userData.legs=legs;root.userData.jaws=jaws;
+ root.userData.animationSpeed=2.0;
+ return root;
+}
+// Comedic, irreparable wreck: detached, cracked head on the floor, a tall
+// exposed coiled spring instead of a neck, and scattered screws and bolts.
+function wreckedBotAppearance(robot){
+ const root=new THREE.Group();getWorld().add(root);
+ root.name='crabDestroyedStocker';root.userData.wrecked=true;
+ const shell=equipmentMaterial('#b9c5c2',.28,.44);
+ const steel=equipmentMaterial('#d6d5d0',.84,.25);
+ const dark=equipmentMaterial('#28353b',.27,.55);
+ const rust=equipmentMaterial('#b05f3c',.38,.51);
+ const body=round(.93,.83,.91,shell,root);body.position.set(0,.78,0);body.rotation.z=-.12;
+ const trim=round(1.0,.19,.96,dark,root);trim.position.set(0,.44,0);
+ for(const side of [-1,1]){
+  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.17,12),dark);
+  wheel.rotation.z=Math.PI/2;wheel.position.set(side*.48,.24,.3);root.add(wheel);
+ }
+ const springPoints=[];
+ for(let i=0;i<=100;i++){
+  const t=i/100,angle=t*13*Math.PI*2;
+  springPoints.push(new THREE.Vector3(Math.cos(angle)*.23,1.2+t*1.62,Math.sin(angle)*.23));
+ }
+ const spring=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(springPoints),240,.078,7,false),steel);
+ spring.name='comedicBodySpring';root.add(spring);
+ const head=new THREE.Group();head.name='detachedRobotHead';head.position.set(.82,.40,-.83);head.rotation.set(.15,.33,-.62);root.add(head);
+ const casing=round(.76,.55,.68,shell,head);
+ const visor=round(.65,.29,.08,dark,head);visor.position.set(0,.07,-.37);
+ for(const side of [-1,1]){
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),new THREE.MeshBasicMaterial({color:'#a8eee6'}));
+  eye.position.set(side*.16,.11,-.42);head.add(eye);
+  const stache=round(.24,.06,.035,dark,head);stache.position.set(side*.13,-.13,-.414);stache.rotation.z=side*.3;
+ }
+ // Wide cracks show that the head cannot be repaired.
+ for(const side of [-1,1]){
+  const crack=round(.025,.22,.031,rust,head);
+  crack.position.set(side*.25,-.05,-.417);crack.rotation.z=side*.33;
+ }
+ for(let i=0;i<11;i++){
+  const a=i*Math.PI*2/11,dist=.84+(i%4)*.21;
+  const bolt=i%2===0?new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,.17,8),steel):
+   new THREE.Mesh(new THREE.BoxGeometry(.17,.08,.11),rust);
+  bolt.name=i%2===0?'looseBolt':'looseScrew';
+  bolt.rotation.set(.8*i,.3*i,.18*i);
+  bolt.position.set(Math.cos(a)*dist,.10,Math.sin(a)*dist);root.add(bolt);
+ }
+ const warning=new THREE.Mesh(new THREE.SphereGeometry(.14,10,9),new THREE.MeshBasicMaterial({color:'#ff4636'}));
+ warning.position.set(0,1.19,0);root.add(warning);
+ root.position.set(robot.x,0,robot.z);return root;
+}
+
 function botAppearance(r){
+ if(r.wrecked)return wreckedBotAppearance(r);
  const b=new THREE.Group();getWorld().add(b);
  const shell=equipmentMaterial('#e0e1db',.16,.37);
  const trim=equipmentMaterial('#677476',.35,.38);
@@ -125,5 +227,5 @@ function botAppearance(r){
  b.position.set(r.x,0,r.z);return b;
 }
 
-return {makeMike,botAppearance};
+return {makeMike,botAppearance,makeMegaCrab};
 }
