@@ -1,5 +1,3 @@
-import * as THREE from 'three';
-
 // The store is visually widened to create walkable lanes, but a model's own
 // width must remain physical. This is a render-only pass; do not modify saved
 // item positions, floor coordinates, shop rules or collision state.
