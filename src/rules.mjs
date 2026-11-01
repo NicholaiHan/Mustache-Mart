@@ -794,6 +794,9 @@ export function botStep(s,r,dt){
   r.acc+=dt*(.7+s.levels.robotSpeed*.16)*(1+(s.levels.robotEfficiency||0)*.1);
   if(r.acc>=1){
    r.acc-=1;
+   // Last-moment rule guard: no top-shelf item can be placed unless the
+   // robot actually owns the motorized lifting mechanism this instant.
+   if(!robotCanReach(s,r,r.target)){r.target=-1;return -1;}
    if(place(s,r.target,true)){
      const done=r.target;r.carry--;
      s.cursor[r.floor]=(done-r.floor*CELLS_PER_FLOOR+1)%CELLS_PER_FLOOR;
