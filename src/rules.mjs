@@ -32,7 +32,7 @@ export const UPGRADES=[
 {id:'clawCycle',name:'Claw Servo Tuning',detail:'Claw cycle rate +12% per rank. Requires owning an Item Claw.',base:550,factor:2.0,max:6,category:'skills',branch:'Automation',requires:{itemClaw:1}},
 {id:'beltMotor',name:'Conveyor Drive Control',detail:'Move products 12% faster per rank. Requires Claw Servo Lv 1.',base:950,factor:2,max:6,category:'skills',branch:'Automation',requires:{clawCycle:1}},
 {id:'robotEfficiency',name:'Precision Stocking',detail:'Stocking rate +10% per rank. Requires Shelf Locator Lv 1.',base:750,factor:1.9,max:6,category:'skills',branch:'Automation',requires:{warehouseFocus:1}},
-{id:'repairTraining',name:'Technician Training',detail:'Reduce E repair actions required (4 → 1). Requires one bot.',base:400,factor:1.7,max:3,category:'skills',branch:'Maintenance',requires:{robot:1}},
+{id:'repairTraining',name:'Technician Training',detail:'Increase your manual robot repair reach by 0.35 m per rank. Hold E continuously for 6 seconds to fix a broken robot.',base:400,factor:1.7,max:3,category:'skills',branch:'Maintenance',requires:{robot:1}},
 {id:'robotReliability',name:'Robot Reliability Tree',detail:'4 ranks: 50–100, 200–300, 500–1000, then NEVER breaks. Requires Technician Training.',base:900,factor:7,max:4,category:'skills',branch:'Maintenance',requires:{repairTraining:1}},
 {id:'retailMargin',name:'Merchandise Markup',detail:'Earn +1¢ per 2 levels on every stocked item. Requires shelf premium.',base:1400,factor:2.25,max:8,category:'skills',branch:'Retail',requires:{shelfBonus:1}},
 {id:'robotCommission',name:'Robot Commission',detail:'Earn +1¢ for every robotic package stocked per rank. Requires Retail Markup Lv 1.',base:1800,factor:2.4,max:5,category:'skills',branch:'Retail',requires:{retailMargin:1}},
@@ -113,7 +113,7 @@ export function loadState(text){
  carry:limit(r.carry,8),homeAisle:limit(r.homeAisle??r.aisle,AISLES-1),
  stockedSinceService:limit(r.stockedSinceService,1000000),
  breakdowns:limit(r.breakdowns,100000),broken:!!r.broken,
- breakAt:Math.max(0,Number(r.breakAt)||0),repairProgress:limit(r.repairProgress,10),
+ breakAt:Math.max(0,Number(r.breakAt)||0),repairProgress:0,
  acc:0,liftY:0,source:null
  }));
  s.robotNextId=Math.max(limit(d.robotNextId,1000000)||1,...s.robots.map(r=>r.id+1));
@@ -482,13 +482,23 @@ export function nextRobotBreakpoint(s,r){
  const [low,high]=range,seed=((r.id*2654435761)^(r.breakdowns*2246822519))>>>0;
  return low+(seed%(high-low+1));
 }
-export function repairRobot(s,id){
- const r=s.robots.find(bot=>bot.id===id);
- if(!r||!r.broken)return false;
- const needed=Math.max(1,4-(s.levels.repairTraining||0));
- r.repairProgress=(r.repairProgress||0)+1;
- if(r.repairProgress<needed)return true;
- r.broken=false;r.repairProgress=0;r.stockedSinceService=0;r.breakAt=nextRobotBreakpoint(s,r);
+export const ROBOT_REPAIR_SECONDS=6;
+export const repairRange=s=>3.2+.35*(s.levels.repairTraining||0);
+export function resetRobotRepair(s,id){
+ const bot=s.robots.find(r=>r.id===id);
+ if(!bot||!bot.broken)return false;
+ bot.repairProgress=0;return true;
+}
+// Continuous seconds of actual held-E work, not discrete key presses. The game
+// cancels partial progress on release, lost focus, moving away or switching bots.
+export function repairRobot(s,id,elapsed=0){
+ const bot=s.robots.find(r=>r.id===id);
+ if(!bot||!bot.broken)return false;
+ const dt=Math.max(0,Math.min(ROBOT_REPAIR_SECONDS,Number(elapsed)||0));
+ if(dt===0)return false;
+ bot.repairProgress=Math.min(ROBOT_REPAIR_SECONDS,(bot.repairProgress||0)+dt);
+ if(bot.repairProgress+1e-6<ROBOT_REPAIR_SECONDS)return true;
+ bot.broken=false;bot.repairProgress=0;bot.stockedSinceService=0;bot.breakAt=nextRobotBreakpoint(s,bot);
  return true;
 }
 export function botStep(s,r,dt){
