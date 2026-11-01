@@ -28,7 +28,8 @@ const boxes=[
  // Receiving desk, terminal, racking and pallets are solid.
  {name:'Receiving loading counter',x:1.5,z:96,hx:2.35,hz:1.47},
  {name:'Receiving terminal',x:3.7,z:95.8,hx:.5,hz:.4},
- {name:'Receiving warehouse rack',x:7.7,z:96.4,hx:2.35,hz:.75},
+ {name:'Receiving rotated warehouse divider',x:10.6,z:96.35,hx:.38,hz:2.55},
+ {name:'Receiving boxed stock behind divider',x:13.95,z:95.65,hx:2.75,hz:2.8},
  {name:'Receiving shutter',x:17,z:100.2,hx:5.6,hz:.24},
  {name:'Receiving storage stand',x:10.7,z:96.4,hx:.25,hz:.27}
 ];
