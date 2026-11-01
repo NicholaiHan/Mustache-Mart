@@ -321,7 +321,7 @@ function nextFreeBelt(s,b){
 export function freeBeltConnected(s,id){
  const b=s.freeBelts.find(p=>p.id===id);return !!(b&&nextFreeBelt(s,b));
 }
-function moveFreeBeltsOneStep(s){
+function moveFreeBeltsOneStep(s,onTransfer=null){
  const moves=[],reserved=new Map();
  for(const b of s.freeBelts){
   if(b.items<=0)continue;
@@ -331,7 +331,9 @@ function moveFreeBeltsOneStep(s){
   if(next.items+qty>=BELT_CAPACITY)continue;
   reserved.set(next.id,qty+1);moves.push([b,next]);
  }
- for(const [from,to] of moves){from.items--;to.items++;}
+ for(const [from,to] of moves){from.items--;to.items++;
+  if(onTransfer)onTransfer({type:'free',floor:from.floor,fromId:from.id,toId:to.id});
+ }
  return moves.length;
 }
 
@@ -520,7 +522,7 @@ export function nearestClawSource(s,claw){
  choices.sort((a,b)=>a.distance-b.distance);
  return choices[0]||null;
 }
-function moveBeltItemsOneStep(s){
+function moveBeltItemsOneStep(s,onTransfer=null){
  // Snapshot and reserve incoming spaces. No packages can jump multiple
  // sections in a single tick, and even a simultaneously departing package
  // cannot falsely create space on a full destination.
@@ -547,10 +549,11 @@ function moveBeltItemsOneStep(s){
   s.beltItems[f][a][seg]--;
   s.beltItems[f][toA][toSeg]++;
   s.beltStock[f][a]--;s.beltStock[f][toA]++;
+  if(onTransfer)onTransfer({type:'legacy',floor:f,fromAisle:a,fromSegment:seg,toAisle:toA,toSegment:toSeg});
  }
  return moves.length;
 }
-export function advanceBelts(s,dt){
+export function advanceBelts(s,dt,onTransfer=null){
  if(!Number.isFinite(dt)||dt<=0)return 0;
  let delivered=0;
  // Small deterministic substeps interleave pickup and movement even in the
@@ -560,8 +563,8 @@ export function advanceBelts(s,dt){
   s.beltFlowTimer+=delta;
   while(s.beltFlowTimer>=BELT_MOVE_SECONDS/(1+(s.levels.beltMotor||0)*.12)){
    s.beltFlowTimer-=BELT_MOVE_SECONDS/(1+(s.levels.beltMotor||0)*.12);
-   moveBeltItemsOneStep(s);
-   moveFreeBeltsOneStep(s);
+   moveBeltItemsOneStep(s,onTransfer);
+   moveFreeBeltsOneStep(s,onTransfer);
   }
   for(const claw of s.claws){
    const free=claw.freeBeltId?s.freeBelts.find(b=>b.id===claw.freeBeltId):null;
