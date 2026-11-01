@@ -208,6 +208,30 @@ test('visual stage C: 30 detailed wall and doorway clearance simulations',()=>{
   assert.equal(r.canOpenStore(s),false);
  });
 });
+test('visual stage D: 30 gold-framed Mike portrait and saved-progress checks',()=>{
+ const env=source('environment.js');
+ assert.match(env,/function buildEmployeeOfMonthPortrait\(\)/);
+ assert.match(env,/buildEmployeeOfMonthPortrait\(\);/);
+ assert.match(env,/employeeOfMonthPortrait/);
+ assert.match(env,/EMPLOYEE OF THE MONTH/);
+ assert.match(env,/Mustache Mike/);
+ assert.match(env,/uniqueWorkingPortrait/);
+ const scenes=env.match(/\['[A-Z ]+','[^']+','#[a-fA-F0-9]{6}','[^']+'\]/g)||[];
+ assert.equal(scenes.length,15,'all fifteen floors have their own Mike working scene');
+ const names=scenes.map(x=>x.match(/^\['([^']+)/)?.[1]);
+ assert.equal(new Set(names).size,15,'every floor activity is unique');
+ simulate(i=>{
+  const floor=i%r.FLOORS,s=r.newState();s.floor=floor;s.money=213;
+  s.levels.capacity=2;s.levels.speed=1;
+  r.place(s,r.cellId(floor,i%r.AISLES,0,i%r.BAYS,0),true);
+  const restored=r.loadState(r.serialize(s));
+  assert.equal(restored.floor,floor);
+  assert.equal(restored.levels.capacity,2);
+  assert.equal(restored.levels.speed,1);
+  assert.equal(restored.stocked,1);
+  assert.equal(restored.money,213,'decoration must not spend money or modify progress');
+ });
+});
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
