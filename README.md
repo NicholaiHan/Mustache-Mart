@@ -20,11 +20,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.31.8** and the introduction must list the new cash registers, Mike, ladders and fire exit.
-3. **Development mode** (the `#dev` suffix) gives **at least $500** for testing. The title screen also has a **Refill developer cash to $500** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
+2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.31.9** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+3. **Development mode** (the `#dev` suffix) gives **at least $5,000** for testing. The title screen also has a **Refill developer cash to $500** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
 4. **Recovery:** Your skills and stocked shelves are saved by browser + exact host + port. The launcher now defaults to **8000**, where older saves are most likely. If you instead played on **8011**, run `PORT=8011 bash PLAY_LATEST_MAC.sh` and open `http://127.0.0.1:8011/#dev` in your original browser. Do not click Reset. Use **Download save backup** on the origin holding progress, then **Import save backup** on the origin you want to play from. The original save remains intact.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.31.8** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.31.9** is shown.
 
 ## Play on your MacBook
 
@@ -52,7 +52,7 @@ You do not need npm install, Electron, a Steam account, or any changes to macOS 
 - **Manual payroll:** take your stocking earnings back to the **PAY WINDOW** near the front until automatic payroll is unlocked.
 - **Two shopkeeper categories:** **Equipment & Automation** and **Economy Contracts**. The new **$50 Canned Goods Supercontract** multiplies all canned-goods rewards by **3×**. Water partnerships, high-shelf bonuses, and automation-profit bonuses are also available.
 - **Working conveyors:** build sequential rear-to-front sections with **B**. Products are transported over time and accumulate at the connected end; both the player (E to collect) and robots can remove delivered stock. Robots compare available belt endpoints with the warehouse dock and choose the closest available supply.
-- **Separately purchasable robots and robot upgrades:** buy each **Mustache Stocker Bot** at Mike's. After purchase, walk toward an aisle or aim the unlocked cursor at an aisle floor and **left-click** to deploy the translucent ghost. Bots prefer nearby empty spaces and fetch inventory from the nearest available stocked conveyor endpoint or warehouse receiving. **Robot Espresso** upgrades robot movement/stocking speed; **Motorized Robot Ladder** allows mobile high-shelf lifting. Without it, robots can only climb the player's installed ladders (not deploy their own). Robot selling and repositioning are available in Mike's store.
+- **Instantly deployed robots and separate robot upgrades:** buy a **Mustache Stocker Bot** at Mike's and it spawns immediately in the first aisle without an assigned robot; if every aisle is staffed, it goes to the closest least-crowded aisle. Use Mike’s management panel to move each robot between floors and aisles the translucent ghost. Bots prefer nearby empty spaces and fetch inventory from the nearest available stocked conveyor endpoint or warehouse receiving. **Robot Espresso** upgrades robot movement/stocking speed; **Motorized Robot Ladder** allows mobile high-shelf lifting. Without it, robots can only climb the player's installed ladders (not deploy their own). Robot selling and repositioning are available in Mike's store.
 - **Equipment resale:** stand beside a placed ladder, worker robot, or the exposed last conveyor section and press **X** to sell it for **half of its original purchase price**. Mike's robot management cards also offer individual robot sales and relocation. Belt segments must be removed from the delivery end backward to keep the pipeline connected.
 - **Save migration:** the game automatically migrates existing fifteen-floor v3 saves into four-tier v4 saves. Previous saves remain under their original browser storage keys as backups.
 
@@ -122,7 +122,7 @@ This is still a procedural browser game rather than a fully modeled commercial s
 - **The sole red FIRE EXIT remains interactive with E on the Floor 1 back-left wall, around x=-9.5, z=85.** Opening it reveals brickwork, not a route outdoors.
 - **Ladders are physically climbable:** stand near a placed ladder, press **E or C** to grab it, hold W/S to climb or descend (extension unlocks the 3¢ upper band), and press C to release. L still deploys an owned ladder, X sells a deployed ladder for half its purchase cost.
 - **Actual inventory conveyors** continue to transport and accumulate stock; pick delivered items up with E or let robots choose a nearby supplied belt.
-- **Explicit development mode gives at least $500 in your account** at startup: open `http://127.0.0.1:8000/#dev` (or the older `#rich` alias). This means **50,000 cents**, applies only when you deliberately use a development URL, and never reduces an already higher saved balance. It does not affect normal mode.
+- **Explicit development mode gives at least $5,000 in your account** at startup: open `http://127.0.0.1:8000/#dev` (or the older `#rich` alias). This means **500,000 cents**, applies only when you deliberately use a development URL, and never reduces an already higher saved balance. It does not affect normal mode.
 - **Four cashier lane colliders are on Floor 1 only**; they do not obstruct higher levels.
 
 ### Verification
@@ -186,17 +186,17 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - **Skill tree**: Twelve skill nodes arranged in four navigable branches with visible prerequisite connections. Foundation prerequisites link to the original Equipment or Economy tab. Locked, ready, insufficient-funds and completed states use distinct styling. Purchase rules, levels and money are unchanged.
 - **Equipment & automation**: Modernized product cards with upgrade progress, prices, readiness and purchase feedback. Robot and claw management remain accessible. **Economy contracts keep their existing simple layout.**
 - **Transfer your progress between local ports**: The introduction has Download save backup and Import save backup. To recover an old save on port 8000, start this same updated folder with `PORT=8000 bash PLAY_LATEST_MAC.sh` (stop any existing server on 8000 first), open `http://127.0.0.1:8000/#dev` in your original browser and choose **Download save backup**. Then restart normally with `bash PLAY_LATEST_MAC.sh`, open `http://127.0.0.1:8011/#dev`, and use **Import save backup**. This replaces only the destination port's save after confirmation. The original port's save and downloaded backup are retained.
-- The `#dev` suffix gives at least $500 for testing. No in-game money or progress is reset by the visual upgrade.
+- The `#dev` suffix gives at least $5,000 for testing. No in-game money or progress is reset by the visual upgrade.
 
 
-## Build 2026.10.31.8 — Fire exit detail and save safety
+## Build 2026.10.31.9 — Fire exit detail and save safety
 
 - **FIRE EXIT**: Rebuilt the inward-swinging back-left red steel door with structural framing, painted recessed panels, push-to-open panic bar, raised metal hardware, smoke seal, kick plate, illuminated emergency lamp and deeper brick alcove. The masonry's brick faces now sit in front of the opaque mortar backing, fixing a layering issue that hid brick detail. The brick obstruction still blocks any escape and the entrance completion rules are unchanged.
 - **Save origin**: The launcher defaults to **port 8000** instead of 8011, matching the original local save URL. Existing saves on 8011 are not deleted; use the explicit PORT override to view them. The opening screen displays your loaded stocked items and upgrade ranks, so an empty save on the wrong address is immediately apparent.
 - **Developer mode**: The title screen has an **Enable $500 Developer Mode** button even when the URL lacks #dev; inside developer mode the button becomes **Refill developer cash to $500**, which tops up the balance without modifying skill levels, shelf progress or other save fields.
 
 
-## Build 2026.10.31.8 — Clear aisle signage, multiple mobile ladders and hold-to-repair
+## Build 2026.10.31.9 — Clear aisle signage, multiple mobile ladders and hold-to-repair
 
 - **Visible aisle names:** Removed decorative colored flags, opaque raised plates and colored bottom strips that could cover suspended aisle text. Aisle identification now uses a single neutral sign oriented toward approaching players; shelf-end labels remain.
 - **Up to 10 motorized platform ladders:** Buy additional individually operated platforms at Mustache Mike (prices scale for successive purchases). Each is a separate physical object in the supermarket, with its own floor, aisle, position and lift height. Walk near any platform and press **F** to mount; use **WASD** to drive, **Space** to raise, **Ctrl** to lower, and **F** again to dismount. Robots do not drive or stock from these platforms. Existing older single-platform saves migrate into the multi-platform structure without resetting shelf and skill progress.
@@ -204,7 +204,7 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - **Testing:** Three dedicated 30-simulation regression groups cover the clean aisle sign layout, purchasing/operating/restoring multiple independent platforms, and uninterrupted/canceled repair timing. The other existing simulation tests remain in CI. Gameplay and visual browser checks run separately on macOS and Linux.
 
 
-## Build 2026.10.31.8 — Conveyor polish, no aisle-top flags, detailed walls
+## Build 2026.10.31.9 — Conveyor polish, no aisle-top flags, detailed walls
 
 - **Seamless conveyors:** The visual belt now spans 2.68 meters across physical bay centers spaced 2.65 meters apart. This removes visible gaps between neighboring straight belt sections without changing inventory, conveyors, claw logic or pricing. Added slim continuous steel guides, subtle rubber tread grooves, inlaid direction marks, realistic end rollers, and discreet motors at the ends of runs. A pivot cover identifies rotated outlets; the loading belt still holds at most three real products per section.
 - **No elevated aisle-top flags:** Removed the high decorative flags above each aisle entirely, while keeping the main neutral front aisle signs and shelf labels visible.
@@ -212,7 +212,7 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - **Regression checks:** Three separate groups of 30 accelerated automated simulations validate conveyor stock conservation and outlet turning, removal of elevated aisle flags, and wall/door clearance. The tests do not constitute 30 manually played 3D games; separate macOS/Linux browser smoke tests check rendered gameplay.
 
 
-## Build 2026.10.31.8 — Mustache Mike, Employee of the Month
+## Build 2026.10.31.9 — Mustache Mike, Employee of the Month
 
 - A **gold-framed "EMPLOYEE OF THE MONTH" painting** is hung on the interior front wall to the right of the elevator on **every floor (1–15)**.
 - The brass/gold frame has a deep inset mat, beveled edging, large legible award title, nameplate reading **"Mustache Mike"**, and floor-specific award badge.
@@ -221,7 +221,7 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - Automated regression coverage includes 30 saved-progress/floor-load simulations plus real headless-browser checks that count one framed portrait per floor and 15 distinct scenes.
 
 
-## Build 2026.10.31.8 — Giant Robot Crab raid boss
+## Build 2026.10.31.9 — Giant Robot Crab raid boss
 
 - **Unlock at seven fully stocked floors:** An enormous animated steel robot crab appears on any incomplete floor. It patrols aisles with giant jointed legs, glowing eyes, and swing-capable hydraulic pincers. This unlock is permanent in your saved game, even if raided floor progress later falls.
 - **Independent 20-minute clocks:** During active play, each unfinished floor has its own 20-minute timer. When it expires, the crab swings **once** in a randomly chosen aisle, sweeping 3 adjacent shelf bays. Floors already completely stocked are immune. The clock runs across other floors while you work elsewhere; it pauses when the game is paused or closed, and resumes from your saved time. The HUD displays the next swing countdown for your floor.
@@ -231,10 +231,19 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - **Simulation verification:** Three 30-seed deterministic regression stages verify unlocking/timers on all 15 floors, shelf/drop count conservation and save persistence, and permanent destruction/forced scrap/replacement. Browser tests additionally check the displayed crab model, actual wreck geometry, and 25% credit.
 
 
-## Build 2026.10.31.8 — Free-placement conveyors, grand Supply Portal and gold awards
+## Build 2026.10.31.9 — Free-placement conveyors, grand Supply Portal and gold awards
 
 - **Build conveyors anywhere on unobstructed floor space:** Stand in an open aisle, crosswalk, or service area and press **B** to place a **paid floor conveyor section** ahead of your character. When away from an existing belt, press **Z** to cycle the planned starting direction in 90° steps: **north → east → south → west**. Build adjacent sections to connect turns; each physical section holds up to three actual items and supplies downstream sections according to its direction. Walk beside an existing free conveyor and press **Z** to rotate that piece independently. Press **K** beside a new free conveyor to connect a purchased Automated Item Claw; give the claw inventory near the dock or a stocked pallet pile. Press **E** to collect physical conveyor goods, or **X** to sell the nearby belt at 50% of purchase cost, with its remaining cargo dropped into a collectible pile. Player and robot pickup both work on free belts. The original rear-to-front aisle belt network continues working and older saves remain supported.
 - **Receiving area rebuilt as the Supply Portal:** An elevated industrial arch, glowing marquee, iconic mustache emblem, illuminated dock number, scanning electronics, brass-finished chute rails, mechanical dispatch counter, supply LEDs and floor wayfinding surround the existing delivery collection point. All improvements are decorative or elevated above walkable service space; E pickup remains in the original location.
 - **No persistent Crab Alert:** Removed the HUD warning and countdown, while leaving the giant robot crab event, its after-seven-floor unlock, and its hidden timers unchanged. The event may still display a short impact notification when a strike occurs.
 - **Mike's frames are vivid GOLD:** Upgraded every Employee of the Month painting from dark brass to bright gilded gold, with luminous highlights, amber depth, and decorative gold corner ornaments. All 15 floor-specific working portraits remain intact.
 - **Testing:** Three groups of 30 accelerated rule/state scenarios verify free belt corner routing and stock conservation, unchanged save/receiving functionality, hidden crab alert and gold frame rendering code. Browser smoke tests separately check arbitrary conveyor placement and rotation.
+
+
+## Build 2026.10.31.9 — Daylight-blue windows, instant robot dispatch and $5,000 developer wallet
+
+- **Light-blue windows:** Replaced the smoky entrance and payroll glass with pale blue, sky-reflective glazing. Added framed high-wall daylight-blue clerestory windows to multiple perimeter walls, plus subtle decorative daylight pools, so each floor looks brighter without blocking doors or shelves. These are attractive simulated daylight windows against the existing outer building shell, not open holes in its structural walls.
+- **Robots auto-deploy on purchase:** Buy a Mustache Stocker Bot in Mike's shop and it immediately appears on your current unfinished floor, starting in **Aisle 1** if empty and then filling the other unstaffed aisles in order. When every aisle has a robot, the next new unit is assigned to a least-crowded aisle, using proximity to Mike as the tiebreaker. If your current floor is fully stocked, auto-deployment targets the next unfinished floor. There is no more manual-click deployment step for purchases.
+- **Mike's robot management:** Go to **Mike → Equipment & automation → Your robots**. Each owned robot now has its own **Floor 01–15** and **Aisle 1–10** selectors, and a **Move to chosen floor / aisle** button. Reassignment is immediate and preserves existing carried stock, purchased robot levels, breakdown history, and other progress. Crab-destroyed stockers remain unmovable and still require 25% resale before replacement.
+- **Developer cash increased:** Visiting the existing game's **#dev** or **#rich** address now tops up to **at least $5,000 (500,000 cents)**, not $500. The title-screen enable/refill button also uses $5,000. Existing game saves, stocked shelves, purchased skills and any balance above $5,000 are retained.
+- **Verification:** Added 30 accelerated twelve-robot distribution and save/reassignment scenarios, retained the other full-store regression tests, and added browser checks for Mike's active robot dispatch controls and the updated developer balance.
