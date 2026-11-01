@@ -80,6 +80,12 @@ const assert=require('node:assert/strict');
   assert.ok(integrated.screws>=150,'bolted pipe, vent and duct fixtures render as instanced hardware');
   assert.ok(integrated.vents>=4);
   assert.ok(integrated.pipeBrackets>=20);
+  const wide=await page.evaluate(()=>window.__martTest.worldLayoutStats());
+  assert.equal(wide.scaleX,1.3,'rendered supermarket is 30% wider');
+  assert.ok(Math.abs(wide.width-146.9)<1e-6,'new store width is 146.9 world meters');
+  assert.ok(Math.abs(wide.aisleSeparation-13)<1e-6,'aisle-to-aisle distance is now 13 render meters');
+  assert.equal(wide.savedAisleX,98,'original aisle positions remain preserved in old saves');
+  console.log('PASS: 30% wider world and aisle spacing while saved logical positions remain stable');
   console.log('PASS: 12 recessed structural windows and instanced detailed ventilation/piping hardware');
 
   console.log('PASS: all 15 floors show one unique framed Mustache Mike employee painting');
@@ -106,6 +112,11 @@ const assert=require('node:assert/strict');
   await page.locator('#devEnable').click();
   assert.ok((await page.evaluate(()=>window.__martTest.snapshot().money))>=500000,'developer refill keeps at least $5,000');
   assert.equal(await page.locator('#intro').isVisible(),true);
+  await page.locator('#scanSaveBackups').click();
+  assert.ok((await page.locator('#saveRecoveryList .saveRecoveryEntry').count())>=1,
+    'player can review archived previous saves before choosing to restore');
+  assert.equal(await page.locator('.saveRecoveryLinks a').count(),4,'recovery links expose four host/port origins');
+  console.log('PASS: recovery panel lists browser-local saved snapshots and four possible older origins');
   console.log('PASS: exported save downloads and confirmed import persists through reload without overwrite');
 
   await page.locator('#play').click();
@@ -132,6 +143,8 @@ const assert=require('node:assert/strict');
   let devCrab=await page.evaluate(()=>window.__martTest.crabTest.status());
   assert.equal(devCrab.devOverride,'on');
   assert.equal(devCrab.visible,true,'dev crab can spawn before 7 floors are stocked');
+  const crabLayout=await page.evaluate(()=>window.__martTest.worldLayoutStats());
+  assert.equal(crabLayout.crabWidthScale,.65,'crab legs fit newly widened aisle space');
   await page.locator('#devCrabRemove').click();
   devCrab=await page.evaluate(()=>window.__martTest.crabTest.status());
   assert.equal(devCrab.devOverride,'off');
