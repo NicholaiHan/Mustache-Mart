@@ -339,11 +339,15 @@ function buildShell(){
  // Uprights, panel joints, painted trims and wayfinding details are actual geometry.
  for(const x of [-5,5,16,28,40,53,65,78,91]){
   if(s.floor===0&&x>42&&x<52)continue;
-  const rib=cube(.15,CEILING_Y-1,.18,'#b5c0ba');rib.position.set(x,CEILING_Y/2,-12.32);
+  const nearWindow=[13,63,81,94].some(wx=>Math.abs(wx-x)<3.4);
+  const ribHeight=nearWindow?7.7:CEILING_Y-1;
+  const rib=cube(.15,ribHeight,.18,'#b5c0ba');rib.position.set(x,ribHeight/2,-12.32);
  }
  for(const z of [0,18,56,76,95]){
   if(s.floor===0&&Math.abs(z-40.5)<3)continue;
-  const rib=cube(.18,CEILING_Y-1,.15,'#bdc6c0');rib.position.set(102.57,CEILING_Y/2,z);
+  const nearWindow=[19,38,57,76].some(wz=>Math.abs(wz-z)<4.1);
+  const ribHeight=nearWindow?9.25:CEILING_Y-1;
+  const rib=cube(.18,ribHeight,.15,'#bdc6c0');rib.position.set(102.57,ribHeight/2,z);
  }
  for(const z of [12,44,77]){
   const notice=textLabel(z===12?'SAFETY FIRST':z===44?'AISLE EQUIPMENT':'RECEIVING AHEAD',3.3,.55,'#e7e8df','#44554f',34,'interior');
@@ -362,7 +366,8 @@ function buildShell(){
   // emergency egress on Floor 1. All rails are mounted above head height.
   for(let z=4;z<=93;z+=7.8){
    if(side==='LEFT'&&s.floor===0&&z>80&&z<90)continue;
-   for(const y of [5.65,12.1]){
+   // Rail above y=11.45 would cross the recessed blue clerestory panes.
+   for(const y of [5.65,8.35]){
     const rail=round(.08,.085,7.85,wallSteel);
     rail.position.set(x,y,z);
    }
@@ -379,9 +384,9 @@ function buildShell(){
   // conduit drops. Their dimensions are decorative, not collision obstacles.
   for(const z of [19,39,59,92]){
    if(side==='LEFT'&&s.floor===0&&z>80&&z<90)continue;
-   const spine=round(.07,7.65,.085,conduitDark);
-   spine.position.set(x,9.35,z);
-   for(const y of [6.6,8.65,10.7]){
+   const spine=round(.07,3.30,.085,conduitDark);
+   spine.position.set(x,7.60,z);
+   for(const y of [6.6,7.8,8.85]){
     const clamp=round(.11,.12,.23,wallSteel);
     clamp.position.set(x+sgn*.035,y,z);
    }
@@ -399,12 +404,12 @@ function buildShell(){
   // the existing safety signs on the right-side wall.
   for(const z of [28,69]){
    const vent=round(.105,1.36,2.9,conduitDark);
-   vent.position.set(x,10.5,z);
+   vent.position.set(x,8.85,z);
    const inset=round(.035,1.16,2.66,ventShadow);
-   inset.position.set(x+sgn*.09,10.5,z);
+   inset.position.set(x+sgn*.09,8.85,z);
    for(let n=0;n<7;n++){
     const slat=round(.057,.052,2.48,wallSteel);
-    slat.position.set(x+sgn*.12,10.07+n*.143,z);
+    slat.position.set(x+sgn*.12,8.42+n*.143,z);
    }
   }
  }
@@ -413,12 +418,12 @@ function buildShell(){
  for(let x=4;x<=94;x+=12){
   if(s.floor===0&&x>38&&x<54)continue;
   const panel=round(5.9,2.8,.055,wallInset);
-  panel.position.set(x,10.9,-12.31);
+  panel.position.set(x,6.62,-12.31);
   const topTrim=round(6,.09,.095,wallSteel);
-  topTrim.position.set(x,12.32,-12.25);
+  topTrim.position.set(x,8.04,-12.25);
   for(const offset of [-2.82,2.82]){
    const frame=round(.085,2.67,.10,wallSteel);
-   frame.position.set(x+offset,10.88,-12.25);
+   frame.position.set(x+offset,6.60,-12.25);
   }
  }
 
@@ -509,15 +514,15 @@ function buildShell(){
  // corner bolt plates, and two low-profile reinforcing ribs.
  for(const [x,inward] of [[-9.64,1],[102.64,-1]])for(const z of [28,69]){
   const ventHousing=round(.12,1.56,3.06,chrome,hardwareGroup);
-  ventHousing.name='boltedVentHousing';ventHousing.position.set(x,10.5,z);
+  ventHousing.name='boltedVentHousing';ventHousing.position.set(x,8.85,z);
   const fan=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.04,18),slotMaterial);
-  fan.name='ventFanRotor';fan.rotation.z=Math.PI/2;fan.position.set(x+inward*.09,10.52,z);
+  fan.name='ventFanRotor';fan.rotation.z=Math.PI/2;fan.position.set(x+inward*.09,8.87,z);
   hardwareGroup.add(fan);
   const hub=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.06,12),copper);
-  hub.rotation.z=Math.PI/2;hub.position.set(x+inward*.126,10.52,z);hardwareGroup.add(hub);
+  hub.rotation.z=Math.PI/2;hub.position.set(x+inward*.126,8.87,z);hardwareGroup.add(hub);
   for(const zz of [-1.34,1.34])for(const yy of [-.62,.62]){
-   const tab=round(.08,.15,.15,copper,hardwareGroup);tab.position.set(x+inward*.10,10.5+yy,z+zz);
-   installScrew(x+inward*.15,10.5+yy,z+zz,'side');
+   const tab=round(.08,.15,.15,copper,hardwareGroup);tab.position.set(x+inward*.10,8.85+yy,z+zz);
+   installScrew(x+inward*.15,8.85+yy,z+zz,'side');
   }
  }
  // Steel columns carry base plate rivets and elbowed utility junctions;
