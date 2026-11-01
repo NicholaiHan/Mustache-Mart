@@ -454,6 +454,86 @@ function buildShell(){
    const collar=cube(1.5,.75,.12,'#889695');collar.position.set(x,CEILING_Y-1.15,z);
   }
  }
+ // Industrial realism pass. Small hardware is instanced (hundreds of
+ // components in two draw calls) to keep the huge 15-floor store performant.
+ // Fasteners belong to pipe hangers, ventilation service doors, and steel
+ // columns rather than floating as decorative clutter.
+ const hardwareGroup=new THREE.Group();hardwareGroup.name='infrastructureHardware';add(hardwareGroup);
+ const screwMaterial=new THREE.MeshStandardMaterial({color:'#6d777a',metalness:.79,roughness:.29});
+ const slotMaterial=new THREE.MeshStandardMaterial({color:'#29393d',metalness:.24,roughness:.61});
+ const chrome=new THREE.MeshStandardMaterial({color:'#9aa9ab',metalness:.68,roughness:.36});
+ const copper=new THREE.MeshStandardMaterial({color:'#b89a68',metalness:.62,roughness:.39});
+ const boltGeometry=new THREE.CylinderGeometry(.044,.044,.025,8);
+ const screwInstances=new THREE.InstancedMesh(boltGeometry,screwMaterial,360);
+ const screwdriverSlots=new THREE.InstancedMesh(new THREE.BoxGeometry(.054,.009,.012),slotMaterial,360);
+ screwInstances.name='pipeAndVentScrews';screwdriverSlots.name='machinedScrewSlots';
+ hardwareGroup.add(screwInstances,screwdriverSlots);
+ const marker=new THREE.Object3D();
+ let boltNumber=0;
+ const installScrew=(x,y,z,side='front')=>{
+  if(boltNumber>=360)return;
+  marker.position.set(x,y,z);marker.scale.set(1,1,1);
+  marker.rotation.set(side==='front'?Math.PI/2:0,0,side==='side'?Math.PI/2:0);
+  marker.updateMatrix();screwInstances.setMatrixAt(boltNumber,marker.matrix);
+  marker.position.set(x,y+(side==='ceiling'?.014:0),z+(side==='front'?.014:0));
+  marker.scale.set(1,1,1);marker.updateMatrix();
+  screwdriverSlots.setMatrixAt(boltNumber,marker.matrix);
+  boltNumber++;
+ };
+ // Bolted pipe saddles and threaded hangers hold the longitudinal sprinkler
+ // runs to the ceiling beams instead of leaving pipes suspended in thin air.
+ for(const x of [5,51,95]){
+  for(let z=5;z<=94;z+=10){
+   const saddle=round(.4,.075,.20,chrome,hardwareGroup);
+   saddle.name='sprinklerPipeBracket';saddle.position.set(x,CEILING_Y-1.33,z);
+   const loop=new THREE.Mesh(new THREE.TorusGeometry(.135,.027,6,10),copper);
+   loop.rotation.x=Math.PI/2;loop.position.set(x,CEILING_Y-1.45,z);hardwareGroup.add(loop);
+   const hanger=round(.056,.68,.058,chrome,hardwareGroup);
+   hanger.position.set(x,CEILING_Y-1.10,z);
+   installScrew(x-.155,CEILING_Y-1.276,z,'ceiling');
+   installScrew(x+.155,CEILING_Y-1.276,z,'ceiling');
+  }
+ }
+ // Service hatches are flush against the main ductwork. Four individually
+ // located bolts and a narrow access seam give each unit a functional look.
+ for(const x of [1,48,96])for(let z=4;z<=91;z+=12){
+  const door=round(1.1,.031,2.35,chrome,hardwareGroup);
+  door.name='ductInspectionHatch';door.position.set(x,CEILING_Y-1.49,z);
+  const hinge=round(.08,.051,1.9,slotMaterial,hardwareGroup);
+  hinge.position.set(x-.48,CEILING_Y-1.47,z);
+  for(const xx of [-.41,.41])for(const zz of [-.97,.97]){
+   installScrew(x+xx,CEILING_Y-1.461,z+zz,'ceiling');
+  }
+ }
+ // Perimeter louvers now include service grilles, a dark fan rotor,
+ // corner bolt plates, and two low-profile reinforcing ribs.
+ for(const [x,inward] of [[-9.64,1],[102.64,-1]])for(const z of [28,69]){
+  const ventHousing=round(.12,1.56,3.06,chrome,hardwareGroup);
+  ventHousing.name='boltedVentHousing';ventHousing.position.set(x,10.5,z);
+  const fan=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.04,18),slotMaterial);
+  fan.name='ventFanRotor';fan.rotation.z=Math.PI/2;fan.position.set(x+inward*.09,10.52,z);
+  hardwareGroup.add(fan);
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.06,12),copper);
+  hub.rotation.z=Math.PI/2;hub.position.set(x+inward*.126,10.52,z);hardwareGroup.add(hub);
+  for(const zz of [-1.34,1.34])for(const yy of [-.62,.62]){
+   const tab=round(.08,.15,.15,copper,hardwareGroup);tab.position.set(x+inward*.10,10.5+yy,z+zz);
+   installScrew(x+inward*.15,10.5+yy,z+zz,'side');
+  }
+ }
+ // Steel columns carry base plate rivets and elbowed utility junctions;
+ // all are high/flush so the collision box remains exactly the same.
+ for(let z=6;z<98;z+=20)for(const x of [-7,101]){
+  for(const sx of [-.29,.29])for(const sz of [-.29,.29])
+   installScrew(x+sx,.67,z+sz,'ceiling');
+  const junction=round(.50,.37,.36,chrome,hardwareGroup);
+  junction.name='steelColumnJunction';junction.position.set(x,CEILING_Y-2.15,z);
+  const band=round(.61,.08,.43,copper,hardwareGroup);
+  band.position.set(x,CEILING_Y-2.33,z);
+ }
+ screwInstances.count=boltNumber;screwdriverSlots.count=boltNumber;
+ screwInstances.instanceMatrix.needsUpdate=true;screwdriverSlots.instanceMatrix.needsUpdate=true;
+ screwInstances.frustumCulled=false;screwdriverSlots.frustumCulled=false;
+
  // Wall-size wayfinding signs, mounted facing into the store, never mirrored.
  const name=textLabel('MUSTACHE MART  /  '+floorLabel(s.floor),10.8,1.05,'#38524a','#ffffff',53,'interior');
  name.position.set(47,14.2,-12.36);add(name);
