@@ -996,7 +996,7 @@ test('developer budget and code separation: 30 $100k-credit and stable legacy-sa
 test('offline server module safety: 30 approved local-module and no save mutation checks',()=>{
  const server=fs.readFileSync(path.resolve(__dirname,'../server.cjs'),'utf8');
  for(const module of ['natural-crab','carton-model','elevator-ui','visual-proportions']){
-  assert.match(server,new RegExp("/src/"+module+"\\\\.js"),module+' must load offline');
+  assert.ok(server.includes("'/src/"+module+".js'"),module+' must load offline');
  }
  assert.match(server,/const PUBLIC_FILES = new Map/);
  assert.doesNotMatch(server,/serveStatic\(.*req\.url/);
