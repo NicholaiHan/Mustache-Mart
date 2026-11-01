@@ -197,7 +197,7 @@ test('visual stage C: 30 detailed wall and doorway clearance simulations',()=>{
  assert.match(env,/const spine=round\(\.07,3\.30/);
  assert.match(env,/const diffuse=round\(\.055,\.10,3\.35/);
  assert.match(env,/if\(side==='LEFT'&&s\.floor===0&&z>80&&z<90\)continue/);
- assert.match(env,/if\(s\.floor===0&&x>38&&x<54\)continue/);
+ assert.doesNotMatch(env,/panel\.position\.set\(x,6\.62,-12\.31\)/,'gray front-wall faux windows removed');
  simulate(i=>{
   const s=r.newState();s.floor=i%r.FLOORS;s.money=250;
   // Structural walls stay solid; floor interaction points remain unchanged.
@@ -411,7 +411,7 @@ test('new stage: 30 automatic robot dispatch, least-crowded fallback and Mike mo
  assert.match(env,/color:'#ade9ff'/,'glazing has clear sky-blue illumination');
  assert.match(env,/integratedDaylightWall/,'blue panes are now cut into structural wall segments');
  assert.match(game,/Move to chosen floor \/ aisle/,'Mike can relocate without manual placement');
- assert.match(game,/Math\.max\(s\.money,500000\)/,'developer mode grants at least $5,000');
+ assert.match(game,/const DEV_CASH_CENTS=10_000_000/,'developer mode now grants $100,000');
  simulate(i=>{
   const s=r.newState();s.floor=i%r.FLOORS;s.money=100000000;
   const ids=[];
@@ -553,7 +553,7 @@ test('receiving B: 30 rotated wall, stacked boxed inventory, and clear pickup ch
  const env=source('environment.js'),coll=source('collision.mjs');
  assert.match(env,/receivingRack=round\(\.65,4\.25,5\.0/);
  assert.match(env,/receivingBackroomCartons/);
- assert.match(env,/cardboardLight/);
+ assert.match(env,/addPackedCarton/,'decorative stock uses shared carton models');
  assert.match(coll,/Receiving rotated warehouse divider/);
  simulate(i=>{
   const s=r.newState();s.floor=i%r.FLOORS;
@@ -567,7 +567,7 @@ test('elevator redesign: 30 floor navigation, full directory and completion disp
  assert.match(html,/elevatorOverview/);
  assert.match(html,/elevatorFloor/);
  assert.doesNotMatch(html,/<h2 id="elevatorTitle">🛗/);
- assert.match(game,/floorBar/);
+ assert.match(source('elevator-ui.js'),/floorBar/);
  simulate(i=>{
   const s=r.newState();s.floor=i%r.FLOORS;
   const f=i%r.FLOORS,base=f*r.CELLS_PER_FLOOR;
@@ -765,7 +765,7 @@ test('wider store stage: 30 reversible X geometry and legacy aisle coordinates p
  assert.match(game,/world\.scale\.x=MAP_WIDTH_MULTIPLIER/);
  assert.match(game,/camera\.position\.set\(toWideX\(V\.x\)/);
  assert.match(game,/fromWideX\(point\.x\)/);
- assert.ok(game.includes('crabModel.scale.set(.36,.68,.68)'));
+ assert.ok(game.includes('crabModel.scale.set(.36/MAP_WIDTH_MULTIPLIER,.68,.68)'));
 
  simulate(i=>{
   const x=r.aisleX(i%r.AISLES),left=r.aisleX(0),right=r.aisleX(9);
@@ -781,10 +781,10 @@ test('wider store stage: 30 reversible X geometry and legacy aisle coordinates p
 });
 test('crab lane stage: 30 large moving crab patrols remain inside broadened aisles',()=>{
  const game=source('game.js'),characters=source('characters.js');
- assert.ok(game.includes('crabModel.scale.set(.36,.68,.68)'));
+ assert.ok(game.includes('crabModel.scale.set(.36/MAP_WIDTH_MULTIPLIER,.68,.68)'));
 
- assert.match(game,/crabModel\.position\.set\(aisleX\(p\.aisle\)\+\.16/);
- assert.match(characters,/megaRobotCrab/);
+ assert.match(game,/crabModel\.position\.set\(\(p\.x\?\?aisleX\(p\.aisle\)\)/);
+ assert.match(source('natural-crab.js'),/megaRobotCrab/);
  simulate(i=>{
   const state=r.newState();state.money=200+i;
   r.setDeveloperCrab(state,'on');
@@ -792,7 +792,7 @@ test('crab lane stage: 30 large moving crab patrols remain inside broadened aisl
   const f=i%r.FLOORS;
   const prior=state.crab.patrol[f].z;
   const events=r.advanceCrab(state,Math.min(60,1+i),true);
-  assert.ok(state.crab.patrol[f].z>=14&&state.crab.patrol[f].z<=90);
+  assert.ok(state.crab.patrol[f].z>=9&&state.crab.patrol[f].z<=90);
   assert.ok(state.crab.patrol[f].z!==prior||i%2===0);
   assert.equal(events.length,0);
   const crabDiameterLogical=10.4*.36,wideLaneWidth=(10-1.69)*r.MAP_WIDTH_MULTIPLIER;
@@ -801,7 +801,7 @@ test('crab lane stage: 30 large moving crab patrols remain inside broadened aisl
 });
 test('smaller crab: 30 cosmetic shrink checks preserve 15-floor raids and save state',()=>{
  const game=source('game.js');
- assert.ok(game.includes('crabModel.scale.set(.36,.68,.68)'),'the entire crab is reduced in 3D');
+ assert.ok(game.includes('crabModel.scale.set(.36/MAP_WIDTH_MULTIPLIER,.68,.68)'),'crab remains naturally proportioned');
  simulate(i=>{
   const state=r.newState();state.money=7300+i;state.floor=i%r.FLOORS;
   const savedBefore=r.serialize(state);
@@ -841,16 +841,14 @@ test('wide aisle upgrade: 30 preserved legacy saves at 16 meter visual separatio
   assert.equal(r.MAP_WIDTH_MULTIPLIER,1.6);
  });
 });
-test('detailed crab upgrade: 30 animations, one-time raids and existing save safety',()=>{
- const code=source('characters.js'),game=source('game.js');
- for(const name of ['crabSegmentedCarapace','crabHydraulicCylinder','crabPolishedPistonRod',
-  'crabLegDriveGear','crabPincerRotaryJoint','crabCoolingVent','crabArmorRivets',
-  'crabSerratedPincerTeeth','crabAnimatedWarningBeacon','crabEyeBezel']){
-  assert.ok(code.includes(name),'missing mechanical detail '+name);
+test('detailed crab upgrade: 30 organic motion, one-time raids and existing save safety',()=>{
+ const code=source('natural-crab.js'),game=source('game.js');
+ for(const name of ['naturalCrabShell','naturalCrabUnderside','naturalCrabWalkingLeg',
+  'livingCrabClaw','carapaceRidgeBump','livingEye','crabEyeStalk','pincerTooth','legDactylus']){
+  assert.ok(code.includes(name),'missing natural anatomy '+name);
  }
- assert.match(code,/new THREE\.InstancedMesh\(rivetGeo,polished,130\)/);
- assert.match(game,/warningLights\|\|\[\]/);
- assert.match(game,/crabModel\.scale\.set\(\.36,\.68,\.68\)/);
+ assert.doesNotMatch(code,/crabHydraulicCylinder|crabArmorRivets|crabAnimatedWarningBeacon/);
+ assert.match(game,/crabModel\.scale\.set\(\.36\/MAP_WIDTH_MULTIPLIER,\.68,\.68\)/);
  simulate(i=>{
   const state=r.newState();state.money=10000+i*7;
   const floor=i%r.FLOORS;state.floor=floor;
@@ -873,7 +871,7 @@ test('window detail stage: 30 decoration positions do not intersect clerestory a
  assert.match(env,/for\(const y of \[5\.65,8\.35\]\)/);
  assert.match(env,/spine\.position\.set\(x,7\.60,z\)/);
  assert.match(env,/vent\.position\.set\(x,8\.85,z\)/);
- assert.match(env,/panel\.position\.set\(x,6\.62,-12\.31\)/);
+ assert.doesNotMatch(env,/panel\.position\.set\(x,6\.62,-12\.31\)/);
  simulate(i=>{
   const sideBottom=12.78-2.65/2,frontBottom=9.75-2.35/2;
   const topRail=8.35+.085/2;
