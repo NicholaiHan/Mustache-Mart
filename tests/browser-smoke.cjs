@@ -125,6 +125,9 @@ const assert=require('node:assert/strict');
   assert.equal((await page.evaluate(()=>window.__martTest.coinOffers())).cash.declined,true);
   assert.equal((await page.evaluate(()=>window.__martTest.coinOffers())).cash.played,false);
   assert.equal(await page.locator('#devCrabPanel').isVisible(),true);
+  // Dev Tab intentionally releases pointer lock for mouse-accessible HUD buttons.
+  await page.evaluate(()=>document.exitPointerLock?.());
+  await page.waitForFunction(()=>!document.pointerLockElement);
   await page.locator('#devCrabAdd').click();
   let devCrab=await page.evaluate(()=>window.__martTest.crabTest.status());
   assert.equal(devCrab.devOverride,'on');
