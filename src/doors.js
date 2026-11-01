@@ -122,8 +122,7 @@ export function createDoors({getWorld,getFloor,round,cube,textLabel}){
    emergency.position.set(.19,3.77,2.67);
    // Double-panel front entrance with inset panes, metal rails, and sliding mechanism.
    const frameMat=mat('#59686a',.67,.31);
-   const glazing=mat('#adc8cf',.18,.11);
-   glazing.transparent=true;glazing.opacity=.33;glazing.depthWrite=false;
+   const glazing=new THREE.MeshStandardMaterial({color:'#b8ebff',emissive:'#77c6ff',emissiveIntensity:.32,metalness:.04,roughness:.08,transparent:true,opacity:.61,depthWrite:false});
    const leftPost=round(.22,5.58,.42,frameMat);leftPost.position.set(42.6,2.79,-12.33);
    const rightPost=round(.22,5.58,.42,frameMat);rightPost.position.set(50.4,2.79,-12.33);
    const track=round(7.91,.21,.52,frameMat);track.position.set(46.5,5.57,-12.31);
