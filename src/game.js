@@ -1013,14 +1013,14 @@ if(DEV_MODE){
   setCarry(count){V.carry=Math.min(capacity(s),Math.max(0,count));},
   setUpgrade(id,level){if(id in s.levels)s.levels[id]=level;},
   giveClaw(){s.clawInventory.push({paid:450});return s.clawInventory.length;},
-  logistics(){return {claws:s.claws.length,clawInventory:s.clawInventory.length,palletLoad:s.pallet.load,palletCapacity:palletCapacity(s),palletDriving:s.pallet.driving,cartMounted:s.cart.mounted,cartHeight:s.cart.liftHeight,stockPiles:s.stockPiles.map(x=>({...x})),beltDirections:s.beltDirection[s.floor].map(x=>x.slice())};},
+  logistics(){return {claws:s.claws.length,clawInventory:s.clawInventory.length,palletLoad:s.pallet.load,palletCapacity:palletCapacity(s),palletDriving:s.pallet.driving,cartMounted:s.cart.mounted,cartHeight:s.cart.liftHeight,platforms:s.platforms.map(p=>({id:p.id,floor:p.floor,aisle:p.aisle,z:p.z,liftHeight:p.liftHeight,mounted:p.mounted})),stockPiles:s.stockPiles.map(x=>({...x})),beltDirections:s.beltDirection[s.floor].map(x=>x.slice())};},
 
   setCompletion(value){s.fill.fill(value?SLOTS:0);s.stocked=value?TOTAL_ITEMS:0;},
   doorStatus(){return {fire:doors.isFireOpen(),entrance:doors.isEntranceOpen()};},
   checkBlocked(x,z){return isBlocked(x,z,s.floor)||blockedEquipment(s,x,z);},
   advanceConveyors(seconds){advanceBelts(s,Math.max(0,Math.min(120,Number(seconds)||0)));return s.beltStock[s.floor].slice();},
    move(dx,dz){const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));V.x=next.x;V.z=next.z;return next;},
-   snapshot(){return {beltItems:s.beltItems[s.floor].map(row=>row.slice()),selectedBeltAisle,feedCrates:feederCrates.length,devMode:DEV_MODE,checkoutCount:s.floor===0?4:0,x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,levels:{...s.levels}};}
+   snapshot(){return {beltItems:s.beltItems[s.floor].map(row=>row.slice()),selectedBeltAisle,feedCrates:feederCrates.length,devMode:DEV_MODE,checkoutCount:s.floor===0?4:0,x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,platformCount:s.platforms.length,activePlatformId:s.cart.id,levels:{...s.levels}};}
  };
 }
 buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();showSaveOrigin();
