@@ -6,6 +6,7 @@ import {createEquipment} from './equipment.js';
 import {createDoors} from './doors.js';
 import {createCheckout} from './checkout.js';
 import {restoreObjectProportions} from './visual-proportions.js';
+import {renderElevatorDirectory} from './elevator-ui.js';
 import {ladderHeight,canStockFromHeight} from './ladder.mjs';
 import {moveWithCollisions,isBlocked,blockedEquipment,PAYROLL_LAYOUT as PAY} from './collision.mjs';
 import {cartonTexture} from './textures.js';
@@ -828,29 +829,16 @@ function renderShop(){
 }
 function openElevator(){
  if(!nearby(23,-9,4.5)){notify('Use the elevator near the front of the store.');return;}
- show('elevator');const list=$('elevatorlist');list.replaceChildren();
- const floorComplete=Array.from({length:FLOORS},(_,f)=>floorStocked(s,f)>=itemsPerFloor).filter(Boolean).length;
- $('elevatorCurrent').innerHTML='CURRENT FLOOR <strong>'+String(s.floor+1).padStart(2,'0')+'</strong>';
- $('elevatorProgress').textContent=(s.stocked/TOTAL_ITEMS*100).toFixed(1)+'% complete';
- $('elevatorComplete').textContent=floorComplete+' / '+FLOORS;
- for(let f=0;f<FLOORS;f++){
-  const progress=Math.min(100,Math.round(floorStocked(s,f)/itemsPerFloor*100));
-  const btn=document.createElement('button');btn.className='elevatorFloor';
-  btn.type='button';btn.disabled=f===s.floor;
-  if(progress===100)btn.classList.add('isComplete');
-  if(f===s.floor)btn.classList.add('isCurrent');
-  btn.setAttribute('aria-label','Floor '+(f+1)+' · '+progress+'% stocked'+(f===s.floor?' · current floor':''));
-  const number=document.createElement('strong');number.className='floorNumber';number.textContent=String(f+1).padStart(2,'0');
-  const status=document.createElement('span');status.className='floorState';
-  status.textContent=f===s.floor?'CURRENT FLOOR':progress===100?'COMPLETE':progress+'% STOCKED';
-  const track=document.createElement('div');track.className='floorBar';
-  const fill=document.createElement('i');fill.style.width=progress+'%';track.append(fill);
-  btn.append(number,status,track);
-  btn.addEventListener('click',()=>{
+ show('elevator');
+ renderElevatorDirectory({
+  panel:$('elevator'),state:s,floorCount:FLOORS,itemsPerFloor,totalItems:TOTAL_ITEMS,floorStocked,
+  onChoose:f=>{
    s.floor=f;V.x=23;V.z=-5;V.y=V.vy=0;V.carry=0;
-   buildWorld();save();notify('Now working on '+floorLabel(f)+'. Another '+itemsPerFloor.toLocaleString()+' items!');resume();
-  });list.append(btn);
- }
+   buildWorld();save();
+   notify('Lift arrived at '+floorLabel(f)+' · '+itemsPerFloor.toLocaleString()+' pieces per floor.');
+   resume();
+  }
+ });
 }
 function placeLadder(){
  if(!s.ladderInventory.length){notify('Buy a portable ladder from Mike first.');return;}
