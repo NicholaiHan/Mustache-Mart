@@ -119,6 +119,171 @@ function makeMegaCrab(){
  for(let i=0;i<6;i++){
   const light=round(.24,.09,.10,gold,root);light.position.set(-1.5+i*.61,4.23,.92);
  }
+ // Distinct mechanical components give the compact crab believable weight
+ // without making its walking/attack hitbox larger. Materials are shared and
+ // small rivets use a single InstancedMesh rather than hundreds of draw calls.
+ const titanium=equipmentMaterial('#aabdc0',.82,.25);
+ const burntMetal=equipmentMaterial('#3d464d',.75,.36);
+ const polished=equipmentMaterial('#e4d8bb',.82,.23);
+ const oilBlack=equipmentMaterial('#19292d',.42,.43);
+ const cautionYellow=equipmentMaterial('#f2c659',.42,.33);
+ const deepRed=equipmentMaterial('#772b2c',.59,.31);
+ const ledAmber=new THREE.MeshStandardMaterial({color:'#f8b94b',emissive:'#f18419',emissiveIntensity:1.45,roughness:.24});
+ const ledAqua=new THREE.MeshStandardMaterial({color:'#95e9e7',emissive:'#52bdb4',emissiveIntensity:1.32,roughness:.24});
+ const rigidLink=(parent,a,b,radius,material,name)=>{
+  const delta=new THREE.Vector3().subVectors(b,a),center=new THREE.Vector3().addVectors(a,b).multiplyScalar(.5);
+  const rod=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,delta.length(),10),material);
+  rod.position.copy(center);rod.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.clone().normalize());
+  rod.name=name;parent.add(rod);return rod;
+ };
+ // Stepped, overlapping titanium carapace sections and deeply set rear shell
+ // fins make the body read as plated industrial machinery, not a plastic ball.
+ const armorPlates=[];
+ for(let i=0;i<5;i++){
+  const z=-1.41+i*.70;
+  const width=i===0||i===4?2.90:3.54;
+  const plate=round(width,.14,.57,i%2===0?deepRed:shell,root);
+  plate.name='crabSegmentedCarapace';
+  plate.position.set(0,4.335,z);plate.rotation.x=(2-i)*.055;
+  armorPlates.push(plate);
+  for(const side of [-1,1]){
+   const brace=round(.11,.10,.54,titanium,root);
+   brace.position.set(side*(width/2-.14),4.43,z);
+  }
+ }
+ for(const side of [-1,1]){
+  // Raised side armor protects independent power packs and incorporates
+  // louvered vents, recessed seams, and a replaceable access door.
+  const panel=round(.28,.89,2.44,deepRed,root);
+  panel.name='crabSideArmorPanel';panel.position.set(side*2.82,3.48,.30);
+  const hatch=round(.09,.52,1.19,burntMetal,root);
+  hatch.position.set(side*2.99,3.48,.34);
+  const hinge=round(.10,.71,.11,polished,root);
+  hinge.position.set(side*3.045,3.5,1.01);
+  for(let i=0;i<6;i++){
+   const slit=round(.035,.06,1.12,oilBlack,root);
+   slit.name='crabCoolingVent';slit.position.set(side*3.054,3.22+i*.11,.31);
+  }
+  // Glow-rim eye sockets and transparent sensor lenses.
+  const lensRing=new THREE.Mesh(new THREE.TorusGeometry(.45,.065,8,24),titanium);
+  lensRing.name='crabEyeBezel';lensRing.position.set(side*1.26,3.76,-2.03);root.add(lensRing);
+  const pupil=new THREE.Mesh(new THREE.SphereGeometry(.14,12,10),ledAqua);
+  pupil.name='crabOpticalSensor';pupil.position.set(side*1.26,3.76,-2.11);root.add(pupil);
+  // Front folding mandibles with exposed pivot/collars.
+  const mandible=round(.17,.41,.93,titanium,root);
+  mandible.name='crabRetractableMandible';mandible.position.set(side*.63,3.04,-2.23);
+  mandible.rotation.y=side*.37;
+  const jawTip=round(.22,.24,.37,polished,root);
+  jawTip.position.set(side*.88,2.88,-2.67);
+ }
+ // Engine vents and rear power-cell exhaust plumbing remain under the shell.
+ const engine=round(1.54,.39,.72,oilBlack,root);engine.position.set(0,3.64,2.09);
+ engine.name='crabEngineCore';
+ for(const side of [-1,1]){
+  const exhaust=round(.27,.68,.85,burntMetal,root);
+  exhaust.name='crabRearExhaust';exhaust.position.set(side*.57,3.80,2.20);
+  for(let fin=0;fin<4;fin++){
+   const grille=round(.34,.045,.72,titanium,root);
+   grille.name='crabExhaustLouver';grille.position.set(side*.57,3.53+fin*.15,2.61);
+  }
+ }
+ // Functional hydraulic rams, cable conduits, hinge gears and layered
+ // stabilizing footplates follow every animated leg assembly automatically.
+ for(const leg of legs){
+  const hip=leg.joint,side=leg.side;
+  const gear=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.15,16),burntMetal);
+  gear.name='crabLegDriveGear';gear.rotation.x=Math.PI/2;
+  gear.position.set(side*.33,-.06,0);hip.add(gear);
+  const gearHub=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,.19,12),polished);
+  gearHub.rotation.x=Math.PI/2;gearHub.position.set(side*.33,-.06,.08);hip.add(gearHub);
+  const actuator=rigidLink(hip,
+   new THREE.Vector3(side*.73,-.22,-.13),
+   new THREE.Vector3(side*2.28,-.74,-.13),.11,oilBlack,'crabHydraulicCylinder');
+  actuator.userData.mechanical=true;
+  rigidLink(hip,
+   new THREE.Vector3(side*1.23,-.37,-.13),
+   new THREE.Vector3(side*2.40,-.78,-.13),.055,polished,'crabPolishedPistonRod');
+  const kneecap=new THREE.Mesh(new THREE.SphereGeometry(.31,12,10),titanium);
+  kneecap.name='crabServoKnee';kneecap.position.set(side*2.60,-.86,.21);hip.add(kneecap);
+  const shinPlate=round(.42,1.45,.13,deepRed,hip);
+  shinPlate.name='crabShinArmor';shinPlate.position.set(side*2.78,-1.79,-.21);
+  shinPlate.rotation.z=-side*.16;
+  const toe=round(.88,.14,.96,titanium,hip);
+  toe.name='crabStabilizerFoot';toe.position.set(side*2.87,-3.12,-.13);
+  for(const z of [-.24,.24]){
+   const hingeBolt=new THREE.Mesh(new THREE.CylinderGeometry(.115,.115,.12,10),polished);
+   hingeBolt.name='crabKneeBolt';hingeBolt.rotation.x=Math.PI/2;
+   hingeBolt.position.set(side*2.62,-.86,z);hip.add(hingeBolt);
+  }
+ }
+ // Claws are made of replaceable alloy plates with actual pivot joints,
+ // opposing serrated jaws, safety stripes and external hydraulic feedlines.
+ for(let i=0;i<jaws.length;i++){
+  const arm=jaws[i],side=i===0?-1:1;
+  const shoulder=new THREE.Mesh(new THREE.CylinderGeometry(.48,.48,.32,18),burntMetal);
+  shoulder.name='crabPincerRotaryJoint';shoulder.rotation.x=Math.PI/2;
+  shoulder.position.set(0,.03,-.07);arm.add(shoulder);
+  const seal=new THREE.Mesh(new THREE.TorusGeometry(.34,.06,8,20),cautionYellow);
+  seal.position.set(0,.03,-.25);arm.add(seal);
+  rigidLink(arm,
+   new THREE.Vector3(side*.37,.12,-.28),
+   new THREE.Vector3(side*2.32,-.02,-.68),.095,oilBlack,'crabPincerHydraulicTube');
+  rigidLink(arm,
+   new THREE.Vector3(side*1.14,.11,-.50),
+   new THREE.Vector3(side*2.4,-.02,-.69),.045,polished,'crabPincerHydraulicRod');
+  for(let n=0;n<3;n++){
+   const hazard=round(.10,.105,.74,cautionYellow,arm);
+   hazard.name='crabClawSafetyStripe';
+   hazard.position.set(side*(1.13+n*.4),.19,-.51);
+   hazard.rotation.y=side*.42;
+  }
+  const grip=arm.children.find(child=>child.type==='Group');
+  if(grip){
+   for(const sign of [-1,1])for(let tooth=0;tooth<3;tooth++){
+    const cutter=round(.18,.15,.20,polished,grip);
+    cutter.name='crabSerratedPincerTeeth';
+    cutter.position.set(side*.89,sign*.35,-1.17-tooth*.23);
+   }
+   const pistonCover=round(.58,.20,.62,titanium,grip);
+   pistonCover.name='crabClawServicePanel';pistonCover.position.set(side*.26,.46,-.22);
+  }
+ }
+ // Scattered tiny maintenance fasteners are batched into one instanced mesh.
+ // All coordinates remain relative to the existing physical crab.
+ const rivetGeo=new THREE.CylinderGeometry(.055,.055,.039,8);
+ const rivets=new THREE.InstancedMesh(rivetGeo,polished,130);
+ rivets.name='crabArmorRivets';rivets.count=0;
+ const rivetPose=new THREE.Object3D();
+ function addRivet(x,y,z,rotX=0){
+  if(rivets.count>=130)return;
+  rivetPose.position.set(x,y,z);rivetPose.rotation.set(rotX,0,0);
+  rivetPose.updateMatrix();rivets.setMatrixAt(rivets.count++,rivetPose.matrix);
+ }
+ for(let i=0;i<5;i++)for(const side of [-1,1])for(const offset of [-.14,.14]){
+  const z=-1.41+i*.70,half=(i===0||i===4?2.90:3.54)/2;
+  addRivet(side*(half-.18),4.438,z+offset);
+ }
+ for(const side of [-1,1])for(let i=0;i<8;i++){
+  const z=-.69+i*.28;
+  addRivet(side*3.06,3.98,z,Math.PI/2);
+  addRivet(side*3.06,3.06,z,Math.PI/2);
+ }
+ rivets.instanceMatrix.needsUpdate=true;rivets.frustumCulled=false;root.add(rivets);
+ // Four warning beacons pulse just before / during the singular claw strike.
+ const warningLights=[];
+ for(const side of [-1,1])for(const z of [-1.3,1.3]){
+  const base=round(.31,.12,.34,burntMetal,root);
+  base.position.set(side*1.48,4.51,z);
+  const lens=new THREE.Mesh(new THREE.SphereGeometry(.13,10,9),ledAmber);
+  lens.name='crabAnimatedWarningBeacon';
+  lens.position.set(side*1.48,4.63,z);root.add(lens);warningLights.push(lens);
+ }
+ // These dynamic parts live on the root so the existing animation loop can
+ // toggle beacons without allocating geometry or updating any save fields.
+ root.userData.warningLights=warningLights;
+ root.userData.detailStats={plates:armorPlates.length,legHydraulics:legs.length,
+  pincerJoints:jaws.length,rivets:rivets.count,ventSlits:12,beacons:warningLights.length};
+
  root.userData.legs=legs;root.userData.jaws=jaws;
  root.userData.animationSpeed=2.0;
  return root;
