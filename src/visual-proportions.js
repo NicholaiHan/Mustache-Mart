@@ -6,7 +6,8 @@ import * as THREE from 'three';
 // Call after building each floor and before its first animation frame.
 export function restoreObjectProportions(world,widthMultiplier){
  if(!world||!Number.isFinite(widthMultiplier)||widthMultiplier<=1)return;
- const matrix=new THREE.Matrix4(),pos=new THREE.Vector3(),quat=new THREE.Quaternion(),scale=new THREE.Vector3();
+ // The per-instance offsets stay untouched. Scale shared geometry once,
+ // rather than decomposing thousands of instance matrices every floor load.
  const exemptParentNames=new Set(['integratedDaylightWall','daylightWindows','recessedBlueWindow',
   'solidStructuralWall']);
  let normalized=0,instances=0;
@@ -18,14 +19,13 @@ export function restoreObjectProportions(world,widthMultiplier){
   }
   const preserve=exempt||exemptParentNames.has(object.name);
   if(object.isInstancedMesh&&!preserve){
-   // Instance positions are aisle-centered and should spread apart. Only the
-   // individual shelf/unit shape is corrected, not its instance translation.
-   for(let i=0;i<object.count;i++){
-    object.getMatrixAt(i,matrix);matrix.decompose(pos,quat,scale);
-    scale.x/=widthMultiplier;
-    matrix.compose(pos,quat,scale);object.setMatrixAt(i,matrix);instances++;
-   }
-   object.instanceMatrix.needsUpdate=true;object.userData.proportionFixed=true;return;
+   // Only geometry dimensions shrink; 3D instance positions still spread to
+   // wider aisle coordinates. A single geometry update replaces thousands
+   // of expensive matrix decompose/recompose operations.
+   object.geometry.scale(1/widthMultiplier,1,1);
+   object.geometry.computeBoundingSphere();
+   instances+=object.count;
+   object.userData.proportionFixed=true;return;
   }
   if(object.isMesh&&!preserve){
    const geometry=object.geometry;
