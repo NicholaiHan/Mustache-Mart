@@ -16,8 +16,45 @@ import {
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
-// Upgrade existing fifteen-floor saves by reindexing their old three-band shelves.
-const ORIGINAL_SAVE_DATA=localStorage.getItem(SAVE_KEY) || localStorage.getItem('mustacheMartV3');
+// Protect original browser-local progress BEFORE any new version can write.
+// Historical localStorage keys and non-destructive rolling snapshots are
+// visible to the player in the Save Recovery section on the title screen.
+const SAVE_ARCHIVE_KEY='mustacheMartSaveSnapshotsV1';
+const validSave=raw=>{
+ if(!raw)return false;
+ try{const d=JSON.parse(raw);return [3,4].includes(d.version)&&Array.isArray(d.fill)&&d.fill.length>=10000;}catch{return false;}
+};
+const progressSummary=raw=>{
+ if(!validSave(raw))return null;
+ const d=JSON.parse(raw);
+ return {stocked:Array.isArray(d.fill)?d.fill.reduce((sum,n)=>sum+(Number(n)||0),0):0,
+  upgrades:Object.values(d.levels||{}).reduce((sum,n)=>sum+(Number(n)||0),0),
+  robots:Array.isArray(d.robots)?d.robots.length:0,
+  money:Number(d.money)||0, version:d.version};
+};
+const progressScore=o=>o?o.stocked*1000+o.upgrades*100+o.robots*20:0;
+function readRecoveryArchives(){
+ try{const data=JSON.parse(localStorage.getItem(SAVE_ARCHIVE_KEY)||'[]');
+  return Array.isArray(data)?data.filter(entry=>validSave(entry?.data)).slice(0,3):[];
+ }catch{return [];}
+}
+function archiveSave(raw,reason='AUTOMATIC'){
+ if(!validSave(raw))return false;
+ const backups=readRecoveryArchives(),info=progressSummary(raw);
+ if(backups.some(x=>x.data===raw))return true;
+ backups.unshift({at:new Date().toISOString(),reason,summary:info,data:raw});
+ try{localStorage.setItem(SAVE_ARCHIVE_KEY,JSON.stringify(backups.slice(0,3)));return true;}
+ catch{return false;} // Quota errors must never prevent writing the actual save.
+}
+let ORIGINAL_SAVE_DATA=localStorage.getItem(SAVE_KEY)||localStorage.getItem('mustacheMartV3');
+let ORIGINAL_SAVE_SOURCE=localStorage.getItem(SAVE_KEY)?SAVE_KEY:'mustacheMartV3';
+const savedCandidates=[...readRecoveryArchives().map((entry,i)=>({raw:entry.data,origin:'archive '+(i+1)})),
+  {raw:localStorage.getItem('mustacheMartV3'),origin:'mustacheMartV3'}].filter(x=>validSave(x.raw));
+if(!validSave(ORIGINAL_SAVE_DATA)){
+ const restored=savedCandidates.sort((a,b)=>progressScore(progressSummary(b.raw))-progressScore(progressSummary(a.raw)))[0];
+ if(restored){ORIGINAL_SAVE_DATA=restored.raw;ORIGINAL_SAVE_SOURCE=restored.origin;}
+}
+if(validSave(ORIGINAL_SAVE_DATA))archiveSave(ORIGINAL_SAVE_DATA,'PRE-UPDATE SAVED PROGRESS');
 let s=loadState(ORIGINAL_SAVE_DATA);
 // Explicit opt-in dev mode: restore at least $5,000 in test cash without touching normal saves.
 const DEV_MODE=location.hash==='#rich'||location.hash==='#dev';
@@ -52,7 +89,21 @@ function showPayReceipt(amount){
  clearTimeout(receiptTimeout);
  receiptTimeout=setTimeout(()=>{receipt.classList.remove('active');receipt.setAttribute('aria-hidden','true');},4100);
 }
-function save(){try{localStorage.setItem(SAVE_KEY,serialize(s));}catch(err){notify('Could not save: browser storage might be full or unavailable.');}}
+let lastSaveArchiveAt=0;
+function save(){
+ try{
+  const fresh=serialize(s);
+  // Snapshot occasionally, not every 5-second autosave, and never replace a
+  // more advanced archive with an empty run after switching host/port.
+  if(!lastSaveArchiveAt||Date.now()-lastSaveArchiveAt>180000){
+   const current=localStorage.getItem(SAVE_KEY);
+   if(validSave(current))archiveSave(current,'PREVIOUS GAME STATE');
+   if(validSave(fresh)&&progressScore(progressSummary(fresh))>0)archiveSave(fresh,'PERIODIC BACKUP');
+   lastSaveArchiveAt=Date.now();
+  }
+  localStorage.setItem(SAVE_KEY,fresh);
+ }catch(err){notify('Could not save: browser storage might be full or unavailable.');}
+}
 setInterval(save,5000);addEventListener('beforeunload',save);
 function uiUpdate(){
  $('floorStat').textContent=floorLabel(s.floor)+' / F15';
