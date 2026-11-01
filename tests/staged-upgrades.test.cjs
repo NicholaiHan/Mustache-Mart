@@ -315,7 +315,7 @@ test('crab stage 3: 30 permanent spring-neck wrecks, required 25% scrap and repl
   assert.equal(r.assignRobot(s,robot.id,floor,aisle,bay),false);
   assert.equal(r.setRobotAisle(s,robot.id,aisle),false);
   assert.equal(r.purchase(s,'robot'),false,'must scrap destroyed robot before replacement purchase');
-  s.levels.robotReliability=3;s.money=1e8;
+  s.levels.robotReliability=3;s.levels.repairTraining=1;s.money=1e8;
   assert.equal(r.purchase(s,'robotReliability'),true);
   assert.equal(robot.wrecked,true,'max reliability does not un-destroy a robot');
   const saved=r.loadState(r.serialize(s));
