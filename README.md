@@ -20,11 +20,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.4** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.5** and the introduction must list the new cash registers, Mike, ladders and fire exit.
 3. **Development mode** (the `#dev` suffix) gives **at least $5,000** for testing. The title screen also has a **Refill developer cash to $5,000** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
 4. **Recovery:** Your skills and stocked shelves are saved by browser + exact host + port. The launcher now defaults to **8000**, where older saves are most likely. If you instead played on **8011**, run `PORT=8011 bash PLAY_LATEST_MAC.sh` and open `http://127.0.0.1:8011/#dev` in your original browser. Do not click Reset. Use **Download save backup** on the origin holding progress, then **Import save backup** on the origin you want to play from. The original save remains intact.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.4** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.5** is shown.
 
 ## Play on your MacBook
 
@@ -285,3 +285,10 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - **Crab fits in the aisles:** The giant crab's body/leg span has been adjusted relative to the widened world, and it visibly prowls the aisle with smooth forward/backward patrol and subtle walking motion. It remains dangerous and retains its 20-minute raid schedule unless overridden in developer mode.
 - **No overlapping window decorations:** Upper side-wall rails have moved from y=12.1 to y=8.35; long vertical conduit sections, vent/fan housings, front-wall metal panels, trim, and structural ribs near windows are cut down or moved beneath the recessed clerestory panes. Every window opening is left unobstructed; the new fittings remain detailed and physically integrated with the walls.
 - **Tests:** 120 deterministic scenarios across four groups check old save content round-trips, widened geometry, crab clearance, and vertical spacing between windows and detailing. Browser regression tests inspect the wider rendered geometry, retained aisle coordinates, visible crab scale, old-save recovery panel and the actual 3D fittings.
+
+
+## Build 2026.11.01.5 — Smaller robot crab
+
+- Scaled the **entire** giant crab mesh (shell, walking legs, hydraulic pincers, eye lenses and armor) to about **two-thirds of its prior height and depth**, with a comparable reduction in apparent width. Current world-model dimensions: `scale(.44, .68, .68)` rather than `scale(.65, 1, 1)`. The crab remains visible in the widened aisles but takes up much less screen space.
+- Patrol route, animation, the one-swing-per-20-minute attack cycle, fallen stock, destroyed robots, developer spawn/remove options, and all saved progress are untouched. The shrink is cosmetic only.
+- Regression tests run 30 deterministic raid/save checks and rendered-browser tests verify the three model scale dimensions.
