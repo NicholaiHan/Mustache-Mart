@@ -346,6 +346,20 @@ button:active:not(:disabled){transform:translateY(1px)}
  .elevatorDirectoryLabel{padding:13px 13px 0}
  .elevatorFooter{padding:13px}
 }
+
+/* Local #dev/#rich-only boss debugging, always available while playing. */
+#devCrabPanel[hidden]{display:none!important}
+#devCrabPanel{position:fixed;right:17px;top:121px;width:min(358px,calc(100vw - 34px));z-index:9;
+ padding:12px 14px;border:1px solid #86a4a0;border-radius:12px;color:#e1f5ed;
+ background:#1b3235e8;box-shadow:0 5px 21px #0017;font-size:11px}
+.devCrabTitle{display:flex;justify-content:space-between;align-items:center;gap:7px;
+ font-size:10px;font-weight:850;letter-spacing:.07em;margin-bottom:9px}
+#devCrabState{color:#f5d590;font-weight:800;text-align:right}
+.devCrabButtons{display:flex;gap:6px;flex-wrap:wrap}
+.devCrabButtons button{flex:1;white-space:nowrap;padding:7px 8px;border:1px solid #7eac9f;border-radius:6px;
+ background:#34574e;color:#f3faf4;font-size:11px;font-weight:760;cursor:pointer}
+.devCrabButtons button[aria-pressed="true"]{background:#e6c67c;border-color:#ffdf92;color:#27382f}
+@media(max-width:700px){#devCrabPanel{top:159px;right:9px;width:min(320px,calc(100vw - 18px))}}
 </style>
 </head>
 <body>
@@ -360,6 +374,14 @@ button:active:not(:disabled){transform:translateY(1px)}
   </div>
   <div class="pill" id="objective">Collect a can from the delivery dock, then stock the nearest shelf.</div>
   <div id="buildChip">UPDATED BUILD · 2026.11.01.2</div>
+  <div id="devCrabPanel" hidden role="group" aria-label="Developer giant crab controls">
+    <div class="devCrabTitle"><span>DEV / CRAB OVERRIDE</span><span id="devCrabState" aria-live="polite">NORMAL 7-FLOOR RULE</span></div>
+    <div class="devCrabButtons">
+      <button type="button" id="devCrabAdd" aria-pressed="false">Spawn crab</button>
+      <button type="button" id="devCrabRemove" aria-pressed="false">Remove crab</button>
+      <button type="button" id="devCrabAuto" aria-pressed="true">Normal behavior</button>
+    </div>
+  </div>
 
 
   <div id="crosshair"></div>
