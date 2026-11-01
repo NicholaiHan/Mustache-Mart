@@ -342,15 +342,15 @@ test('new visual stage E: 30 free-direction, free-location conveyor and claw inv
   // 90-degree section can be independently oriented (west, north, south, east).
   const a=r.placeFreeBelt(s,f,x,z,1);assert.ok(a);
   const b=r.placeFreeBelt(s,f,x+2.65,z,2);assert.ok(b);
-  const c=r.placeFreeBelt(s,f,x+2.65,z+2.65,0);assert.ok(c);
+  const c=r.placeFreeBelt(s,f,x+2.65,z+2.65,2);assert.ok(c);
   assert.equal(r.freeBeltConnected(s,a.id),true);
   assert.equal(r.freeBeltConnected(s,b.id),true);
   assert.equal(r.freeBeltConnected(s,c.id),false);
   assert.equal(r.placeFreeBelt(s,f,x,z,0),null,'duplicate grid position blocked');
-  assert.equal(r.turnFreeBelt(s,c.id),1);
-  assert.equal(r.turnFreeBelt(s,c.id),2);
   assert.equal(r.turnFreeBelt(s,c.id),3);
   assert.equal(r.turnFreeBelt(s,c.id),0);
+  assert.equal(r.turnFreeBelt(s,c.id),1);
+  assert.equal(r.turnFreeBelt(s,c.id),2);
   s.stockPiles.push({floor:f,aisle:4,x:a.x+1.1,z:a.z+1.1,count:60});
   s.clawInventory.push({paid:450});
   const claw=r.deployFreeClaw(s,a.id);
