@@ -163,7 +163,9 @@ const assert=require('node:assert/strict');
   assert.ok(detail.components.pincerTooth>=12);
   assert.equal(detail.components.livingEye,2);
   console.log('PASS: organic crab anatomy, living eyes, shell freckles and jointed natural legs/claws');
-  await page.locator('#devCrabRemove').click();
+  // Pointer-locking WebGL can intercept Playwright's physical second click.
+  // Dispatch an actual DOM button click without fighting the locked cursor.
+  await page.evaluate(()=>document.querySelector('#devCrabRemove').click());
   devCrab=await page.evaluate(()=>window.__martTest.crabTest.status());
   assert.equal(devCrab.devOverride,'off');
   assert.equal(devCrab.visible,false,'dev crab removal removes the model');
@@ -172,7 +174,7 @@ const assert=require('node:assert/strict');
   assert.equal(devCrab.visible,true,'crab spawn shortcut works in gameplay');
   await page.keyboard.press('Shift+K');
   assert.equal((await page.evaluate(()=>window.__martTest.crabTest.status())).visible,false);
-  await page.locator('#devCrabAuto').click();
+  await page.evaluate(()=>document.querySelector('#devCrabAuto').click());
   devCrab=await page.evaluate(()=>window.__martTest.crabTest.status());
   assert.equal(devCrab.devOverride,'auto');
   assert.equal(devCrab.visible,false,'normal mode restores locked 7-floor threshold');
