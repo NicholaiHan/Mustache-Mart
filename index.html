@@ -14,7 +14,7 @@ button{font:inherit;font-weight:850;border:2px solid var(--ink);border-radius:9p
 button:hover:not(:disabled){filter:brightness(1.035)}
 button:disabled{background:#dbdadd;color:#777;cursor:default}
 button:focus-visible{outline:4px solid #a944e0;outline-offset:2px}
-#hud{position:absolute;inset:0;pointer-events:none}
+#hud{position:absolute;inset:0;z-index:5;pointer-events:none}
 #stats{position:absolute;top:14px;left:14px;display:flex;gap:8px;flex-wrap:wrap;max-width:min(930px,90vw)}
 .pill{background:rgba(247,248,243,.95);padding:9px 14px;border:2px solid #42504e;border-radius:9px;font-weight:750;box-shadow:3px 4px 0 var(--ink)}
 #objective{position:absolute;top:76px;left:14px;max-width:min(650px,90vw);font-size:13px}
