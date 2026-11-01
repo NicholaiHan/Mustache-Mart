@@ -931,7 +931,8 @@ test('free-roaming organic crab: 30 smooth cross-aisle steps through belt routes
   r.setDeveloperCrab(s,'on');
   const initialX=s.crab.patrol[s.floor].x;
   const initialMoney=s.money,initialCount=belt.items;
-  const events=r.advanceCrab(s,60,true);
+  // Two real simulation ticks: first reach the front crosswalk, then cross aisles.
+  const events=[...r.advanceCrab(s,30,true),...r.advanceCrab(s,30,true)];
   assert.equal(events.length,0);
   assert.notEqual(s.crab.patrol[s.floor].x,initialX,'crab can move sideways to another aisle');
   assert.equal(belt.items,initialCount,'the creature can cross a conveyor without consuming cargo');
