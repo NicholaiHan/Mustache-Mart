@@ -289,6 +289,63 @@ button:active:not(:disabled){transform:translateY(1px)}
 #coinflip button[hidden]{display:none}
 #coinflip .coin-outcome{font-size:18px;font-weight:900;color:#fff0bc;margin:12px 0}
 
+
+/* Premium wayfinding elevator: quiet industrial directory, no emoji artwork. */
+#elevator{background:#102024dc;backdrop-filter:blur(7px)}
+#elevator .panel{width:min(850px,96vw);max-height:calc(100vh - 38px);overflow:auto;padding:0;
+ background:#f5f7f2;color:#203835;border:1px solid #8da49b;border-radius:18px;
+ box-shadow:0 30px 90px #071c20b8}
+.elevatorHeader{padding:26px 27px 23px;background:linear-gradient(120deg,#173632,#254a43);
+ color:#f6f7f2;display:flex;align-items:center;gap:20px}
+.elevatorSymbol{width:76px;height:76px;display:grid;place-items:center;flex:none;
+ border:1px solid #9fc3b3;border-radius:17px;background:#ffffff12;color:#e0e7d8}
+.elevatorSymbol svg{width:55px;height:55px}
+.elevatorHeading{flex:1;min-width:150px}
+.elevatorHeading small{display:block;font-size:10px;letter-spacing:.18em;font-weight:900;color:#b3d1c2}
+.elevatorHeading h2{margin:5px 0 6px;font-size:clamp(23px,3vw,34px);letter-spacing:-.04em;color:#fff}
+.elevatorHeading p{margin:0;font-size:12px;line-height:1.6;color:#d4e4d8}
+.elevatorCurrent{border-left:1px solid #648277;padding-left:22px;flex:none;
+ font-size:10px;letter-spacing:.12em;color:#c1d6ca;text-align:center;font-weight:800}
+.elevatorCurrent strong{display:block;font-size:36px;letter-spacing:-.03em;color:#fff;margin-top:4px}
+.elevatorOverview{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:19px 27px;
+ border-bottom:1px solid #d7e1d8;background:#ecf2e9}
+.elevatorOverview>div{border-right:1px solid #ccdad0;padding:4px 10px}
+.elevatorOverview>div:last-child{border:0}
+.elevatorOverview span{display:block;font-size:10px;letter-spacing:.13em;color:#557367;font-weight:800}
+.elevatorOverview strong{display:block;font-size:17px;margin-top:6px;color:#1e4e3f}
+.elevatorDirectoryLabel{display:flex;justify-content:space-between;padding:21px 29px 5px;
+ color:#44685a;font-size:10px;font-weight:900;letter-spacing:.15em}
+#elevatorlist{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:12px 27px 27px;margin:0}
+#elevatorlist .elevatorFloor{position:relative;min-width:0;min-height:118px;text-align:left;
+ padding:13px;border:1px solid #cfdbd1;background:#ffffff;border-radius:11px;
+ box-shadow:0 3px 9px #123a2520;color:#24503f;display:flex;flex-direction:column;gap:5px;cursor:pointer}
+#elevatorlist .elevatorFloor:hover:not(:disabled){border-color:#468e70;background:#f0fcf4;transform:translateY(-2px)}
+#elevatorlist .elevatorFloor:focus-visible{outline:3px solid #70b490;outline-offset:2px}
+#elevatorlist .floorNumber{font-size:28px;font-weight:1000;letter-spacing:-.035em;color:#234a3b}
+#elevatorlist .floorState{font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:#668075}
+#elevatorlist .floorBar{height:5px;border-radius:8px;background:#dfeae1;overflow:hidden;margin-top:auto;width:100%}
+#elevatorlist .floorBar i{height:100%;display:block;border-radius:8px;background:#538d75}
+#elevatorlist .elevatorFloor.isComplete{border-color:#93bca1;background:#f1faf2}
+#elevatorlist .elevatorFloor.isCurrent{background:#234c40;border-color:#234c40;color:#fff}
+#elevatorlist .elevatorFloor.isCurrent .floorNumber,#elevatorlist .elevatorFloor.isCurrent .floorState{color:#fff}
+#elevatorlist .elevatorFloor.isCurrent .floorBar{background:#456f60}
+#elevatorlist .elevatorFloor:disabled{opacity:1;cursor:default}
+.elevatorFooter{border-top:1px solid #d4e1d7;background:#eff3ee;padding:17px 27px;display:flex;
+ align-items:center;justify-content:space-between;gap:12px}
+.elevatorFooter span{font-size:10px;letter-spacing:.14em;font-weight:850;color:#667b70}
+#elevatorClose{background:#264f41;color:#fff;border:1px solid #264f41;
+ padding:12px 20px;border-radius:9px;font-size:13px;font-weight:850}
+@media(max-width:700px){
+ .elevatorHeader{flex-wrap:wrap;padding:17px;gap:12px}
+ .elevatorSymbol{width:56px;height:56px}.elevatorSymbol svg{width:40px;height:40px}
+ .elevatorCurrent{padding-left:12px}
+ .elevatorOverview{padding:12px;gap:4px}.elevatorOverview>div{padding:6px}
+ .elevatorOverview strong{font-size:13px}
+ #elevatorlist{grid-template-columns:repeat(3,minmax(0,1fr));padding:12px;gap:7px}
+ #elevatorlist .elevatorFloor{min-height:97px}
+ .elevatorDirectoryLabel{padding:13px 13px 0}
+ .elevatorFooter{padding:13px}
+}
 </style>
 </head>
 <body>
@@ -364,9 +421,26 @@ button:active:not(:disabled){transform:translateY(1px)}
  </div>
 </div>
 <div class="dialog" id="elevator" role="dialog" aria-modal="true" aria-labelledby="elevatorTitle">
- <div class="panel"><h2 id="elevatorTitle">🛗 Fifteen Floors of Retail</h2>
-  <p>Choose a floor. Each floor has its own shelving and conveyor layouts. Robots continue working when you're upstairs.</p>
-  <div id="elevatorlist"></div><button id="elevatorClose">Back to work (Esc)</button>
+ <div class="panel">
+  <header class="elevatorHeader">
+   <div class="elevatorSymbol" aria-hidden="true">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+     <rect x="12" y="7" width="40" height="50" rx="5" stroke="currentColor" stroke-width="3"/>
+     <path d="M32 14V50M18 19H46M20 49H44" stroke="currentColor" stroke-width="2.5"/>
+     <path d="M26 13L32 9L38 13M26 53L32 57L38 53" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+   </div>
+   <div class="elevatorHeading"><small>MUSTACHE MART / VERTICAL TRANSPORT</small><h2 id="elevatorTitle">Floor directory</h2><p>Choose your destination. Stockers continue working across the building.</p></div>
+   <div class="elevatorCurrent" id="elevatorCurrent">CURRENT FLOOR <strong>01</strong></div>
+  </header>
+  <div class="elevatorOverview">
+   <div><span>BUILDING PROGRESS</span><strong id="elevatorProgress">0% complete</strong></div>
+   <div><span>FLOORS COMPLETE</span><strong id="elevatorComplete">0 / 15</strong></div>
+   <div><span>OPEN FLOORS</span><strong>15 accessible</strong></div>
+  </div>
+  <div class="elevatorDirectoryLabel"><span>SELECT DESTINATION</span><span>FLOORS 01 – 15</span></div>
+  <div id="elevatorlist" aria-label="Elevator floor destinations"></div>
+  <div class="elevatorFooter"><span>PASSENGER LIFT · DOORS OPEN</span><button id="elevatorClose" type="button">Return to current floor</button></div>
  </div>
 </div>
 <div class="dialog" id="end"><div class="panel">
