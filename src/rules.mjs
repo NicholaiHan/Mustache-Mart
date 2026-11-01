@@ -50,7 +50,7 @@ export const UPGRADES=[
 export function cellId(f,a,side,bay,tier){return ((((f*AISLES+a)*2+side)*BAYS+bay)*TIERS+tier);}
 export function decode(id){const tier=id%TIERS;id=Math.floor(id/TIERS);const bay=id%BAYS;id=Math.floor(id/BAYS);const side=id%2;id=Math.floor(id/2);return {floor:Math.floor(id/AISLES),aisle:id%AISLES,side,bay,tier};}
 const limit=(v,max)=>Number.isFinite(Number(v))?Math.max(0,Math.min(max,Math.floor(Number(v)))):0;
-export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),freeBelts:[],freeBeltNextId:1,claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{id:0,floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},platforms:[],platformNextId:1,cursor:Array(FLOORS).fill(0),crab:{unlocked:false,devOverride:'auto',elapsed:Array(FLOORS).fill(0),attacks:Array(FLOORS).fill(0),seed:0x8d129bb5,patrol:Array.from({length:FLOORS},(_,i)=>({aisle:i%AISLES,z:15})),recent:[]},coinOffers:{cash:{unlocked:false,seen:false,played:false,declined:false,result:null},floor3:{unlocked:false,seen:false,played:false,declined:false,result:null}}};}
+export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),freeBelts:[],freeBeltNextId:1,claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{id:0,floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},platforms:[],platformNextId:1,cursor:Array(FLOORS).fill(0),crab:{unlocked:false,devOverride:'auto',elapsed:Array(FLOORS).fill(0),attacks:Array(FLOORS).fill(0),seed:0x8d129bb5,patrol:Array.from({length:FLOORS},(_,i)=>({aisle:i%AISLES,x:aisleX(i%AISLES),z:15,targetAisle:(i+2)%AISLES,targetZ:46,roamTimer:45})),recent:[]},coinOffers:{cash:{unlocked:false,seen:false,played:false,declined:false,result:null},floor3:{unlocked:false,seen:false,played:false,declined:false,result:null}}};}
 export function loadState(text){
  const s=newState();if(!text)return s;
  try{
@@ -157,7 +157,7 @@ export function loadState(text){
  if(Array.isArray(crab.attacks))for(let f=0;f<FLOORS;f++)s.crab.attacks[f]=limit(crab.attacks[f],1000000);
  s.crab.seed=(Number(crab.seed)>>>0)||0x8d129bb5;
  if(Array.isArray(crab.patrol))for(let f=0;f<FLOORS;f++){
-  const p=crab.patrol[f]||{};s.crab.patrol[f]={aisle:limit(p.aisle,AISLES-1),z:Math.max(12,Math.min(90,Number(p.z)||15))};
+  const p=crab.patrol[f]||{};const aisle=limit(p.aisle,AISLES-1);s.crab.patrol[f]={aisle,x:Number.isFinite(Number(p.x))?Math.max(aisleX(0),Math.min(aisleX(AISLES-1),Number(p.x))):aisleX(aisle),z:Math.max(9,Math.min(90,Number(p.z)||15)),targetAisle:limit(p.targetAisle??((aisle+2)%AISLES),AISLES-1),targetZ:Math.max(14,Math.min(90,Number(p.targetZ)||46)),roamTimer:Math.max(0,Math.min(180,Number(p.roamTimer)||45))};
  }
  if(Array.isArray(crab.recent))s.crab.recent=crab.recent.slice(-8).filter(e=>Number.isInteger(e?.floor)&&e.floor>=0&&e.floor<FLOORS);
  // Newly introduced one-time wagers also load correctly from legacy V4 saves.
@@ -639,7 +639,7 @@ export function performCrabSwing(s,f,aisle=null,bay=null,developer=false){
   }
  }
  const event={floor:f,aisle:a,bay:b,fallen,robots:destroyed,number:++s.crab.attacks[f]};
- s.crab.patrol[f]={aisle:a,z:bayZ(b)};
+ const patrol=s.crab.patrol[f];patrol.targetAisle=a;patrol.targetZ=bayZ(b);patrol.roamTimer=0;
  s.crab.recent.push(event);s.crab.recent=s.crab.recent.slice(-8);
  return event;
 }
@@ -654,9 +654,27 @@ export function advanceCrab(s,seconds,developer=false){
    s.crab.elapsed[f]-=CRAB_ATTACK_SECONDS;
    const event=performCrabSwing(s,f,null,null,developer);if(event)events.push(event);
   }
-  const p=s.crab.patrol[f],step=delta*.43;
-  const cycle=2*(90-14),n=(p.z-14+step)%cycle;
-  p.z=n<76?14+n:90-(n-76);
+  // The animal walks freely across the front crosswalk and down each
+  // aisle, even when a belt occupies its path. Shelves/conveyors never
+  // constrain this creature; raid timing and product rules remain independent.
+  const p=s.crab.patrol[f],step=delta*1.45;
+  p.roamTimer=Math.max(0,(p.roamTimer??45)-delta);
+  if(p.roamTimer<=0&&Math.abs(p.x-aisleX(p.targetAisle))<.18&&Math.abs(p.z-p.targetZ)<.18){
+   p.targetAisle=crabRandom(s)%AISLES;
+   p.targetZ=14+crabRandom(s)%75;
+   p.roamTimer=35+crabRandom(s)%65;
+  }
+  const targetX=aisleX(p.targetAisle);
+  const approachingDifferentAisle=Math.abs(p.x-targetX)>.18;
+  if(approachingDifferentAisle&&p.z>9.65){
+   p.z=Math.max(9.5,p.z-step);
+  }else if(approachingDifferentAisle){
+   p.x+=Math.max(-step,Math.min(step,targetX-p.x));
+   p.z=9.5;
+  }else{
+   p.x=targetX;p.aisle=p.targetAisle;
+   p.z+=Math.max(-step,Math.min(step,p.targetZ-p.z));
+  }
  }
  return events;
 }
