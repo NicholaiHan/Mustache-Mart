@@ -44,7 +44,7 @@ export const UPGRADES=[
 export function cellId(f,a,side,bay,tier){return ((((f*AISLES+a)*2+side)*BAYS+bay)*TIERS+tier);}
 export function decode(id){const tier=id%TIERS;id=Math.floor(id/TIERS);const bay=id%BAYS;id=Math.floor(id/BAYS);const side=id%2;id=Math.floor(id/2);return {floor:Math.floor(id/AISLES),aisle:id%AISLES,side,bay,tier};}
 const limit=(v,max)=>Number.isFinite(Number(v))?Math.max(0,Math.min(max,Math.floor(Number(v)))):0;
-export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),freeBelts:[],freeBeltNextId:1,claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{id:0,floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},platforms:[],platformNextId:1,cursor:Array(FLOORS).fill(0),crab:{unlocked:false,elapsed:Array(FLOORS).fill(0),attacks:Array(FLOORS).fill(0),seed:0x8d129bb5,patrol:Array.from({length:FLOORS},(_,i)=>({aisle:i%AISLES,z:15})),recent:[]},coinOffers:{cash:{unlocked:false,seen:false,played:false,result:null},floor3:{unlocked:false,seen:false,played:false,result:null}}};}
+export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),freeBelts:[],freeBeltNextId:1,claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{id:0,floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},platforms:[],platformNextId:1,cursor:Array(FLOORS).fill(0),crab:{unlocked:false,elapsed:Array(FLOORS).fill(0),attacks:Array(FLOORS).fill(0),seed:0x8d129bb5,patrol:Array.from({length:FLOORS},(_,i)=>({aisle:i%AISLES,z:15})),recent:[]},coinOffers:{cash:{unlocked:false,seen:false,played:false,declined:false,result:null},floor3:{unlocked:false,seen:false,played:false,declined:false,result:null}}};}
 export function loadState(text){
  const s=newState();if(!text)return s;
  try{
@@ -156,7 +156,8 @@ export function loadState(text){
  for(const key of ['cash','floor3']){
   const incoming=d.coinOffers?.[key]||{},entry=s.coinOffers[key];
   entry.unlocked=!!incoming.unlocked||!!incoming.played;
-  entry.seen=!!incoming.seen||!!incoming.played;
+  entry.declined=!!incoming.declined;
+  entry.seen=!!incoming.played||entry.declined; // Old 'Not now' does not permanently consume an offer.
   entry.played=!!incoming.played;
   if(incoming.result&&incoming.played){
    const result=incoming.result;
@@ -185,15 +186,32 @@ export function refreshCoinOffers(s){
 }
 export function coinFlipStake(s,event){
  const entry=s.coinOffers?.[event];
- if(!entry||!entry.unlocked||entry.played)return 0;
+ if(!entry||!entry.unlocked||entry.played||entry.declined)return 0;
  if(event==='cash')return s.money>=COIN_FLIP_FIRST_STAKE?COIN_FLIP_FIRST_STAKE:0;
  if(event==='floor3')return s.money>0?s.money:0;
  return 0;
 }
 export function markCoinOfferSeen(s,event){
  const entry=s.coinOffers?.[event];
- if(!entry||!entry.unlocked||entry.played)return false;
+ if(!entry||!entry.unlocked||entry.played||entry.declined)return false;
  entry.seen=true;return true;
+}
+export function declineCoinFlip(s,event){
+ const offer=s.coinOffers?.[event];
+ if(!offer||!offer.unlocked||offer.played||offer.declined)return false;
+ offer.declined=true;offer.seen=true;return true;
+}
+export function acceptCoinFlip(s,event,randomValue=Math.random()){
+ // The player chooses YES or NO only: acceptance flips a fair unbiased coin.
+ // Heads wins and tails loses, no side-choice or deferral.
+ if(!Number.isFinite(randomValue)||randomValue<0||randomValue>=1)return null;
+ const stake=coinFlipStake(s,event);if(!stake)return null;
+ const won=randomValue<.5,landed=won?'heads':'tails';
+ s.money+=won?stake:-stake;
+ const entry=s.coinOffers[event];
+ entry.played=true;entry.seen=true;
+ entry.result={stake,choice:'yes',landed,won,balanceAfter:s.money};
+ return {...entry.result,event};
 }
 export function resolveCoinFlip(s,event,choice,randomValue=Math.random()){
  // The caller passes an independent fair random value in [0,1); never
