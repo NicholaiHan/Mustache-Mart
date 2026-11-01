@@ -1011,6 +1011,22 @@ if(DEV_MODE){
  window.__martTest={
   teleport(x,z){V.x=x;V.z=z;V.y=0;V.vy=0;},
   setLook(yaw,pitch){V.yaw=yaw;V.pitch=pitch;},
+  setFloor(floor){
+   if(!Number.isInteger(floor)||floor<0||floor>=FLOORS)return false;
+   s.floor=floor;buildWorld();V.x=31;V.z=-7;V.y=0;V.vy=0;return true;
+  },
+  portraitInfo(){
+   const portraits=world.children.filter(child=>child.name==='employeeOfMonthPortrait');
+   return portraits.map(p=>{
+    const image=p.getObjectByName('uniqueWorkingPortrait');
+    const canvas=image?.material?.map?.image;
+    // Distinct content fingerprints are computed from the actual rendered art.
+    const pixels=canvas?.getContext('2d').getImageData(40,140,1,1).data;
+    return {floor:p.userData.floor,subject:p.userData.subject,job:p.userData.job,
+     frame:p.children.length,imageWidth:canvas?.width,imageHeight:canvas?.height,
+     contentSample:pixels?Array.from(pixels):null};
+   });
+  },
   setCarry(count){V.carry=Math.min(capacity(s),Math.max(0,count));},
   setUpgrade(id,level){if(id in s.levels)s.levels[id]=level;},
   giveClaw(){s.clawInventory.push({paid:450});return s.clawInventory.length;},
