@@ -209,6 +209,19 @@ function makeStockPiles(){
  const cardboard=equipmentMaterial('#bea47c',.03,.87),wood=equipmentMaterial('#98734b',.1,.85);
  for(const p of s.stockPiles.filter(q=>q.floor===s.floor&&q.count>0)){
   const g=new THREE.Group();getWorld().add(g);g.position.set(p.x,0,p.z);g.userData.pile=p;
+  if(p.crabDebris){
+   // Loose products, not a packed pallet: the player can pick up each spill
+   // and re-stock the emptied shelves. Scattering is seeded by floor/aisle.
+   const scrap=equipmentMaterial('#8b765d',.04,.9);
+   for(let i=0;i<Math.min(12,p.count);i++){
+    const angle=i*2.399+((p.aisle||0)*.41),radius=.23+Math.sqrt(i)*.34;
+    const product=round(.37+(i%3)*.06,.29,.38,scrap,g);
+    product.name='crabSpilledProduct';
+    product.position.set(Math.cos(angle)*radius,.17+((i%4)===0?.08:0),Math.sin(angle)*radius);
+    product.rotation.set(i*.07,i*.49,i*.18);
+   }
+   items.push(g);continue;
+  }
   const pallet=round(1.65,.15,1.65,wood,g);pallet.position.y=.13;
   for(let tier=0;tier<Math.min(4,Math.ceil(p.count/70));tier++){
    for(let side of [-1,1]){
