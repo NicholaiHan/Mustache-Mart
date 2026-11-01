@@ -770,7 +770,8 @@ function animate(now){
   }
   if(climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted){V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0)V.vy=0;}
   if(climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted&&held.Space&&s.levels.jump&&V.y===0)V.vy=5.4;
-  const repairing=tickRobotRepair(dt);
+  // Repair time tracks elapsed real seconds, not the capped movement timestep.
+  const repairing=tickRobotRepair(Math.min(elapsed,.25));
   if(!repairing&&!s.pallet.driving&&(held.KeyE||mouseDown)){actionClock+=dt;while(actionClock>=.32){actionClock-=.32;act(held.KeyE?'keyboard':'mouse');if(modal)break;}}else actionClock=0;
  }
  if(!ending&&running){
