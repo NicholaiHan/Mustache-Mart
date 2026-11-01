@@ -1138,6 +1138,7 @@ if(DEV_MODE){
   advanceConveyors(seconds){advanceBelts(s,Math.max(0,Math.min(120,Number(seconds)||0)));return s.beltStock[s.floor].slice();},
    placeFreeBelt(x,z,dir=0){const b=placeFreeBelt(s,s.floor,x,z,dir,(px,pz)=>!isBlocked(px,pz,s.floor,.72)&&!blockedEquipment(s,px,pz,.72));if(b)buildWorld();return b?.id||null;},
    freeBelts(){return s.freeBelts.map(b=>({...b}));},
+   robots(){return s.robots.map(r=>({id:r.id,floor:r.floor,aisle:r.aisle,homeAisle:r.homeAisle,placed:r.placed,carry:r.carry,wrecked:r.wrecked}));},
    deployFreeClaw(id){s.clawInventory.push({paid:450});const c=deployFreeClaw(s,id);if(c)buildWorld();return c?.id||null;},
    turnFreeBelt(id){const angle=turnFreeBelt(s,id);if(angle>=0)buildWorld();return angle;},
    move(dx,dz){const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));V.x=next.x;V.z=next.z;return next;},
