@@ -1311,7 +1311,7 @@ if(DEV_MODE){
    scrap(id){const money=sellRobot(s,id);buildWorld();return money;}
   },
   setCarry(count){V.carry=Math.min(capacity(s),Math.max(0,count));},
-  setUpgrade(id,level){if(id in s.levels)s.levels[id]=level;},
+  setUpgrade(id,level){if(id in s.levels){s.levels[id]=level;if(id==='robotLift')buildWorld();}},
   giveClaw(){s.clawInventory.push({paid:450});return s.clawInventory.length;},
   logistics(){return {claws:s.claws.length,clawInventory:s.clawInventory.length,palletLoad:s.pallet.load,palletCapacity:palletCapacity(s),palletDriving:s.pallet.driving,cartMounted:s.cart.mounted,cartHeight:s.cart.liftHeight,platforms:s.platforms.map(p=>({id:p.id,floor:p.floor,aisle:p.aisle,x:p.x??aisleX(p.aisle),z:p.z,liftHeight:p.liftHeight,mounted:p.mounted})),stockPiles:s.stockPiles.map(x=>({...x})),beltDirections:s.beltDirection[s.floor].map(x=>x.slice())};},
 
