@@ -1,6 +1,6 @@
 {
-  "version": "2026.11.01.1",
-  "name": "Secret Coin Flip at $3,000 and Floor 3 All-In Gamble",
+  "version": "2026.11.01.2",
+  "name": "Grounded Receiving, Yes-No Coin Choice, Premium Elevator and Smoother Logistics",
   "build_date": "2026-11-01",
   "includes": [
     "Robot Mike with white eyes and mustache",
@@ -8,6 +8,12 @@
     "Mega robot crab unlocks permanently after seven complete floors; one swing every 20 minutes of active play per unfinished floor",
     "Freely positionable conveyors placed with B in open space, facing N/E/S/W via Z, capable of connecting through arbitrary right-angle routes",
     "New free conveyor claw supply, portable stock transfer, robot pickup, physical collision and save compatibility",
+    "Supply Portal columns now meet the floor, no Dock 01/Supply Active signage, receiving wall rotated 90 degrees with real inventory cartons behind",
+    "Secret coin offers only YES to auto-flip a fair heads/tails coin or NO to decline permanently; no waiting or choosing sides",
+    "Premium elevator directory with original SVG elevator icon, 15 floor cards and individual progress",
+    "Seamlessly tweened genuine conveyor carton transfer animations across belt sections and corners without changing inventory counts",
+    "Robot top shelf requires motorized automatic robot ladder; next-highest shelf requires an installed extended tall ladder",
+    "Player-operated machine platform ladders can now drive between aisles and freely around open store floor",
     "Sky-blue glazed windows and brighter front entrance/payroll glass with decorative shafts of daylight",
     "Two secret one-time 50/50 coin-flip offers: $3,000 fixed stake at first cash milestone, and entire current bank balance when Floor 3 is completed",
     "Gold coin popups, choose heads/tails, postpone and reopen offers, with persistent fair outcomes that cannot be replayed",
