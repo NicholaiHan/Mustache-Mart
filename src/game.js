@@ -11,7 +11,7 @@ import {cartonTexture} from './textures.js';
 import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
- capacity,walkSpeed,price,skillAvailable,purchase,autoPlaceRobot,moveRobotFromMike,chooseRobotSpawnAisle,refreshCoinOffers,coinFlipStake,markCoinOfferSeen,declineCoinFlip,acceptCoinFlip,resolveCoinFlip,COIN_FLIP_FIRST_STAKE,payOut,place,earnings,buildBelt,beltCost,incomplete,
+ capacity,walkSpeed,price,skillAvailable,purchase,autoPlaceRobot,moveRobotFromMike,chooseRobotSpawnAisle,refreshCoinOffers,coinFlipStake,markCoinOfferSeen,declineCoinFlip,acceptCoinFlip,COIN_FLIP_FIRST_STAKE,payOut,place,earnings,buildBelt,beltCost,incomplete,
  floorStocked,itemsPerFloor,remaining,canOpenStore,FREE_BELT_PITCH,FREE_BELT_VECTORS,snapFreeCoordinate,freeBeltAt,placeFreeBelt,turnFreeBelt,takeFreeBelt,sellFreeBelt,deployFreeClaw,freeBeltConnected,completedFloors,crabEnabled,advanceCrab,performCrabSwing,CRAB_UNLOCK_FLOORS,CRAB_ATTACK_SECONDS,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
@@ -1283,7 +1283,6 @@ if(DEV_MODE){
     setCash(cents){s.money=Math.max(0,Math.floor(cents));updateSecretCoinOffer();uiUpdate();return s.money;},
     finishThirdFloor(){for(let id=2*CELLS_PER_FLOOR;id<3*CELLS_PER_FLOOR;id++){s.stocked+=SLOTS-s.fill[id];s.fill[id]=SLOTS;}updateSecretCoinOffer();return s.coinOffers.floor3.unlocked;},
     refresh(){updateSecretCoinOffer();return JSON.parse(JSON.stringify(s.coinOffers));},
-    flip(event,choice,unit){const result=resolveCoinFlip(s,event,choice,unit);if(result){save();uiUpdate();}return result;},
     accept(event,unit){const result=acceptCoinFlip(s,event,unit);if(result){save();uiUpdate();}return result;},
     decline(event){const ok=declineCoinFlip(s,event);if(ok)save();return ok;}
    },
