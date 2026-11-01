@@ -11,7 +11,7 @@ import {cartonTexture} from './textures.js';
 import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
- capacity,walkSpeed,price,skillAvailable,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
+ capacity,walkSpeed,price,skillAvailable,purchase,autoPlaceRobot,moveRobotFromMike,chooseRobotSpawnAisle,payOut,place,earnings,buildBelt,beltCost,incomplete,
  floorStocked,itemsPerFloor,remaining,canOpenStore,FREE_BELT_PITCH,FREE_BELT_VECTORS,snapFreeCoordinate,freeBeltAt,placeFreeBelt,turnFreeBelt,takeFreeBelt,sellFreeBelt,deployFreeClaw,freeBeltConnected,completedFloors,crabEnabled,advanceCrab,performCrabSwing,CRAB_UNLOCK_FLOORS,CRAB_ATTACK_SECONDS,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
@@ -19,9 +19,9 @@ const $=id=>document.getElementById(id);
 // Upgrade existing fifteen-floor saves by reindexing their old three-band shelves.
 const ORIGINAL_SAVE_DATA=localStorage.getItem(SAVE_KEY) || localStorage.getItem('mustacheMartV3');
 let s=loadState(ORIGINAL_SAVE_DATA);
-// Explicit opt-in dev mode: restore at least $500 in test cash without touching normal saves.
+// Explicit opt-in dev mode: restore at least $5,000 in test cash without touching normal saves.
 const DEV_MODE=location.hash==='#rich'||location.hash==='#dev';
-if(DEV_MODE)s.money=Math.max(s.money,50000);
+if(DEV_MODE)s.money=Math.max(s.money,500000);
 if(DEV_MODE){const banner=document.getElementById('devBanner');if(banner)banner.style.display='block';}
 fetch('./build.json',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(new Error('build manifest missing')))
 .then(build=>{
@@ -472,7 +472,12 @@ function makeUpgradeCard(u,view='economy'){
  btn.disabled=max||scrapRequired||s.money<cost||!unlocked||(['cart','ladderPlus'].includes(u.id)&&!s.levels.ladder);
  btn.addEventListener('click',()=>{
   if(!purchase(s,u.id))return;
-  if(u.id==='robot'){const bot=s.robots[s.robots.length-1];save();startRobotPlacement(bot.id);return;}
+  if(u.id==='robot'){
+   const bot=s.robots[s.robots.length-1];
+   buildWorld();save();renderShop();uiUpdate();
+   notify('STOCKER #'+bot.id+' spawned on '+floorLabel(bot.floor)+' · AISLE '+(bot.aisle+1)+' · Manage its placement in Mike’s robot pad.');
+   return;
+  }
   if(['cart','ladderPlus','robotLift'].includes(u.id))buildWorld();
   if(u.id==='itemClaw')notify('Item claw purchased. Stand by a conveyor outlet and press K to install it.');
   else notify('UPGRADE INSTALLED · '+u.name+' · Level '+s.levels[u.id]);
@@ -590,10 +595,9 @@ function renderShop(){
     const name=document.createElement('strong');
     name.textContent='Stocker #'+r.id+' · '+(r.wrecked?'CRAB DESTROYED · SELL REQUIRED · ':r.broken?'REPAIR NEEDED · ':'')+(r.placed?floorLabel(r.floor)+' / Aisle '+(r.aisle+1):'Pending placement')+' · '+(r.stockedSinceService||0)+' stocked since service';
     item.append(name);const buttons=document.createElement('div');buttons.className='robotActions';
-    const relocate=document.createElement('button');relocate.textContent=r.placed?'Move / redeploy':'Deploy';
+    const relocate=document.createElement('button');relocate.textContent='Move to chosen floor / aisle';
     relocate.disabled=!!r.wrecked;
- relocate.title=r.wrecked?'Irreparable crab damage: sell and purchase a new robot.':'';
- relocate.addEventListener('click',()=>startRobotPlacement(r.id));
+    relocate.title=r.wrecked?'Irreparable crab damage: sell and purchase a new robot.':'Instantly move the robot using Mike’s control panel.';
     const sell=document.createElement('button');sell.textContent=(r.wrecked?'Scrap 25% · ':'Sell 50% · ')+centsText(Math.floor(r.paid*(r.wrecked?.25:.5)));
     sell.addEventListener('click',()=>{sellRobot(s,r.id);buildWorld();save();renderShop();uiUpdate();});
     const chooser=document.createElement('select');chooser.setAttribute('aria-label','Choose aisle for stocker '+r.id);
@@ -603,13 +607,21 @@ function renderShop(){
      chooser.append(option);
     }
     chooser.disabled=!!r.wrecked;
- chooser.addEventListener('change',()=>{
-     if(setRobotAisle(s,r.id,Number(chooser.value))){
-      notify('Stocker #'+r.id+' assigned to Aisle '+(Number(chooser.value)+1)+'. Next unfinished aisle follows automatically.');
-      save();renderShop();
-     }
+    const floorChooser=document.createElement('select');floorChooser.setAttribute('aria-label','Choose floor for stocker '+r.id);
+    for(let f=0;f<FLOORS;f++){
+      const option=document.createElement('option');option.value=String(f);
+      option.textContent='Floor '+String(f+1).padStart(2,'0');option.selected=f===r.floor;
+      floorChooser.append(option);
+    }
+    floorChooser.disabled=!!r.wrecked;
+    relocate.addEventListener('click',()=>{
+      const f=Number(floorChooser.value),a=Number(chooser.value);
+      if(moveRobotFromMike(s,r.id,f,a)){
+        buildWorld();save();renderShop();uiUpdate();
+        notify('Mike dispatched stocker #'+r.id+' to '+floorLabel(f)+' / AISLE '+(a+1)+'.');
+      }
     });
-    item.append(chooser);
+    item.append(floorChooser,chooser);
     buttons.append(relocate,sell);item.append(buttons);list.append(item);
    }
   }
@@ -1030,8 +1042,8 @@ function showSaveOrigin(){
  const locationLabel=location.protocol+'//'+location.host;
  status.textContent='THIS BROWSER SAVE · '+locationLabel+' · '+s.stocked.toLocaleString()+' products stocked · '+totalRanks+' total upgrade ranks · '+centsText(s.money)+' cash. '+(!ORIGINAL_SAVE_DATA?'No previous saved game was found at this browser address. Your older skills may still be on another port (8000 or 8011), or in another browser.':'Your progress was loaded from this browser address.');
  const btn=$('devEnable');
- btn.textContent=DEV_MODE?'Refill developer cash to $500':'Enable $500 Developer Mode';
- $('devStatus').textContent=DEV_MODE?'Developer Mode ON · Refill this account to at least $500 whenever needed.':'Developer Mode OFF · Enable without losing existing shelf or skill progress.';
+ btn.textContent=DEV_MODE?'Refill developer cash to $5,000':'Enable $5,000 Developer Mode';
+ $('devStatus').textContent=DEV_MODE?'Developer Mode ON · Refill this account to at least $5,000 whenever needed.':'Developer Mode OFF · Enable without losing existing shelf or skill progress.';
 }
 $('devEnable').addEventListener('click',()=>{
  if(!DEV_MODE){
@@ -1041,7 +1053,7 @@ $('devEnable').addEventListener('click',()=>{
   return;
  }
  const previous=s.money;
- s.money=Math.max(s.money,50000);
+ s.money=Math.max(s.money,500000);
  save();uiUpdate();showSaveOrigin();
  notify(s.money===previous?'Developer funds ready · '+centsText(s.money):'Developer account refilled to '+centsText(s.money));
 });
@@ -1074,7 +1086,7 @@ $('saveImportFile').addEventListener('change',async e=>{
   // Update the live state before reloading, because beforeunload calls save().
   // Otherwise that handler could overwrite the imported backup with old data.
   s=restored;
-  if(DEV_MODE)s.money=Math.max(s.money,50000);
+  if(DEV_MODE)s.money=Math.max(s.money,500000);
   save();
   status.textContent='Save imported. Reloading your game…';
   location.reload();
