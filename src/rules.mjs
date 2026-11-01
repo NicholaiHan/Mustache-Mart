@@ -580,6 +580,8 @@ export function drivePlatform(s,forward,side,dt,canTravel=null){
  let targetAisle=c.aisle;
  if(c.z>92&&Math.abs(side)>0.2){targetAisle=Math.max(0,Math.min(AISLES-1,c.aisle+Math.sign(side)));}
  if(nz<bayZ(0)-1||nz>94)return false;
+ // Individually purchased lifts must not drive through one another.
+ if((s.platforms||[]).some(p=>p.id!==c.id&&p.floor===c.floor&&Math.hypot(aisleX(p.aisle)-aisleX(targetAisle),p.z-nz)<1.9))return false;
  if(canTravel&&!canTravel(aisleX(targetAisle),nz))return false;
  c.aisle=targetAisle;c.z=nz;
  return true;
