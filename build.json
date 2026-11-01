@@ -1,6 +1,6 @@
 {
-  "version": "2026.11.01.3",
-  "name": "Integrated Windows, Developer Crab Controls, Robot Lift Safety and Industrial Hardware",
+  "version": "2026.11.01.4",
+  "name": "Save Recovery, Wider Store and Crab Aisles, Clean Recessed Window Walls",
   "build_date": "2026-11-01",
   "includes": [
     "Robot Mike with white eyes and mustache",
@@ -15,6 +15,10 @@
     "Robot top shelf requires motorized automatic robot ladder; next-highest shelf requires an installed extended tall ladder",
     "Player-operated machine platform ladders can now drive between aisles and freely around open store floor",
     "True cut-out light-blue windows recessed flush into structural wall openings rather than attached surface entities",
+    "Non-destructive browser save recovery screen for archived legacy progress, rolling backup snapshots and previous host/port combinations",
+    "30-percent wider rendered supermarket and aisles, with original saved logical shelf, bot and conveyor positions preserved",
+    "Narrowed crab footprint and widened path clearance so giant moving crab visibly patrols aisles without clipping racks",
+    "Wall panels, side rails, pipe conduits and mechanical vent hardware lowered beneath clerestory window openings",
     "Dev-only crab spawn, removal, and normal unlock controls, plus Shift J/K/N keyboard shortcuts, without affecting standard saves",
     "Top robot shelves require purchased motorized robot lift at both target selection and final stocking; manual tall ladders cannot bypass",
     "Industrial pipe saddle hangers, instanced machined screws, duct service hatches, vent fans, metal brackets and column junction plates",
