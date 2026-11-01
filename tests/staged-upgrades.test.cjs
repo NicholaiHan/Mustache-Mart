@@ -444,100 +444,190 @@ test('new stage: 30 automatic robot dispatch, least-crowded fallback and Mike mo
  });
 });
 
-test('hidden coin flip stage 1: 30 exact $3,000 wagers, fair sides, deferrals, and save continuity',()=>{
- const rules=source('rules.mjs');
- assert.match(rules,/COIN_FLIP_FIRST_STAKE=300000/);
+test('yes/no coin gamble: 30 first-$3000 win, loss, decline and reload cases',()=>{
  simulate(i=>{
-  const s=r.newState();
-  s.money=299999;
+  const s=r.newState();s.money=299999;
   assert.deepEqual(r.refreshCoinOffers(s),[]);
-  s.money=300000+(i%3)*50000;
+  s.money=300000+(i%3)*45000;
   assert.deepEqual(r.refreshCoinOffers(s),['cash']);
   assert.equal(r.coinFlipStake(s,'cash'),300000);
   assert.equal(r.coinFlipStake(s,'floor3'),0);
-  assert.equal(r.markCoinOfferSeen(s,'cash'),true);
-  const deferred=r.loadState(r.serialize(s));
-  assert.equal(deferred.coinOffers.cash.seen,true);
-  assert.equal(deferred.coinOffers.cash.played,false);
-  deferred.money=299999;
-  assert.equal(r.coinFlipStake(deferred,'cash'),0,'no first flip without the original $3k cash currently held');
-  assert.equal(r.resolveCoinFlip(deferred,'cash','heads',0),null,'a rejected attempt cannot count as played');
-  deferred.money=s.money;
-  const winning=i%2===0,choice=i%3===0?'heads':'tails';
-  const unit=winning?(choice==='heads'?.2:.8):(choice==='heads'?.8:.2);
-  const before=deferred.money;
-  const result=r.resolveCoinFlip(deferred,'cash',choice,unit);
-  assert.equal(result.won,winning);
-  assert.equal(result.stake,300000);
-  assert.equal(result.landed,choice==='heads'?(winning?'heads':'tails'):(winning?'tails':'heads'));
-  assert.equal(deferred.money,before+(winning?300000:-300000));
-  assert.equal(r.coinFlipStake(deferred,'cash'),0,'no repeat offers or wagers');
-  assert.equal(r.resolveCoinFlip(deferred,'cash',choice,.2),null);
-  const loaded=r.loadState(r.serialize(deferred));
-  assert.equal(loaded.money,deferred.money);
-  assert.equal(loaded.coinOffers.cash.played,true);
-  assert.deepEqual(loaded.coinOffers.cash.result,deferred.coinOffers.cash.result);
-  assert.equal(r.resolveCoinFlip(loaded,'cash','tails',.9),null,'reloading cannot redo used bet');
+  if(i%3===0){
+   assert.equal(r.declineCoinFlip(s,'cash'),true);
+   assert.equal(r.coinFlipStake(s,'cash'),0);
+   assert.equal(r.acceptCoinFlip(s,'cash',.2),null);
+   const loaded=r.loadState(r.serialize(s));
+   assert.equal(loaded.coinOffers.cash.declined,true);
+   assert.equal(r.declineCoinFlip(loaded,'cash'),false);
+   assert.equal(r.refreshCoinOffers(loaded).length,0);
+  }else{
+   assert.equal(r.markCoinOfferSeen(s,'cash'),true);
+   const unloaded=r.loadState(r.serialize(s));
+   assert.equal(unloaded.coinOffers.cash.played,false);
+   // Closing a browser cannot be a backdoor permanent decision.
+   unloaded.money=299999;
+   assert.equal(r.acceptCoinFlip(unloaded,'cash',.2),null);
+   unloaded.money=s.money;
+   const before=unloaded.money,won=i%2===0;
+   const result=r.acceptCoinFlip(unloaded,'cash',won?.1:.9);
+   assert.equal(result.stake,300000);
+   assert.equal(result.won,won);
+   assert.equal(unloaded.money,before+(won?300000:-300000));
+   assert.equal(r.acceptCoinFlip(unloaded,'cash',.2),null,'only one spin allowed');
+   const loaded=r.loadState(r.serialize(unloaded));
+   assert.equal(loaded.money,unloaded.money);
+   assert.equal(loaded.coinOffers.cash.played,true);
+   assert.equal(r.coinFlipStake(loaded,'cash'),0);
+  }
  });
 });
-test('hidden coin flip stage 2: 30 Floor 3 all-in cash wagers and no duplicate milestone offers',()=>{
+test('yes/no coin gamble: 30 all-in Floor 3 win, loss, and permanent NO cases',()=>{
  simulate(i=>{
-  const s=r.newState();
-  s.money=1200+(i*7100);
-  assert.deepEqual(r.refreshCoinOffers(s),[]);
-  const f=2,base=f*r.CELLS_PER_FLOOR;
+  const s=r.newState();s.money=1200+i*7100;
+  const base=2*r.CELLS_PER_FLOOR;
   s.fill.fill(r.SLOTS,base,base+r.CELLS_PER_FLOOR-1);
   s.stocked=(r.CELLS_PER_FLOOR-1)*r.SLOTS;
-  assert.deepEqual(r.refreshCoinOffers(s),[],'Floor 3 must actually be complete, not 99.9%');
-  s.fill[base+r.CELLS_PER_FLOOR-1]=r.SLOTS;
-  s.stocked+=r.SLOTS;
+  assert.deepEqual(r.refreshCoinOffers(s),[],'99.9% is not complete');
+  s.fill[base+r.CELLS_PER_FLOOR-1]=r.SLOTS;s.stocked+=r.SLOTS;
   assert.deepEqual(r.refreshCoinOffers(s),['floor3']);
-  assert.equal(r.refreshCoinOffers(s).length,0,'single milestone');
-  assert.equal(r.coinFlipStake(s,'floor3'),s.money);
-  assert.equal(r.markCoinOfferSeen(s,'floor3'),true);
-  const saved=r.loadState(r.serialize(s));
-  assert.equal(saved.coinOffers.floor3.seen,true);
-  const original=saved.money;
-  const win=i%2===0;
-  const landed=win?.25:.75;
-  const result=r.resolveCoinFlip(saved,'floor3','heads',landed);
-  assert.equal(result.stake,original);
-  assert.equal(result.won,win);
-  assert.equal(saved.money,win?original*2:0);
-  assert.equal(r.coinFlipStake(saved,'floor3'),0);
-  assert.equal(r.resolveCoinFlip(saved,'floor3','heads',.25),null,'one-time all-in');
-  const restored=r.loadState(r.serialize(saved));
-  assert.equal(restored.money,saved.money);
-  assert.equal(restored.coinOffers.floor3.played,true);
-  // A $3k cash offer can still unlock later: both milestones are independent.
-  restored.money=300000;
-  assert.deepEqual(r.refreshCoinOffers(restored),['cash']);
-  assert.equal(r.coinFlipStake(restored,'cash'),300000);
+  if(i%3===0){
+   const original=s.money;
+   assert.equal(r.declineCoinFlip(s,'floor3'),true);
+   assert.equal(s.money,original);
+   assert.equal(r.acceptCoinFlip(s,'floor3',.1),null);
+   assert.equal(r.loadState(r.serialize(s)).coinOffers.floor3.declined,true);
+  }else{
+   const original=s.money;
+   s.money=0;
+   assert.equal(r.acceptCoinFlip(s,'floor3',.1),null,'zero bankroll cannot flip');
+   s.money=original;
+   const win=i%2===0,result=r.acceptCoinFlip(s,'floor3',win?.25:.75);
+   assert.equal(result.stake,original);
+   assert.equal(result.won,win);
+   assert.equal(s.money,win?2*original:0);
+   assert.equal(r.acceptCoinFlip(s,'floor3',.8),null);
+   assert.equal(r.loadState(r.serialize(s)).coinOffers.floor3.played,true);
+  }
  });
 });
-test('hidden coin flip stage 3: 30 all-in balance changes, zero-cash gating, and invalid inputs',()=>{
+test('yes/no coin gamble: 30 safe threshold, invalid random input, legacy save and two-offer independence checks',()=>{
  simulate(i=>{
   const s=r.newState();s.money=300000;
-  r.refreshCoinOffers(s);
-  const first=r.resolveCoinFlip(s,'cash','heads',.1);
-  assert.equal(s.money,600000);
+  assert.deepEqual(r.refreshCoinOffers(s),['cash']);
+  const rejected=r.acceptCoinFlip(s,'cash',1);
+  assert.equal(rejected,null);
+  assert.equal(s.coinOffers.cash.played,false);
+  assert.equal(r.acceptCoinFlip(s,'cash',-.1),null);
+  const first=r.acceptCoinFlip(s,'cash',.05);
   assert.equal(first.won,true);
-  // Flip #2 stakes the balance WHEN accepted, not when Floor 3 was unlocked.
-  const b=2*r.CELLS_PER_FLOOR;s.fill.fill(r.SLOTS,b,b+r.CELLS_PER_FLOOR);s.stocked=r.itemsPerFloor;
+  assert.equal(s.money,600000);
+  const base=2*r.CELLS_PER_FLOOR;
+  s.fill.fill(r.SLOTS,base,base+r.CELLS_PER_FLOOR);s.stocked=r.itemsPerFloor;
   assert.deepEqual(r.refreshCoinOffers(s),['floor3']);
-  s.money=0;
-  assert.equal(r.coinFlipStake(s,'floor3'),0);
-  assert.equal(r.resolveCoinFlip(s,'floor3','heads',.1),null);
-  s.money=7000+i;
-  assert.equal(r.resolveCoinFlip(s,'floor3','sideways',.5),null,'must pick heads or tails');
-  assert.equal(r.resolveCoinFlip(s,'floor3','heads',1),null,'unit random value must be < 1');
-  assert.equal(r.resolveCoinFlip(s,'floor3','heads',-1),null,'unit random value must be nonnegative');
-  const stake=s.money;
-  const result=r.resolveCoinFlip(s,'floor3','tails',i%2?.2:.8);
-  assert.equal(result.stake,stake);
+  s.money=7500+i;const stake=s.money;
+  const second=r.acceptCoinFlip(s,'floor3',i%2?.82:.12);
+  assert.equal(second.stake,stake);
   assert.equal(s.money,i%2?0:stake*2);
-  assert.equal(r.coinFlipStake(s,'floor3'),0);
-  assert.equal(r.loadState(r.serialize(s)).coinOffers.floor3.played,true);
+  const reloaded=r.loadState(r.serialize(s));
+  assert.equal(reloaded.coinOffers.cash.played,true);
+  assert.equal(reloaded.coinOffers.floor3.played,true);
+  assert.equal(reloaded.money,s.money);
+  assert.equal(r.refreshCoinOffers(reloaded).length,0);
+  const legacy=JSON.parse(r.serialize(s));delete legacy.coinOffers;
+  const recovered=r.loadState(JSON.stringify(legacy));
+  assert.equal(recovered.coinOffers.cash.played,false);
+  assert.equal(recovered.coinOffers.floor3.played,false);
+ });
+});
+test('receiving A: 30 removed signs and grounded portal regression checks',()=>{
+ const env=source('environment.js');
+ assert.doesNotMatch(env,/textLabel\('DOCK 01/);
+ assert.match(env,/R\(\.36,8\.03,\.43,steel,xx,4\.015,95\)/);
+ assert.match(env,/receivingSupplyPortal/);
+ simulate(i=>{
+  const s=r.newState();s.floor=i%r.FLOORS;
+  assert.equal(r.loadState(r.serialize(s)).floor,s.floor);
+ });
+});
+test('receiving B: 30 rotated wall, stacked boxed inventory, and clear pickup checks',()=>{
+ const env=source('environment.js'),coll=source('collision.mjs');
+ assert.match(env,/receivingRack=round\(\.65,4\.25,5\.0/);
+ assert.match(env,/receivingBackroomCartons/);
+ assert.match(env,/cardboardLight/);
+ assert.match(coll,/Receiving rotated warehouse divider/);
+ simulate(i=>{
+  const s=r.newState();s.floor=i%r.FLOORS;
+  assert.equal(r.loadState(r.serialize(s)).floor,s.floor);
+ });
+});
+test('elevator redesign: 30 floor navigation, full directory and completion display checks',()=>{
+ const html=fs.readFileSync(path.resolve(__dirname,'../index.html'),'utf8');
+ const game=source('game.js');
+ assert.match(html,/elevatorSymbol/);
+ assert.match(html,/elevatorOverview/);
+ assert.match(html,/elevatorFloor/);
+ assert.doesNotMatch(html,/<h2 id="elevatorTitle">🛗/);
+ assert.match(game,/floorBar/);
+ simulate(i=>{
+  const s=r.newState();s.floor=i%r.FLOORS;
+  const f=i%r.FLOORS,base=f*r.CELLS_PER_FLOOR;
+  s.fill.fill(r.SLOTS,base,base+r.CELLS_PER_FLOOR);
+  s.stocked=r.itemsPerFloor;
+  const loaded=r.loadState(r.serialize(s));
+  assert.equal(loaded.floor,f);
+  assert.equal(r.floorStocked(loaded,f),r.itemsPerFloor);
+ });
+});
+test('conveyor interpolation: 30 real cargo-event conservation and corner-routing checks',()=>{
+ const game=source('game.js');
+ assert.match(game,/enqueueBeltVisualTransfer/);
+ assert.match(game,/updateFlyingCartons/);
+ assert.match(game,/movingRealConveyorCarton/);
+ simulate(i=>{
+  const s=r.newState();s.money=1e6;
+  const f=i%r.FLOORS,a=i%r.AISLES;
+  const first=r.placeFreeBelt(s,f,48.35,92.75,1),next=r.placeFreeBelt(s,f,51,92.75,2);
+  assert.ok(first&&next);first.items=2;
+  const events=[];
+  r.advanceBelts(s,1.1,e=>events.push(e));
+  assert.ok(events.some(e=>e.type==='free'&&e.fromId===first.id&&e.toId===next.id));
+  assert.equal(first.items+next.items,2);
+  assert.equal(r.loadState(r.serialize(s)).freeBelts.reduce((sum,b)=>sum+b.items,0),2);
+  // Event-callback frame interpolation is purely cosmetic and never alters stocks.
+  assert.equal(events.filter(e=>e.type==='free').length,1);
+ });
+});
+test('robot ladder gating: 30 tall-ladder and exclusive auto-top-shelf cases',()=>{
+ simulate(i=>{
+  const s=r.newState();s.money=100000;
+  const bot=r.hireRobot(s,250,true),f=i%r.FLOORS,a=i%r.AISLES,b=11+i%8;
+  const t2=r.cellId(f,a,0,b,2),top=r.cellId(f,a,0,b,3);
+  assert.equal(r.robotCanReach(s,bot,t2),false);
+  assert.equal(r.robotCanReach(s,bot,top),false);
+  r.purchase(s,'ladder');r.purchase(s,'ladderPlus');
+  assert.equal(r.robotCanReach(s,bot,t2),false,'owning but not deploying a ladder is insufficient');
+  const ladder=r.deployLadder(s,f,a,b);assert.ok(ladder);
+  assert.equal(r.robotCanReach(s,bot,t2),true);
+  assert.equal(r.robotCanReach(s,bot,top),false,'tall manual ladder cannot unlock top tier');
+  s.levels.robotLift=1;
+  assert.equal(r.robotCanReach(s,bot,top),true);
+  const restored=r.loadState(r.serialize(s));
+  assert.equal(r.robotCanReach(restored,restored.robots[0],top),true);
+ });
+});
+test('platform freedom: 30 cross-aisle, between-aisle, and preserved-X tests',()=>{
+ simulate(i=>{
+  const s=r.newState();s.money=100000;r.purchase(s,'ladder');r.purchase(s,'cart');
+  const p=s.platforms[0];r.selectPlatform(s,p.id);
+  const x=p.x;
+  assert.equal(r.drivePlatform(s,0,1,.8,()=>true),true);
+  assert.ok(p.x>x,'platform moves across aisle center, not only at rear');
+  assert.equal(r.drivePlatform(s,0,-1,.4,()=>false),false,'obstacles prevent side movement');
+  assert.equal(r.drivePlatform(s,1,0,.5,()=>true),true);
+  const loaded=r.loadState(r.serialize(s));
+  assert.equal(loaded.platforms[0].x,p.x);
+  assert.equal(loaded.platforms[0].z,p.z);
+  assert.equal(loaded.cart.id,p.id);
  });
 });
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
