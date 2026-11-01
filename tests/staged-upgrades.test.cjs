@@ -85,7 +85,14 @@ test('stage 5: 30 robot breakdown + manual repair simulations',()=>{
   for(let j=0;j<12&&!bot.broken;j++)r.botStep(s,bot,1);
   assert.equal(bot.broken,true);
   const old=s.stocked;r.botStep(s,bot,10);assert.equal(s.stocked,old);
-  for(let j=0;j<4;j++)assert.equal(r.repairRobot(s,bot.id),true);
+  assert.equal(r.repairRobot(s,bot.id,2),true);
+  assert.equal(bot.broken,true);
+  assert.ok(bot.repairProgress>=2);
+  assert.equal(r.resetRobotRepair(s,bot.id),true);
+  assert.equal(bot.repairProgress,0,'releasing E cancels partial repairs');
+  for(let j=0;j<59;j++)assert.equal(r.repairRobot(s,bot.id,.1),true);
+  assert.equal(bot.broken,true,'5.9 seconds cannot repair');
+  assert.equal(r.repairRobot(s,bot.id,.1),true);
   assert.equal(bot.broken,false);assert.equal(bot.stockedSinceService,0);
   const loaded=r.loadState(r.serialize(s));
   assert.equal(loaded.robots[0].broken,false);
@@ -97,6 +104,28 @@ test('stage 5: 30 robot breakdown + manual repair simulations',()=>{
   if(level===4)assert.equal(n,Infinity);
   else assert.ok(n>=ranges[level][0]&&n<=ranges[level][1]);
  }
+});
+test('new stage: 30 uninterrupted six-second E-repair scenarios',()=>{
+ simulate(i=>{
+  const s=r.newState();s.money=1000;
+  const bot=r.hireRobot(s,250,true);bot.broken=true;
+  assert.equal(r.repairRobot(s,bot.id,0),false,'a single keydown cannot fix a bot');
+  assert.equal(r.repairRobot(s,bot.id,3),true);
+  assert.equal(bot.broken,true);
+  assert.equal(r.resetRobotRepair(s,bot.id),true);
+  assert.equal(bot.repairProgress,0);
+  for(let j=0;j<60;j++)assert.equal(r.repairRobot(s,bot.id,.1),true);
+  assert.equal(bot.broken,false);
+  assert.equal(bot.repairProgress,0);
+  assert.equal(r.repairRobot(s,bot.id,.1),false);
+  const loaded=r.loadState(r.serialize(s));
+  assert.equal(loaded.robots[0].broken,false);
+  const bot2=r.hireRobot(s,250,true);bot2.broken=true;bot2.repairProgress=4;
+  assert.equal(r.loadState(r.serialize(s)).robots[1].repairProgress,0,'reloading cannot continue an interrupted hold');
+  assert.ok(r.repairRange(s)>=3.2);
+  s.levels.repairTraining=i%4;
+  assert.ok(r.repairRange(s)>=3.2);
+ });
 });
 test('stage 6: 30 Mike-assigned aisle changes and next-aisle simulations',()=>{
  simulate(i=>{
