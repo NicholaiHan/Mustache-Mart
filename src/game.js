@@ -1383,6 +1383,10 @@ if(DEV_MODE){
    if(!Number.isInteger(floor)||floor<0||floor>=FLOORS)return false;
    s.floor=floor;buildWorld();V.x=31;V.z=-7;V.y=0;V.vy=0;return true;
   },
+  worldLayoutStats(){return {scaleX:world.scale.x,originX:world.position.x,
+   width:113*world.scale.x,aisleSeparation:(toWideX(aisleX(1))-toWideX(aisleX(0))),
+   totalStocked:s.stocked,savedAisleX:aisleX(9),
+   crabWidthScale:crabModel?.scale.x??null,crabVisible:!!crabModel};},
   architectureStats(){
    let windows=0,cutWallSections=0,screws=0,vents=0,pipeBrackets=0,freeWindowOverlays=0;
    world.traverse(object=>{
