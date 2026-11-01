@@ -1,6 +1,6 @@
 {
-  "version": "2026.11.01.2",
-  "name": "Grounded Receiving, Yes-No Coin Choice, Premium Elevator and Smoother Logistics",
+  "version": "2026.11.01.3",
+  "name": "Integrated Windows, Developer Crab Controls, Robot Lift Safety and Industrial Hardware",
   "build_date": "2026-11-01",
   "includes": [
     "Robot Mike with white eyes and mustache",
@@ -14,6 +14,10 @@
     "Seamlessly tweened genuine conveyor carton transfer animations across belt sections and corners without changing inventory counts",
     "Robot top shelf requires motorized automatic robot ladder; next-highest shelf requires an installed extended tall ladder",
     "Player-operated machine platform ladders can now drive between aisles and freely around open store floor",
+    "True cut-out light-blue windows recessed flush into structural wall openings rather than attached surface entities",
+    "Dev-only crab spawn, removal, and normal unlock controls, plus Shift J/K/N keyboard shortcuts, without affecting standard saves",
+    "Top robot shelves require purchased motorized robot lift at both target selection and final stocking; manual tall ladders cannot bypass",
+    "Industrial pipe saddle hangers, instanced machined screws, duct service hatches, vent fans, metal brackets and column junction plates",
     "Sky-blue glazed windows and brighter front entrance/payroll glass with decorative shafts of daylight",
     "Two secret one-time 50/50 coin-flip offers: $3,000 fixed stake at first cash milestone, and entire current bank balance when Floor 3 is completed",
     "Gold coin popups, choose heads/tails, postpone and reopen offers, with persistent fair outcomes that cannot be replayed",
