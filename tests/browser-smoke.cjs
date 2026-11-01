@@ -76,9 +76,9 @@ const assert=require('node:assert/strict');
   console.log('PASS: all 15 floors show one unique framed Mustache Mike employee painting');
 
 
-  assert.equal(await page.evaluate(()=>window.__martTest.snapshot().money),50000,'development account starts with precisely $500');
+  assert.equal(await page.evaluate(()=>window.__martTest.snapshot().money),500000,'development account starts with precisely $5,000');
   assert.equal(await page.evaluate(()=>window.__martTest.snapshot().checkoutCount),4,'four real checkout stations on floor 1');
-  console.log('PASS: game renders fifteen-floor store with $500 developer account and four checkout lanes');
+  console.log('PASS: game renders fifteen-floor store with $5,000 developer account and four checkout lanes');
 
   // Exercise real portable save download and import on the game's local origin.
   const downloadStarted=page.waitForEvent('download',{timeout:20000});
@@ -87,15 +87,15 @@ const assert=require('node:assert/strict');
   const saved=JSON.parse(fs.readFileSync(await saveDownload.path(),'utf8'));
   assert.equal(saved.version,4,'exported save has compatible format');
   assert.ok(Array.isArray(saved.fill)&&saved.fill.length>10000,'export includes entire fifteen-floor progress');
-  saved.money=50123;
+  saved.money=500123;
   page.once('dialog',dialog=>dialog.accept());
   const importedReload=page.waitForEvent('load',{timeout:45000});
   await page.locator('#saveImportFile').setInputFiles({name:'mustache-mart-test.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(saved))});
   await importedReload;
-  await page.waitForFunction(()=>window.__martTest?.snapshot().money===50123&&document.querySelector('#loading')?.hidden,undefined,{timeout:45000});
-  assert.equal(await page.evaluate(()=>window.__martTest.snapshot().money),50123,'imported money persists across beforeunload and reload');
+  await page.waitForFunction(()=>window.__martTest?.snapshot().money===500123&&document.querySelector('#loading')?.hidden,undefined,{timeout:45000});
+  assert.equal(await page.evaluate(()=>window.__martTest.snapshot().money),500123,'imported money persists across beforeunload and reload');
   await page.locator('#devEnable').click();
-  assert.ok((await page.evaluate(()=>window.__martTest.snapshot().money))>=50000,'developer refill keeps at least $500');
+  assert.ok((await page.evaluate(()=>window.__martTest.snapshot().money))>=500000,'developer refill keeps at least $5,000');
   assert.equal(await page.locator('#intro').isVisible(),true);
   console.log('PASS: exported save downloads and confirmed import persists through reload without overwrite');
 
@@ -125,7 +125,7 @@ const assert=require('node:assert/strict');
   await page.keyboard.press('e');await page.waitForTimeout(250);
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.pending,0);
-  assert.ok(snap.money>=50001);
+  assert.ok(snap.money>=500001);
   // Receipt popup may have auto-dismissed during a slow GPU frame; payment and amount are authoritative.
   assert.equal(await page.locator('#receiptAmount').textContent(),'$0.01');
   console.log('PASS: physical pay-window converts unsettled wages into money with professional receipt');
@@ -182,32 +182,38 @@ const assert=require('node:assert/strict');
   await page.keyboard.press('Escape');
   await page.waitForFunction(()=>!document.querySelector('#shop').classList.contains('open'));
 
-  // Purchased robots are NOT automatically active: left click an aisle position.
-  await page.evaluate(()=>window.__martTest.teleport(1.5,-4.1));
-  await page.keyboard.press('e');
-  await page.locator('#shop.open').waitFor();
-  await page.locator('#tab-tools').click();
-  await page.locator('#shopitems .upgrade').filter({hasText:'Mustache Stocker Bot'}).first().locator('button').first().click();
-  await page.waitForFunction(()=>!document.querySelector('#shop').classList.contains('open'));
-  assert.equal(await page.evaluate(()=>window.__martTest.snapshot().placementRobotId!==null),true);
-  // Aim the placement ray at a clear floor tile, not at shelving or a checkout.
-  await page.evaluate(()=>{window.__martTest.teleport(8,60.7);window.__martTest.setLook(0,-.6);});
-  await page.waitForTimeout(250);
-  await page.mouse.move(640,400);
-  await page.mouse.click(640,400);
-  try{
-   await page.waitForFunction(()=>window.__martTest.snapshot().placementRobotId===null,undefined,{timeout:12000});
-  }catch(error){
-   console.error('ROBOT PLACEMENT DIAGNOSTICS:',JSON.stringify(await page.evaluate(()=>({snap:window.__martTest.snapshot(),message:document.querySelector('#toast')?.textContent}))));
-   throw error;
-  }
-  let robotSnap=await page.evaluate(()=>window.__martTest.snapshot());
-  assert.equal(robotSnap.robotCount,1);
-  console.log('PASS: Mike sells an independent robot, click-to-place activates it in chosen aisle');
-
+  // Purchased robots now spawn immediately into the first aisle that has no
+  // assigned robot. Mike's console can move them between floors and aisles.
   await page.evaluate(()=>window.__martTest.teleport(1.5,-4.1));
   await page.keyboard.press('e');await page.locator('#shop.open').waitFor();
   await page.locator('#tab-tools').click();
+  const buyBot=()=>page.locator('#shopitems .upgrade').filter({hasText:'Mustache Stocker Bot'}).first().locator('button').first();
+  await buyBot().click();
+  let robotSnap=await page.evaluate(()=>window.__martTest.snapshot());
+  assert.equal(robotSnap.robotCount,1);
+  assert.equal(robotSnap.placementRobotId,null,'purchasing no longer requires placing a hologram');
+  let active=await page.evaluate(()=>window.__martTest.robots());
+  assert.equal(active[0].placed,true);
+  assert.equal(active[0].floor,0);
+  assert.equal(active[0].homeAisle,0,'first auto-bot goes to Aisle 1');
+  await buyBot().click();
+  active=await page.evaluate(()=>window.__martTest.robots());
+  assert.equal(active.length,2);
+  assert.equal(active[1].homeAisle,1,'second robot goes to next robot-free aisle');
+  const manager=page.locator('#shopitems .toolManagement').filter({hasText:'Stocker #'+active[0].id}).first();
+  await manager.locator('select[aria-label^="Choose floor"]').selectOption('2');
+  await manager.locator('select[aria-label^="Choose aisle"]').selectOption('4');
+  await manager.locator('button').filter({hasText:'Move to chosen floor / aisle'}).click();
+  active=await page.evaluate(()=>window.__martTest.robots());
+  assert.equal(active[0].floor,2,'Mike can dispatch robot to Floor 3 without exiting the shop');
+  assert.equal(active[0].homeAisle,4,'Mike can dispatch robot to Aisle 5');
+  // Return to Floor 1 before the other first-floor gameplay checks.
+  const again=page.locator('#shopitems .toolManagement').filter({hasText:'Stocker #'+active[0].id}).first();
+  await again.locator('select[aria-label^="Choose floor"]').selectOption('0');
+  await again.locator('select[aria-label^="Choose aisle"]').selectOption('0');
+  await again.locator('button').filter({hasText:'Move to chosen floor / aisle'}).click();
+  assert.equal((await page.evaluate(()=>window.__martTest.robots()))[0].floor,0);
+  console.log('PASS: instant robot purchase, automatic vacant-aisle distribution, Mike floor/aisle moves');
   await page.locator('#shopitems .upgrade').filter({hasText:'Robot Espresso'}).first().locator('button').first().click();
   await page.locator('#shopitems .upgrade').filter({hasText:'Motorized Robot Ladder'}).first().locator('button').first().click();
   await page.locator('#shopitems .upgrade').filter({hasText:'Portable Step Ladder'}).first().locator('button').first().click();
