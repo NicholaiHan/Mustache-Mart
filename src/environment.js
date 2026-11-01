@@ -80,6 +80,79 @@ function buildShell(){
   const notice=textLabel(z===12?'SAFETY FIRST':z===44?'AISLE EQUIPMENT':'RECEIVING AHEAD',3.3,.55,'#e7e8df','#44554f',34,'interior');
   notice.position.set(101.9,3.8,z);notice.rotation.y=-Math.PI/2;add(notice);
  }
+ // Repeated perimeter-wall detailing echoes the overhead ducts and lighting.
+ // Thin, high-mounted pieces remain inside the wall boundary, so they never
+ // block shelves, checkout aisles, the left FIRE EXIT, or grand-opening doors.
+ const wallSteel=new THREE.MeshStandardMaterial({color:'#718584',metalness:.61,roughness:.40});
+ const wallInset=new THREE.MeshStandardMaterial({color:'#b0bcb5',metalness:.21,roughness:.68});
+ const conduitDark=new THREE.MeshStandardMaterial({color:'#445756',metalness:.51,roughness:.43});
+ const ventShadow=new THREE.MeshStandardMaterial({color:'#354a4a',metalness:.23,roughness:.68});
+ const lampLight=new THREE.MeshBasicMaterial({color:'#e8f1dc'});
+ for(const [side,x,sgn] of [['LEFT',-9.64,1],['RIGHT',102.64,-1]]){
+  // Steel service rails and horizontal wall-lighting spine, interrupted at the
+  // emergency egress on Floor 1. All rails are mounted above head height.
+  for(let z=4;z<=93;z+=7.8){
+   if(side==='LEFT'&&s.floor===0&&z>80&&z<90)continue;
+   for(const y of [5.65,12.1]){
+    const rail=round(.08,.085,7.85,wallSteel);
+    rail.position.set(x,y,z);
+   }
+   if(Math.floor(z/7.8)%2===0){
+    const diffuse=round(.055,.10,3.35,lampLight);
+    diffuse.position.set(x+sgn*.061,10.55,z+.25);
+    const lightFrame=round(.10,.18,3.52,conduitDark);
+    lightFrame.position.set(x-sgn*.01,10.55,z+.25);
+    // Prevent the mounting frame from hiding the luminous inner strip.
+    diffuse.position.x=x+sgn*.072;
+   }
+  }
+  // Recessed electrical/service panels, vents and exposed ceiling-to-wall
+  // conduit drops. Their dimensions are decorative, not collision obstacles.
+  for(const z of [19,39,59,92]){
+   if(side==='LEFT'&&s.floor===0&&z>80&&z<90)continue;
+   const spine=round(.07,7.65,.085,conduitDark);
+   spine.position.set(x,9.35,z);
+   for(const y of [6.6,8.65,10.7]){
+    const clamp=round(.11,.12,.23,wallSteel);
+    clamp.position.set(x+sgn*.035,y,z);
+   }
+   const box=round(.15,1.24,1.42,wallSteel);box.position.set(x,5.03,z);
+   const cover=round(.04,1.02,1.19,wallInset);
+   cover.position.set(x+sgn*.10,5.03,z);
+   const label=round(.023,.12,.57,conduitDark);
+   label.position.set(x+sgn*.134,5.35,z);
+   for(const offset of [-.45,.45]){
+    const fastener=round(.04,.055,.055,ventShadow);
+    fastener.position.set(x+sgn*.133,4.67,z+offset);
+   }
+  }
+  // High wall intake/exhaust grilles face the aisles and remain clear of
+  // the existing safety signs on the right-side wall.
+  for(const z of [28,69]){
+   const vent=round(.105,1.36,2.9,conduitDark);
+   vent.position.set(x,10.5,z);
+   const inset=round(.035,1.16,2.66,ventShadow);
+   inset.position.set(x+sgn*.09,10.5,z);
+   for(let n=0;n<7;n++){
+    const slat=round(.057,.052,2.48,wallSteel);
+    slat.position.set(x+sgn*.12,10.07+n*.143,z);
+   }
+  }
+ }
+ // Front-wall structural panels mirror the ceiling's repeated support beams;
+ // do not span the opening x=42.5..50.5 on the ground floor.
+ for(let x=4;x<=94;x+=12){
+  if(s.floor===0&&x>38&&x<54)continue;
+  const panel=round(5.9,2.8,.055,wallInset);
+  panel.position.set(x,10.9,-12.31);
+  const topTrim=round(6,.09,.095,wallSteel);
+  topTrim.position.set(x,12.32,-12.25);
+  for(const offset of [-2.82,2.82]){
+   const frame=round(.085,2.67,.10,wallSteel);
+   frame.position.set(x+offset,10.88,-12.25);
+  }
+ }
+
  // Ceiling infrastructure: sprinkler mains, segmented cable trays and diffuse luminaires.
  for(const x of [5,51,95]){
    const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.087,.087,107,10),
