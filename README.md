@@ -21,7 +21,7 @@ bash PLAY_LATEST_MAC.sh
 ```
 
 2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.31.9** and the introduction must list the new cash registers, Mike, ladders and fire exit.
-3. **Development mode** (the `#dev` suffix) gives **at least $5,000** for testing. The title screen also has a **Refill developer cash to $500** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
+3. **Development mode** (the `#dev` suffix) gives **at least $5,000** for testing. The title screen also has a **Refill developer cash to $5,000** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
 4. **Recovery:** Your skills and stocked shelves are saved by browser + exact host + port. The launcher now defaults to **8000**, where older saves are most likely. If you instead played on **8011**, run `PORT=8011 bash PLAY_LATEST_MAC.sh` and open `http://127.0.0.1:8011/#dev` in your original browser. Do not click Reset. Use **Download save backup** on the origin holding progress, then **Import save backup** on the origin you want to play from. The original save remains intact.
 
 If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.31.9** is shown.
