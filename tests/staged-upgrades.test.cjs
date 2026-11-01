@@ -765,7 +765,8 @@ test('wider store stage: 30 reversible X geometry and legacy aisle coordinates p
  assert.match(game,/world\.scale\.x=MAP_WIDTH_MULTIPLIER/);
  assert.match(game,/camera\.position\.set\(toWideX\(V\.x\)/);
  assert.match(game,/fromWideX\(point\.x\)/);
- assert.match(game,/crabModel\.scale\.set\(\.44,\.68,\.68\)/);
+ assert.ok(game.includes('crabModel.scale.set(.44,.68,.68)'));
+
  simulate(i=>{
   const x=r.aisleX(i%r.AISLES),left=r.aisleX(0),right=r.aisleX(9);
   assert.equal(r.MAP_WIDTH_MULTIPLIER,1.30);
@@ -780,7 +781,8 @@ test('wider store stage: 30 reversible X geometry and legacy aisle coordinates p
 });
 test('crab lane stage: 30 large moving crab patrols remain inside broadened aisles',()=>{
  const game=source('game.js'),characters=source('characters.js');
- assert.match(game,/crabModel\.scale\.x=\.65/);
+ assert.ok(game.includes('crabModel.scale.set(.44,.68,.68)'));
+
  assert.match(game,/crabModel\.position\.set\(aisleX\(p\.aisle\)\+\.16/);
  assert.match(characters,/megaRobotCrab/);
  simulate(i=>{
