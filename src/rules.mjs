@@ -44,7 +44,7 @@ export const UPGRADES=[
 export function cellId(f,a,side,bay,tier){return ((((f*AISLES+a)*2+side)*BAYS+bay)*TIERS+tier);}
 export function decode(id){const tier=id%TIERS;id=Math.floor(id/TIERS);const bay=id%BAYS;id=Math.floor(id/BAYS);const side=id%2;id=Math.floor(id/2);return {floor:Math.floor(id/AISLES),aisle:id%AISLES,side,bay,tier};}
 const limit=(v,max)=>Number.isFinite(Number(v))?Math.max(0,Math.min(max,Math.floor(Number(v)))):0;
-export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),freeBelts:[],freeBeltNextId:1,claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{id:0,floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},platforms:[],platformNextId:1,cursor:Array(FLOORS).fill(0),crab:{unlocked:false,elapsed:Array(FLOORS).fill(0),attacks:Array(FLOORS).fill(0),seed:0x8d129bb5,patrol:Array.from({length:FLOORS},(_,i)=>({aisle:i%AISLES,z:15})),recent:[]},coinOffers:{cash:{unlocked:false,seen:false,played:false,declined:false,result:null},floor3:{unlocked:false,seen:false,played:false,declined:false,result:null}}};}
+export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),freeBelts:[],freeBeltNextId:1,claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{id:0,floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},platforms:[],platformNextId:1,cursor:Array(FLOORS).fill(0),crab:{unlocked:false,devOverride:'auto',elapsed:Array(FLOORS).fill(0),attacks:Array(FLOORS).fill(0),seed:0x8d129bb5,patrol:Array.from({length:FLOORS},(_,i)=>({aisle:i%AISLES,z:15})),recent:[]},coinOffers:{cash:{unlocked:false,seen:false,played:false,declined:false,result:null},floor3:{unlocked:false,seen:false,played:false,declined:false,result:null}}};}
 export function loadState(text){
  const s=newState();if(!text)return s;
  try{
@@ -146,6 +146,7 @@ export function loadState(text){
  s.cart=s.platforms.find(c=>c.id===d.activePlatformId)||s.platforms[0]||s.cart;
  const crab=d.crab||{};
  s.crab.unlocked=!!crab.unlocked;
+ s.crab.devOverride=['on','off'].includes(crab.devOverride)?crab.devOverride:'auto';
  if(Array.isArray(crab.elapsed))for(let f=0;f<FLOORS;f++)s.crab.elapsed[f]=Math.max(0,Math.min(CRAB_ATTACK_SECONDS,Number(crab.elapsed[f])||0));
  if(Array.isArray(crab.attacks))for(let f=0;f<FLOORS;f++)s.crab.attacks[f]=limit(crab.attacks[f],1000000);
  s.crab.seed=(Number(crab.seed)>>>0)||0x8d129bb5;
@@ -587,7 +588,15 @@ export function takeBelt(s,f,a,segment=null){
 // Independent per-floor crab clocks run during active gameplay, even when the
 // player is on another floor. All randomness is seeded and persists in saves.
 export const completedFloors=s=>Array.from({length:FLOORS},(_,f)=>floorStocked(s,f)===itemsPerFloor).filter(Boolean).length;
-export function crabEnabled(s){
+// Developer-only appearance/raid override; auto keeps the genuine 7-floor
+// unlock intact. Regular mode ignores stored developer overrides entirely.
+export function setDeveloperCrab(s,mode){
+ if(!['on','off','auto'].includes(mode))return false;
+ s.crab.devOverride=mode;return true;
+}
+export function crabEnabled(s,developer=false){
+ if(developer&&s.crab.devOverride==='off')return false;
+ if(developer&&s.crab.devOverride==='on')return true;
  if(!s.crab.unlocked&&s.stocked>=CRAB_UNLOCK_FLOORS*itemsPerFloor&&completedFloors(s)>=CRAB_UNLOCK_FLOORS)s.crab.unlocked=true;
  return s.crab.unlocked;
 }
@@ -595,8 +604,8 @@ function crabRandom(s){
  let x=s.crab.seed>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;
  s.crab.seed=(x>>>0)||0x8d129bb5;return s.crab.seed;
 }
-export function performCrabSwing(s,f,aisle=null,bay=null){
- if(!crabEnabled(s)||f<0||f>=FLOORS||floorStocked(s,f)>=itemsPerFloor)return null;
+export function performCrabSwing(s,f,aisle=null,bay=null,developer=false){
+ if(!crabEnabled(s,developer)||f<0||f>=FLOORS||floorStocked(s,f)>=itemsPerFloor)return null;
  const a=aisle===null?crabRandom(s)%AISLES:Math.max(0,Math.min(AISLES-1,Math.floor(aisle)));
  const b=bay===null?4+crabRandom(s)%(BAYS-9):Math.max(1,Math.min(BAYS-2,Math.floor(bay)));
  let fallen=0;const destroyed=[];
@@ -628,16 +637,16 @@ export function performCrabSwing(s,f,aisle=null,bay=null){
  s.crab.recent.push(event);s.crab.recent=s.crab.recent.slice(-8);
  return event;
 }
-export function advanceCrab(s,seconds){
+export function advanceCrab(s,seconds,developer=false){
  if(!Number.isFinite(seconds)||seconds<=0)return [];
- if(!crabEnabled(s))return [];
+ if(!crabEnabled(s,developer))return [];
  const delta=Math.min(seconds,7200),events=[];
  for(let f=0;f<FLOORS;f++){
   if(floorStocked(s,f)>=itemsPerFloor)continue;
   s.crab.elapsed[f]+=delta;
   while(s.crab.elapsed[f]>=CRAB_ATTACK_SECONDS){
    s.crab.elapsed[f]-=CRAB_ATTACK_SECONDS;
-   const event=performCrabSwing(s,f);if(event)events.push(event);
+   const event=performCrabSwing(s,f,null,null,developer);if(event)events.push(event);
   }
   const p=s.crab.patrol[f],step=delta*.43;
   const cycle=2*(90-14),n=(p.z-14+step)%cycle;
