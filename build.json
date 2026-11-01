@@ -1,15 +1,16 @@
 {
-  "version": "2026.10.31.4",
-  "name": "Clear Aisle Signs, Multiple Platforms & Hold-to-Repair",
+  "version": "2026.10.31.5",
+  "name": "Seamless Conveyors, Clean Aisles & Industrial Wall Detail",
   "build_date": "2026-10-31",
   "includes": [
     "Robot Mike with white eyes and mustache",
     "Four powered cashier conveyors and payment terminals",
     "Mike behind desk and professional payroll window",
-    "Working stock conveyor delivery",
+    "Seamless industrial conveyor visuals with contiguous rubber surfaces, steel rails, end rollers and routing joints",
     "Physical ladder climbing (E/C + W/S)",
     "Click-to-deploy robots and separate robot upgrades",
     "Half-price robot, ladder and belt resale",
+    "Industrial perimeter wall detailing, recessed vents, safety lighting, conduit and service panels",
     "Single FIRE EXIT on first-floor back-left wall",
     "Grand-opening door locked until all 15 floors stocked",
     "One-click $500 development mode and cash refill, plus saved progress indicator",
@@ -38,7 +39,7 @@
     "Mike per-robot aisle selection and sequential move to next unfinished aisle",
     "Sell each placed claw for half cost by X or Mike",
     "Premium inward-opening left-wall FIRE EXIT, exposed staggered brickwork and refined elevator door",
-    "Removed overhead colored aisle flags, backplates and obstructing sign trims",
-    "Eight-stage, 30-simulation-per-stage regression suite"
+    "Removed elevated aisle-top flags while retaining main readable front aisle signs",
+    "Three 30-simulation visual-regression stages for conveyor continuity, aisle signage and walls"
   ]
 }
