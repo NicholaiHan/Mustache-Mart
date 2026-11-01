@@ -43,7 +43,7 @@ export const UPGRADES=[
 export function cellId(f,a,side,bay,tier){return ((((f*AISLES+a)*2+side)*BAYS+bay)*TIERS+tier);}
 export function decode(id){const tier=id%TIERS;id=Math.floor(id/TIERS);const bay=id%BAYS;id=Math.floor(id/BAYS);const side=id%2;id=Math.floor(id/2);return {floor:Math.floor(id/AISLES),aisle:id%AISLES,side,bay,tier};}
 const limit=(v,max)=>Number.isFinite(Number(v))?Math.max(0,Math.min(max,Math.floor(Number(v)))):0;
-export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{id:0,floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},platforms:[],platformNextId:1,cursor:Array(FLOORS).fill(0),crab:{unlocked:false,elapsed:Array(FLOORS).fill(0),attacks:Array(FLOORS).fill(0),seed:0x8d129bb5,patrol:Array.from({length:FLOORS},(_,i)=>({aisle:i%AISLES,z:15})),recent:[]}};}
+export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),freeBelts:[],freeBeltNextId:1,claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{id:0,floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},platforms:[],platformNextId:1,cursor:Array(FLOORS).fill(0),crab:{unlocked:false,elapsed:Array(FLOORS).fill(0),attacks:Array(FLOORS).fill(0),seed:0x8d129bb5,patrol:Array.from({length:FLOORS},(_,i)=>({aisle:i%AISLES,z:15})),recent:[]}};}
 export function loadState(text){
  const s=newState();if(!text)return s;
  try{
@@ -68,7 +68,7 @@ export function loadState(text){
  }
  if(Array.isArray(d.ladders))s.ladders=d.ladders.slice(0,50).map((l,i)=>({id:limit(l.id,1000000)||i+1,floor:limit(l.floor,FLOORS-1),aisle:limit(l.aisle,AISLES-1),bay:limit(l.bay,BAYS-1),x:aisleX(limit(l.aisle,AISLES-1)),z:bayZ(limit(l.bay,BAYS-1)),paid:limit(l.paid,100000),kind:l.kind==='ladderUnit'?'ladderUnit':'ladder'}));
  s.ladderNextId=Math.max(limit(d.ladderNextId,1000000)||1,...s.ladders.map(l=>l.id+1));
- s.claws=Array.isArray(d.claws)?d.claws.slice(0,40).map((c,i)=>({id:limit(c.id,1000000)||i+1,floor:limit(c.floor,FLOORS-1),aisle:limit(c.aisle,AISLES-1),bay:limit(c.bay,BAYS-1),x:Number.isFinite(c.x)?Number(c.x):aisleX(limit(c.aisle,AISLES-1))+2.1,z:Number.isFinite(c.z)?Number(c.z):bayZ(limit(c.bay,BAYS-1)),paid:limit(c.paid,100000),timer:0})):[];
+ s.claws=Array.isArray(d.claws)?d.claws.slice(0,40).map((c,i)=>({id:limit(c.id,1000000)||i+1,floor:limit(c.floor,FLOORS-1),aisle:limit(c.aisle,AISLES-1),bay:limit(c.bay,BAYS-1),x:Number.isFinite(c.x)?Number(c.x):aisleX(limit(c.aisle,AISLES-1))+2.1,z:Number.isFinite(c.z)?Number(c.z):bayZ(limit(c.bay,BAYS-1)),paid:limit(c.paid,100000),timer:0,freeBeltId:limit(c.freeBeltId,1000000)})):[];
  s.clawNextId=Math.max(limit(d.clawNextId,1000000)||1,...s.claws.map(c=>c.id+1));
  s.clawInventory=Array.isArray(d.clawInventory)?d.clawInventory.slice(0,40).map(x=>({paid:limit(x.paid,100000)})):[];
  s.stockPiles=Array.isArray(d.stockPiles)?d.stockPiles.slice(0,150).map(p=>({floor:limit(p.floor,FLOORS-1),aisle:limit(p.aisle,AISLES-1),x:Number(p.x)||aisleX(limit(p.aisle,AISLES-1)),z:Number(p.z)||bayZ(0),count:limit(p.count,100000),crabDebris:!!p.crabDebris})).filter(p=>p.count>0):[];
@@ -94,6 +94,9 @@ export function loadState(text){
   }
   s.beltStock[floor][aisle]=s.beltItems[floor][aisle].reduce((sum,v)=>sum+v,0);
  }
+ // New flexible floor conveyors are additive: old aisle conveyors remain intact.
+ if(Array.isArray(d.freeBelts))s.freeBelts=d.freeBelts.slice(0,1600).filter(b=>Number.isFinite(b?.x)&&Number.isFinite(b?.z)).map((b,i)=>({id:limit(b.id,1000000)||i+1,floor:limit(b.floor,FLOORS-1),x:Math.round(b.x/2.65)*2.65,z:Math.round(b.z/2.65)*2.65,dir:limit(b.dir,3),items:limit(b.items,BELT_CAPACITY),paid:limit(b.paid,100000)}));
+ s.freeBeltNextId=Math.max(limit(d.freeBeltNextId,1000000)||1,...s.freeBelts.map(b=>b.id+1));
  s.beltFlowTimer=Number.isFinite(d.beltFlowTimer)?
     Math.max(0,Math.min(BELT_MOVE_SECONDS,Number(d.beltFlowTimer))):0;
  const p=d.pallet||{};
@@ -151,7 +154,7 @@ export function loadState(text){
  }catch(_){return newState();}
  return s;
 }
-export function serialize(s){return JSON.stringify({version:4,money:s.money,pending:s.pending,floor:s.floor,fill:Array.from(s.fill),levels:s.levels,belts:s.belts,beltReceipts:s.beltReceipts,beltStock:s.beltStock,beltItems:s.beltItems,beltFlowTimer:s.beltFlowTimer,beltTimers:s.beltTimers,beltDirection:s.beltDirection,claws:s.claws,clawInventory:s.clawInventory,clawNextId:s.clawNextId,stockPiles:s.stockPiles,pallet:{...s.pallet,driving:false},ladderInventory:s.ladderInventory,ladders:s.ladders,ladderNextId:s.ladderNextId,robots:s.robots,robotNextId:s.robotNextId,cart:s.cart,platforms:s.platforms,platformNextId:s.platformNextId,activePlatformId:s.cart?.id,cursor:s.cursor,crab:s.crab});}
+export function serialize(s){return JSON.stringify({version:4,money:s.money,pending:s.pending,floor:s.floor,fill:Array.from(s.fill),levels:s.levels,belts:s.belts,beltReceipts:s.beltReceipts,beltStock:s.beltStock,beltItems:s.beltItems,beltFlowTimer:s.beltFlowTimer,beltTimers:s.beltTimers,beltDirection:s.beltDirection,freeBelts:s.freeBelts,freeBeltNextId:s.freeBeltNextId,claws:s.claws,clawInventory:s.clawInventory,clawNextId:s.clawNextId,stockPiles:s.stockPiles,pallet:{...s.pallet,driving:false},ladderInventory:s.ladderInventory,ladders:s.ladders,ladderNextId:s.ladderNextId,robots:s.robots,robotNextId:s.robotNextId,cart:s.cart,platforms:s.platforms,platformNextId:s.platformNextId,activePlatformId:s.cart?.id,cursor:s.cursor,crab:s.crab});}
 export const capacity=s=>1+s.levels.capacity+2*(s.levels.carryHarness||0),walkSpeed=s=>3.3+s.levels.speed*.45+(s.levels.courierStride||0)*.22;
 export const price=(u,l)=>Math.ceil(u.base*u.factor**l);
 export const skillAvailable=(s,u)=>!u.requires||Object.entries(u.requires).every(([id,level])=>(s.levels[id]||0)>=level);
@@ -193,6 +196,70 @@ export function buildBelt(s,f,a,segment){
  const cost=beltCost(s,f,a);if(s.money<cost)return false;
  s.money-=cost;s.belts[f][a]++;s.beltReceipts[f][a].push(cost);return true;
 }
+
+// Flexible belts use a world-space, 2.65m square grid instead of fixed aisle
+// indices. A piece may begin anywhere in open floor space, facing any of the
+// four cardinal directions. Adjacent pieces are connected by their positions,
+// including corners and branches. Existing legacy aisle belts stay unchanged.
+export const FREE_BELT_PITCH=2.65, FREE_BELT_LIMIT=1600;
+export const snapFreeCoordinate=v=>Math.round(v/FREE_BELT_PITCH)*FREE_BELT_PITCH;
+export const FREE_BELT_VECTORS=[[0,-1],[1,0],[0,1],[-1,0]];
+export const freeBeltAt=(s,f,x,z)=>(s.freeBelts||[]).find(b=>b.floor===f&&Math.abs(b.x-x)<.05&&Math.abs(b.z-z)<.05)||null;
+export function placeFreeBelt(s,f,x,z,dir=0,canPlace=null){
+ if(!Number.isInteger(f)||f<0||f>=FLOORS||!Number.isFinite(x)||!Number.isFinite(z)||!Number.isInteger(dir)||dir<0||dir>3)return null;
+ x=snapFreeCoordinate(x);z=snapFreeCoordinate(z);
+ if(x< -6||x>99||z< -9||z>97||s.freeBelts.length>=FREE_BELT_LIMIT||freeBeltAt(s,f,x,z))return null;
+ if(canPlace&&!canPlace(x,z))return null;
+ const cost=12+Math.floor(s.freeBelts.filter(b=>b.floor===f).length*.65);
+ if(s.money<cost)return null;
+ s.money-=cost;
+ const piece={id:s.freeBeltNextId++,floor:f,x,z,dir,items:0,paid:cost};
+ s.freeBelts.push(piece);return piece;
+}
+export function turnFreeBelt(s,id){
+ const b=s.freeBelts.find(p=>p.id===id);if(!b)return -1;
+ b.dir=(b.dir+1)%4;return b.dir;
+}
+export function takeFreeBelt(s,id){
+ const b=s.freeBelts.find(p=>p.id===id);
+ if(!b||!b.items)return false;b.items--;return true;
+}
+export function sellFreeBelt(s,id){
+ const i=s.freeBelts.findIndex(p=>p.id===id);if(i<0)return 0;
+ const [b]=s.freeBelts.splice(i,1);
+ // Existing products stay recoverable instead of disappearing when sold.
+ if(b.items)s.stockPiles.push({floor:b.floor,aisle:Math.max(0,Math.min(AISLES-1,Math.round((b.x-8)/10))),x:b.x,z:b.z,count:b.items});
+ for(const claw of s.claws)if(claw.freeBeltId===id)claw.freeBeltId=0;
+ const refund=Math.floor(b.paid/2);s.money+=refund;return refund;
+}
+export function deployFreeClaw(s,id){
+ const belt=s.freeBelts.find(b=>b.id===id);
+ if(!belt||!s.clawInventory.length||s.claws.some(c=>c.freeBeltId===id))return null;
+ const paid=s.clawInventory.shift().paid;
+ const claw={id:s.clawNextId++,floor:belt.floor,aisle:Math.max(0,Math.min(AISLES-1,Math.round((belt.x-8)/10))),bay:0,x:belt.x+1.1,z:belt.z+1.1,freeBeltId:id,paid,timer:0};
+ s.claws.push(claw);return claw;
+}
+function nextFreeBelt(s,b){
+ const [dx,dz]=FREE_BELT_VECTORS[b.dir];
+ return freeBeltAt(s,b.floor,b.x+dx*FREE_BELT_PITCH,b.z+dz*FREE_BELT_PITCH);
+}
+export function freeBeltConnected(s,id){
+ const b=s.freeBelts.find(p=>p.id===id);return !!(b&&nextFreeBelt(s,b));
+}
+function moveFreeBeltsOneStep(s){
+ const moves=[],reserved=new Map();
+ for(const b of s.freeBelts){
+  if(b.items<=0)continue;
+  const next=nextFreeBelt(s,b);
+  if(!next||next.id===b.id)continue;
+  const qty=reserved.get(next.id)||0;
+  if(next.items+qty>=BELT_CAPACITY)continue;
+  reserved.set(next.id,qty+1);moves.push([b,next]);
+ }
+ for(const [from,to] of moves){from.items--;to.items++;}
+ return moves.length;
+}
+
 export function incomplete(s,f,start=0){
  if(f<0||f>=FLOORS)return -1;
  for(let d=0;d<CELLS_PER_FLOOR;d++){const local=(start+d)%CELLS_PER_FLOOR,id=f*CELLS_PER_FLOOR+local;if(s.fill[id]<SLOTS)return id;}
@@ -381,21 +448,24 @@ export function advanceBelts(s,dt){
   while(s.beltFlowTimer>=BELT_MOVE_SECONDS/(1+(s.levels.beltMotor||0)*.12)){
    s.beltFlowTimer-=BELT_MOVE_SECONDS/(1+(s.levels.beltMotor||0)*.12);
    moveBeltItemsOneStep(s);
+   moveFreeBeltsOneStep(s);
   }
   for(const claw of s.claws){
-   const seg=clawReceivingSegment(s,claw);
-   const source=seg>=0&&beltInput(s,claw)?nearestClawSource(s,claw):null;
+   const free=claw.freeBeltId?s.freeBelts.find(b=>b.id===claw.freeBeltId):null;
+   const seg=free?-1:clawReceivingSegment(s,claw);
+   const canReceive=free?free.items<BELT_CAPACITY:seg>=0&&beltInput(s,claw);
+   const source=canReceive?nearestClawSource(s,claw):null;
    if(!source){claw.timer=0;continue;}
    claw.timer+=delta;
    if(claw.timer<CLAW_PICK_SECONDS/(1+(s.levels.clawCycle||0)*.12))continue;
    const current=nearestClawSource(s,claw);
-   if(!current||!beltInput(s,claw)){claw.timer=0;continue;}
+   if(!current||!(free?free.items<BELT_CAPACITY:beltInput(s,claw))){claw.timer=0;continue;}
    if(current.type==='pile'&&!takePile(s,current.index,1)){
     claw.timer=0;continue;
    }
    claw.timer-=CLAW_PICK_SECONDS/(1+(s.levels.clawCycle||0)*.12);
-   s.beltItems[claw.floor][claw.aisle][seg]++;
-   s.beltStock[claw.floor][claw.aisle]++;
+   if(free)free.items++;
+   else {s.beltItems[claw.floor][claw.aisle][seg]++;s.beltStock[claw.floor][claw.aisle]++;}
    delivered++;
   }
  }
@@ -533,6 +603,9 @@ export function robotTarget(s,r){
 export function robotSource(s,r){
  const candidates=[{type:'dock',x:DOCK.x,z:REAR_CROSSWALK,aisle:-1}];
  for(let i=0;i<s.stockPiles.length;i++){const p=s.stockPiles[i];if(p.floor===r.floor&&p.count>0)candidates.push({type:'pile',x:p.x,z:p.z,index:i,aisle:p.aisle});}
+ for(const belt of s.freeBelts){
+  if(belt.floor===r.floor&&belt.items>0)candidates.push({type:'freeBelt',id:belt.id,x:belt.x,z:belt.z,aisle:Math.max(0,Math.min(AISLES-1,Math.round((belt.x-8)/10)))});
+ }
  for(let a=0;a<AISLES;a++){
   const n=s.belts[r.floor][a];
   if(n&&s.beltStock[r.floor][a]>0){
@@ -591,6 +664,7 @@ export function botStep(s,r,dt){
   const source=robotSource(s,r);r.source=source;
   if(approach(r,source.x,source.z,dt,speed)){
     if(source.type==='belt'&&!takeBelt(s,r.floor,source.aisle,source.segment))return -1;
+    if(source.type==='freeBelt'&&!takeFreeBelt(s,source.id))return -1;
     if(source.type==='pile'&&!takePile(s,source.index,1))return -1;
     r.carry=source.type==='dock'?8:1;r.phase='shelf';r.target=-1;r.source=null;
   }
