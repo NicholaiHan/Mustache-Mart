@@ -72,6 +72,12 @@ export function blockedEquipment(s,x,z,radius=PLAYER_RADIUS){
      if(Math.abs(x-(aisleX(a)+1.4))<.54+radius&&Math.abs(z-bayZ(BAYS-1-segment))<1.29+radius)return true;
    }
  }
+ // Freely oriented conveyors also occupy physical space in open floor areas.
+ for(const belt of s.freeBelts||[]){
+  if(belt.floor!==floor)continue;
+  const alongX=belt.dir%2===1;
+  if(Math.abs(x-belt.x)<(alongX?1.33:.63)+radius&&Math.abs(z-belt.z)<(alongX?.63:1.33)+radius)return true;
+ }
  // Pallet jack is a moving solid for pedestrians, but drivers can exit freely.
  if(s.pallet&&s.pallet.floor===floor&&!s.pallet.driving&&Math.hypot(x-s.pallet.x,z-s.pallet.z)<.65+radius)return true;
  for(const bot of s.robots||[]){
