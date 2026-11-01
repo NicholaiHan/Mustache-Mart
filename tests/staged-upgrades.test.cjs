@@ -409,7 +409,7 @@ test('new stage: 30 automatic robot dispatch, least-crowded fallback and Mike mo
  const env=source('environment.js'),game=source('game.js');
  assert.match(env,/daylightWindows/,'sunlight-blue windows must exist on each floor');
  assert.match(env,/color:'#ade9ff'/,'glazing has clear sky-blue illumination');
- assert.match(env,/daylightFloorPool/,'daylight pools imply light entering');
+ assert.match(env,/integratedDaylightWall/,'blue panes are now cut into structural wall segments');
  assert.match(game,/Move to chosen floor \/ aisle/,'Mike can relocate without manual placement');
  assert.match(game,/Math\.max\(s\.money,500000\)/,'developer mode grants at least $5,000');
  simulate(i=>{
@@ -640,6 +640,102 @@ test('platform freedom: 30 cross-aisle, between-aisle, and preserved-X tests',()
   assert.equal(loaded.cart.id,p.id);
  });
 });
+test('stage recessed windows: 30 wall-cutout cases preserving full-shell and door safety',()=>{
+ const env=source('environment.js');
+ assert.match(env,/integratedDaylightWall/);
+ assert.match(env,/structuralOpening:true/);
+ assert.match(env,/windowSpecs/);
+ assert.match(env,/glazing\.name='recessedGlass'/);
+ assert.doesNotMatch(env,/daylightFloorPool/,'no more separate floor-window decals');
+ assert.match(env,/panel\(assembly,w,sill,d,x,sill\/2,z\)/,'lower plaster band leaves real opening');
+ assert.match(env,/panel\(assembly,w,CEILING_Y-lintel/,'upper plaster band leaves real opening');
+ simulate(i=>{
+  const state=r.newState();state.floor=i%r.FLOORS;state.money=500+i;
+  const loaded=r.loadState(r.serialize(state));
+  assert.equal(loaded.floor,state.floor);
+  assert.equal(loaded.money,500+i);
+ });
+});
+test('stage crab controls: 30 dev-on, dev-off and natural-unlock regressions',()=>{
+ const game=source('game.js'),html=fs.readFileSync(path.resolve(__dirname,'../index.html'),'utf8');
+ assert.match(game,/changeDevCrab\('on'\)/);
+ assert.match(game,/changeDevCrab\('off'\)/);
+ assert.match(game,/changeDevCrab\('auto'\)/);
+ assert.match(html,/id="devCrabPanel" hidden/);
+ simulate(i=>{
+  const state=r.newState();state.money=1000+i;
+  assert.equal(r.crabEnabled(state,false),false);
+  assert.equal(r.setDeveloperCrab(state,'on'),true);
+  assert.equal(r.crabEnabled(state,true),true,'summon even before 7-floor unlock');
+  assert.equal(r.crabEnabled(state,false),false,'normal mode ignores dev override');
+  assert.equal(r.advanceCrab(state,1199,true).length,0);
+  assert.equal(r.advanceCrab(state,1,true).length,r.FLOORS,'forced dev crab can attack unfinished floors');
+  const attacks=state.crab.attacks.reduce((a,b)=>a+b,0);
+  const timers=state.crab.elapsed.slice();
+  assert.equal(r.setDeveloperCrab(state,'off'),true);
+  assert.equal(r.crabEnabled(state,true),false);
+  assert.deepEqual(r.advanceCrab(state,1500,true),[]);
+  assert.equal(state.crab.attacks.reduce((a,b)=>a+b,0),attacks,'off must stop strikes');
+  assert.deepEqual(state.crab.elapsed,timers,'off pauses every clock');
+  assert.equal(r.setDeveloperCrab(state,'auto'),true);
+  assert.equal(r.crabEnabled(state,true),false,'natural unlock still has 7-floor prerequisite');
+  const loaded=r.loadState(r.serialize(state));
+  assert.equal(loaded.crab.devOverride,'auto');
+  assert.equal(loaded.money,state.money);
+  assert.equal(r.setDeveloperCrab(loaded,'on'),true);
+  assert.equal(r.loadState(r.serialize(loaded)).crab.devOverride,'on');
+  assert.equal(r.setDeveloperCrab(loaded,'wrong'),false);
+ });
+});
+test('stage motorized robot top shelf: 30 no-bypass cases and actual motorized stocking',()=>{
+ simulate(i=>{
+  const state=r.newState();state.money=100000;
+  const floor=0,aisle=i%r.AISLES,bay=9+i%12;
+  const robot=r.hireRobot(state,300,true);
+  robot.x=r.aisleX(aisle);robot.z=r.bayZ(bay);
+  robot.floor=0;robot.aisle=aisle;robot.homeAisle=aisle;
+  const top=r.cellId(0,aisle,0,bay,3),lower=r.cellId(0,aisle,0,bay,2);
+  assert.equal(r.robotCanReach(state,robot,top),false);
+  assert.equal(r.robotCanReach(state,robot,lower),false);
+  state.levels.ladder=1;state.levels.ladderPlus=1;
+  state.ladderInventory.push({kind:'ladder',paid:45});
+  assert.ok(r.deployLadder(state,0,aisle,bay));
+  assert.equal(r.robotCanReach(state,robot,lower),true);
+  assert.equal(r.robotCanReach(state,robot,top),false,'tall ladder alone must never allow top stocking');
+  const loaded=r.loadState(r.serialize(state)),savedBot=loaded.robots.find(b=>b.id===robot.id);
+  assert.equal(r.robotCanReach(loaded,savedBot,top),false,'reload cannot bypass top-shelf lock');
+  loaded.levels.robotLift=1;
+  assert.equal(r.robotCanReach(loaded,savedBot,top),true);
+  loaded.fill.fill(r.SLOTS);
+  loaded.fill[top]=r.SLOTS-1;
+  loaded.stocked=r.TOTAL_ITEMS-1;
+  savedBot.phase='shelf';savedBot.carry=8;savedBot.target=top;savedBot.acc=0;savedBot.liftY=0;
+  let complete=false;
+  for(let step=0;step<60;step++){
+   if(r.botStep(loaded,savedBot,.25)===top){complete=true;break;}
+  }
+  assert.equal(complete,true,'powered robot ladder must actually lift bot to top shelf and stock');
+  assert.equal(loaded.fill[top],r.SLOTS);
+ });
+});
+test('stage infrastructure polish: 30 instanced mechanical detail and save safety checks',()=>{
+ const env=source('environment.js');
+ for(const component of ['infrastructureHardware','pipeAndVentScrews','machinedScrewSlots',
+  'sprinklerPipeBracket','ductInspectionHatch','boltedVentHousing','ventFanRotor','steelColumnJunction']){
+  assert.ok(env.includes(component),'missing detailed hardware '+component);
+ }
+ assert.match(env,/new THREE\.InstancedMesh\(boltGeometry,screwMaterial,360\)/,'bolts instanced for 15-floor performance');
+ simulate(i=>{
+  const state=r.newState();
+  state.money=i*1000;state.floor=i%r.FLOORS;
+  state.levels.robotSpeed=i%3;
+  const loaded=r.loadState(r.serialize(state));
+  assert.equal(loaded.floor,state.floor);
+  assert.equal(loaded.money,state.money);
+  assert.equal(loaded.levels.robotSpeed,state.levels.robotSpeed);
+ });
+});
+
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
