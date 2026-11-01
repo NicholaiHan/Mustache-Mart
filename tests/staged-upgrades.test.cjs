@@ -801,7 +801,7 @@ test('crab lane stage: 30 large moving crab patrols remain inside broadened aisl
 });
 test('smaller crab: 30 cosmetic shrink checks preserve 15-floor raids and save state',()=>{
  const game=source('game.js');
- assert.match(game,/crabModel\\.scale\\.set\\(\\.44,\\.68,\\.68\\)/);
+ assert.ok(game.includes('crabModel.scale.set(.44,.68,.68)'),'the entire crab is reduced in 3D');
  simulate(i=>{
   const state=r.newState();state.money=7300+i;state.floor=i%r.FLOORS;
   const savedBefore=r.serialize(state);
