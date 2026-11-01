@@ -73,6 +73,15 @@ const assert=require('node:assert/strict');
   }
   assert.equal(seenJobs.size,15,'15 floors have 15 unique Mike-at-work portraits');
   await page.evaluate(()=>window.__martTest.setFloor(0));
+  const integrated=await page.evaluate(()=>window.__martTest.architectureStats());
+  assert.equal(integrated.windows,12,'all 12 clerestory panes are in real structural openings');
+  assert.equal(integrated.freeWindowOverlays,0,'no floating wall-overlay window entities');
+  assert.ok(integrated.cutWallSections>=3,'front and side wall segments contain their apertures');
+  assert.ok(integrated.screws>=150,'bolted pipe, vent and duct fixtures render as instanced hardware');
+  assert.ok(integrated.vents>=4);
+  assert.ok(integrated.pipeBrackets>=20);
+  console.log('PASS: 12 recessed structural windows and instanced detailed ventilation/piping hardware');
+
   console.log('PASS: all 15 floors show one unique framed Mustache Mike employee painting');
 
 
@@ -115,6 +124,25 @@ const assert=require('node:assert/strict');
   await page.locator('#coinTails').click();
   assert.equal((await page.evaluate(()=>window.__martTest.coinOffers())).cash.declined,true);
   assert.equal((await page.evaluate(()=>window.__martTest.coinOffers())).cash.played,false);
+  assert.equal(await page.locator('#devCrabPanel').isVisible(),true);
+  await page.locator('#devCrabAdd').click();
+  let devCrab=await page.evaluate(()=>window.__martTest.crabTest.status());
+  assert.equal(devCrab.devOverride,'on');
+  assert.equal(devCrab.visible,true,'dev crab can spawn before 7 floors are stocked');
+  await page.locator('#devCrabRemove').click();
+  devCrab=await page.evaluate(()=>window.__martTest.crabTest.status());
+  assert.equal(devCrab.devOverride,'off');
+  assert.equal(devCrab.visible,false,'dev crab removal removes the model');
+  await page.keyboard.press('Shift+J');
+  devCrab=await page.evaluate(()=>window.__martTest.crabTest.status());
+  assert.equal(devCrab.visible,true,'crab spawn shortcut works in gameplay');
+  await page.keyboard.press('Shift+K');
+  assert.equal((await page.evaluate(()=>window.__martTest.crabTest.status())).visible,false);
+  await page.locator('#devCrabAuto').click();
+  devCrab=await page.evaluate(()=>window.__martTest.crabTest.status());
+  assert.equal(devCrab.devOverride,'auto');
+  assert.equal(devCrab.visible,false,'normal mode restores locked 7-floor threshold');
+  console.log('PASS: developer crab spawn/removal, keyboard shortcuts and normal automatic behavior');
   console.log('PASS: cash coin offer only YES/NO; NO is permanent; waiting path removed');
   // Actual collision-safe loading position, not inside the receiving counter.
   await page.evaluate(()=>{window.__martTest.teleport(1.5,93.1);window.__martTest.setLook(Math.PI,-.07);});
