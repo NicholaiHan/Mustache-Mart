@@ -375,6 +375,49 @@ button:active:not(:disabled){transform:translateY(1px)}
 .saveRecoveryEntry small{color:#517269;font-size:11px}
 .saveRecoveryEntry button{background:#e4f1e7;border:1px solid #729781;font-size:11px;padding:7px 10px}
 
+
+/* Elevator v2 matches the brushed stainless lift hardware in the actual store.
+   Controls are raised physical buttons rather than generic green rectangles. */
+#elevator{background:rgba(18,28,34,.85)}
+#elevator .panel{width:min(820px,96vw);background:#e9eef0;border:5px solid #a5b4bb;
+ border-radius:17px;box-shadow:inset 0 0 0 2px #f9fdff,0 24px 80px #020b11bb}
+#elevator .elevatorHeader{background:linear-gradient(145deg,#263943,#405a65);
+ border-bottom:6px solid #9cabb2;padding:25px 27px}
+#elevator .elevatorSymbol{background:#172a30;border:1px solid #819ba6;box-shadow:inset 0 2px 8px #0007;color:#c8f1ff}
+#elevator .elevatorHeading small{color:#aee0e8}
+#elevator .elevatorHeading h2{font-weight:900;letter-spacing:-.03em}
+#elevator .elevatorHeading p{color:#deeced}
+#elevator .elevatorCurrent{background:#0d1c23;border:1px solid #6d8a93;border-radius:9px;padding:13px 18px;
+ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#a0c8d2}
+#elevator .elevatorCurrent strong{color:#b5fbeb;text-shadow:0 0 12px #7fffff55;letter-spacing:.03em}
+#elevator .elevatorOverview{background:#dce4e7;border-color:#aab9bf}
+#elevator .elevatorOverview>div{border-color:#b3c1c8}
+#elevator .elevatorOverview strong{color:#2c4650}
+#elevator .elevatorDirectoryLabel{background:#f5f8f8;margin:0;color:#445d66;gap:12px}
+#elevatorlist{background:#f5f8f8;gap:12px}
+#elevatorlist .elevatorFloor{border:2px solid #bbc7cb;border-radius:12px;
+ background:linear-gradient(145deg,#fcfefe,#e4eaed);min-height:126px;
+ box-shadow:inset 0 2px 3px #fff,0 4px 0 #aebdc3,0 7px 14px #12313d22;color:#30454e}
+#elevatorlist .elevatorFloor:hover:not(:disabled){border-color:#36889c;background:#e4f8fb;transform:translateY(-2px)}
+#elevatorlist .elevatorFloor:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 3px 7px #94b8c699}
+#elevatorlist .elevatorFloor .floorNumber{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+ font-size:31px;font-weight:850;color:#283f47}
+#elevatorlist .elevatorFloor .floorState{color:#55727c}
+#elevatorlist .elevatorFloor .floorPercent{font-size:10px;color:#59737d;font-weight:780}
+#elevatorlist .elevatorFloor .floorBar{background:#c5d4d9}
+#elevatorlist .elevatorFloor .floorBar i{background:#46a6bb}
+#elevatorlist .elevatorFloor.isComplete{background:linear-gradient(145deg,#f2faf2,#d6e7da);
+ border-color:#8bb5a0}
+#elevatorlist .elevatorFloor.isComplete .floorBar i{background:#4a9073}
+#elevatorlist .elevatorFloor.isCurrent{background:linear-gradient(150deg,#243e4a,#142b34);
+ border-color:#7babb7;box-shadow:inset 0 0 0 1px #abcfd49b,0 3px 0 #48616d}
+#elevatorlist .elevatorFloor.isCurrent .floorNumber{color:#b2fff6}
+#elevatorlist .elevatorFloor.isCurrent .floorState,#elevatorlist .elevatorFloor.isCurrent .floorPercent{color:#d2e8eb}
+#elevator .elevatorFooter{background:#dce6ea;border-color:#b6c8ce}
+#elevatorClose{background:#2c4651;border:1px solid #8aa4aa;border-radius:8px;box-shadow:0 3px 0 #172f36}
+.elevatorPulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:#44ae80;
+ box-shadow:0 0 0 3px #44ae8022,0 0 11px #3adf96;margin-right:5px}
+
 </style>
 </head>
 <body>
@@ -418,7 +461,7 @@ button:active:not(:disabled){transform:translateY(1px)}
     </div>
     <div id="devBanner">DEVELOPMENT MODE · $5,000 in testing credit available</div>
     <div id="devControls">
-      <button type="button" id="devEnable">Enable $5,000 Developer Mode</button>
+      <button type="button" id="devEnable">Enable $100,000 Developer Mode</button>
       <small id="devStatus" aria-live="polite">Developer Mode can be enabled here even if you forgot #dev in the address.</small>
     </div>
     <div id="saveOriginStatus" role="status" aria-live="polite"></div>
@@ -447,7 +490,7 @@ button:active:not(:disabled){transform:translateY(1px)}
         <div id="saveRecoveryList" role="status" aria-live="polite"></div>
       </div>
     </div>
-    <p class="hint">Your saved progress, including purchased skill levels, is stored in your browser at its original address and port. If your skills look reset, STOP and use the original browser and port (often 8000 instead of 8011). Do NOT click Reset. Import a backup here if you have one. Enable Developer Mode with the button above for $500 testing funds. No Electron needed.</p>
+    <p class="hint">Your saved progress, including purchased skill levels, is stored in your browser at its original address and port. If your skills look reset, STOP and use the original browser and port (often 8000 instead of 8011). Do NOT click Reset. Import a backup here if you have one. Enable Developer Mode with the button above for $100,000 testing funds. No Electron needed.</p>
   </div>
 </div>
 <div class="dialog" id="shop" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
@@ -481,7 +524,7 @@ button:active:not(:disabled){transform:translateY(1px)}
      <path d="M26 13L32 9L38 13M26 53L32 57L38 53" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
     </svg>
    </div>
-   <div class="elevatorHeading"><small>MUSTACHE MART / VERTICAL TRANSPORT</small><h2 id="elevatorTitle">Floor directory</h2><p>Choose your destination. Stockers continue working across the building.</p></div>
+   <div class="elevatorHeading"><small>MUSTACHE MART / LIFT CONTROL 01</small><h2 id="elevatorTitle">Select your floor</h2><p>Fifteen levels of retail inventory. Select a lit floor number to travel.</p></div>
    <div class="elevatorCurrent" id="elevatorCurrent">CURRENT FLOOR <strong>01</strong></div>
   </header>
   <div class="elevatorOverview">
@@ -489,9 +532,9 @@ button:active:not(:disabled){transform:translateY(1px)}
    <div><span>FLOORS COMPLETE</span><strong id="elevatorComplete">0 / 15</strong></div>
    <div><span>OPEN FLOORS</span><strong>15 accessible</strong></div>
   </div>
-  <div class="elevatorDirectoryLabel"><span>SELECT DESTINATION</span><span>FLOORS 01 – 15</span></div>
+  <div class="elevatorDirectoryLabel"><span><span class="elevatorPulse"></span> READY FOR DESTINATION</span><span id="elevatorDestination">F01 · CURRENT LANDING</span></div>
   <div id="elevatorlist" aria-label="Elevator floor destinations"></div>
-  <div class="elevatorFooter"><span>PASSENGER LIFT · DOORS OPEN</span><button id="elevatorClose" type="button">Return to current floor</button></div>
+  <div class="elevatorFooter"><span><span class="elevatorPulse"></span> DOORS OPEN · AUTOMATIC SERVICE</span><button id="elevatorClose" type="button">Close panel</button></div>
  </div>
 </div>
 <div class="dialog" id="end"><div class="panel">
