@@ -8,7 +8,7 @@ export const COIN_FLIP_FIRST_STAKE=300000; // $3,000 in stored cents
 // Render-only widening. Logical aisle coordinates and all saved items remain
 // unchanged. Drawing the entire showroom on a centered, wider X-axis avoids
 // invalidating legacy robots, conveyors, tools, or historical saves.
-export const MAP_WIDTH_MULTIPLIER=1.30, MAP_WIDTH_CENTER=46.5;
+export const MAP_WIDTH_MULTIPLIER=1.60, MAP_WIDTH_CENTER=46.5;
 export const toWideX=x=>MAP_WIDTH_CENTER+(x-MAP_WIDTH_CENTER)*MAP_WIDTH_MULTIPLIER;
 export const fromWideX=x=>MAP_WIDTH_CENTER+(x-MAP_WIDTH_CENTER)/MAP_WIDTH_MULTIPLIER;
 export const aisleX=a=>8+a*10, bayZ=b=>13+b*2.65;
