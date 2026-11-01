@@ -44,6 +44,10 @@ test('new stage: 30 multi-platform ladder purchase, driving, collision and save 
   assert.equal(r.drivePlatform(s,1,0,.4,()=>true),true);
   assert.notEqual(selected.z,16.2);
   assert.equal(other.z,old);
+  const originalAisle=other.aisle;
+  other.aisle=selected.aisle;other.z=selected.z-2.1;
+  assert.equal(r.drivePlatform(s,1,0,.25,()=>true),false,'lifts cannot overlap');
+  other.aisle=originalAisle;other.z=old;
   assert.ok(r.liftPlatform(s,1,.4)>0);
   const loaded=r.loadState(r.serialize(s));
   assert.equal(loaded.platforms.length,6);
