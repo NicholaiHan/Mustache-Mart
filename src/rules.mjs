@@ -3,6 +3,7 @@ export const FLOORS=15, AISLES=10, BAYS=30, TIERS=4, SLOTS=4;
 export const CELLS_PER_FLOOR=AISLES*2*BAYS*TIERS, TOTAL_CELLS=FLOORS*CELLS_PER_FLOOR, TOTAL_ITEMS=TOTAL_CELLS*SLOTS;
 export const CENTS=[1,1,2,3], SAVE_KEY='mustacheMartV4';
 export const BELT_CAPACITY=3, BELT_MOVE_SECONDS=.85, CLAW_PICK_SECONDS=1.45;
+export const CRAB_UNLOCK_FLOORS=7, CRAB_ATTACK_SECONDS=20*60;
 export const aisleX=a=>8+a*10, bayZ=b=>13+b*2.65;
 export const DOCK={x:1.5,z:96};
 export const floorLabel=f=>'F'+String(f+1).padStart(2,'0');
@@ -18,7 +19,7 @@ export const UPGRADES=[
 {id:'cartSpeed',name:'Platform Drive Motor',detail:'Improve your motorized ladder platform driving speed.',base:110,factor:1.65,max:10},
 {id:'palletCapacity',name:'Pallet Jack Capacity',detail:'Increase carrying from 1/20 aisle through 1/16, 1/8, 1/4, 1/2, up to ONE whole aisle. Expensive logistics investment.',base:10000,factor:5,max:5},
 {id:'itemClaw',name:'Automated Item Claw',detail:'One placeable claw picks from the nearest stocked inventory source and feeds a connected conveyor. Use K to deploy.',base:450,factor:1.35,max:40},
-{id:'robot',name:'Mustache Stocker Bot',detail:'Buy a separate robot, then walk it to an aisle and left-click to deploy. Sell any robot for half.',base:250,factor:1.38,max:70},
+{id:'robot',name:'Mustache Stocker Bot',detail:'Buy a separate robot, then walk it to an aisle and left-click to deploy. Sell intact robots for 50%; crab-destroyed robots must be scrapped for 25% before replacement.',base:250,factor:1.38,max:70},
 {id:'robotLift',name:'Motorized Robot Ladder',detail:'All robot stockers gain a portable powered lift to climb high shelves while moving.',base:850,factor:1,max:1},
 {id:'robotSpeed',name:'Robot Espresso',detail:'Faster robot movement and stocking.',base:160,factor:1.52,max:12},
 {id:'autoPay',name:'Automatic Payroll Terminal',detail:'Deposit wages instantly without visiting the desk.',base:420,factor:1,max:1},
@@ -42,7 +43,7 @@ export const UPGRADES=[
 export function cellId(f,a,side,bay,tier){return ((((f*AISLES+a)*2+side)*BAYS+bay)*TIERS+tier);}
 export function decode(id){const tier=id%TIERS;id=Math.floor(id/TIERS);const bay=id%BAYS;id=Math.floor(id/BAYS);const side=id%2;id=Math.floor(id/2);return {floor:Math.floor(id/AISLES),aisle:id%AISLES,side,bay,tier};}
 const limit=(v,max)=>Number.isFinite(Number(v))?Math.max(0,Math.min(max,Math.floor(Number(v)))):0;
-export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{id:0,floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},platforms:[],platformNextId:1,cursor:Array(FLOORS).fill(0)};}
+export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{id:0,floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},platforms:[],platformNextId:1,cursor:Array(FLOORS).fill(0),crab:{unlocked:false,elapsed:Array(FLOORS).fill(0),attacks:Array(FLOORS).fill(0),seed:0x8d129bb5,patrol:Array.from({length:FLOORS},(_,i)=>({aisle:i%AISLES,z:15})),recent:[]}};}
 export function loadState(text){
  const s=newState();if(!text)return s;
  try{
@@ -70,7 +71,7 @@ export function loadState(text){
  s.claws=Array.isArray(d.claws)?d.claws.slice(0,40).map((c,i)=>({id:limit(c.id,1000000)||i+1,floor:limit(c.floor,FLOORS-1),aisle:limit(c.aisle,AISLES-1),bay:limit(c.bay,BAYS-1),x:Number.isFinite(c.x)?Number(c.x):aisleX(limit(c.aisle,AISLES-1))+2.1,z:Number.isFinite(c.z)?Number(c.z):bayZ(limit(c.bay,BAYS-1)),paid:limit(c.paid,100000),timer:0})):[];
  s.clawNextId=Math.max(limit(d.clawNextId,1000000)||1,...s.claws.map(c=>c.id+1));
  s.clawInventory=Array.isArray(d.clawInventory)?d.clawInventory.slice(0,40).map(x=>({paid:limit(x.paid,100000)})):[];
- s.stockPiles=Array.isArray(d.stockPiles)?d.stockPiles.slice(0,150).map(p=>({floor:limit(p.floor,FLOORS-1),aisle:limit(p.aisle,AISLES-1),x:Number(p.x)||aisleX(limit(p.aisle,AISLES-1)),z:Number(p.z)||bayZ(0),count:limit(p.count,100000)})).filter(p=>p.count>0):[];
+ s.stockPiles=Array.isArray(d.stockPiles)?d.stockPiles.slice(0,150).map(p=>({floor:limit(p.floor,FLOORS-1),aisle:limit(p.aisle,AISLES-1),x:Number(p.x)||aisleX(limit(p.aisle,AISLES-1)),z:Number(p.z)||bayZ(0),count:limit(p.count,100000),crabDebris:!!p.crabDebris})).filter(p=>p.count>0):[];
  // Preserve existing valid belt inventory when migrating old aisle totals:
  // fill frontmost physical segments with at most three each. If an old
  // single-segment line held more than three, store overflow as a pickup pile
@@ -112,7 +113,7 @@ export function loadState(text){
  target:!old&&Number.isInteger(r.target)&&r.target>=0&&r.target<TOTAL_CELLS?r.target:-1,
  carry:limit(r.carry,8),homeAisle:limit(r.homeAisle??r.aisle,AISLES-1),
  stockedSinceService:limit(r.stockedSinceService,1000000),
- breakdowns:limit(r.breakdowns,100000),broken:!!r.broken,
+ breakdowns:limit(r.breakdowns,100000),broken:!!r.broken||!!r.wrecked,wrecked:!!r.wrecked,
  breakAt:Math.max(0,Number(r.breakAt)||0),repairProgress:0,
  acc:0,liftY:0,source:null
  }));
@@ -138,10 +139,19 @@ export function loadState(text){
  if(s.platforms.length>s.levels.cart)s.levels.cart=s.platforms.length;
  s.platformNextId=Math.max(limit(d.platformNextId,1000000)||1,...s.platforms.map(c=>c.id+1));
  s.cart=s.platforms.find(c=>c.id===d.activePlatformId)||s.platforms[0]||s.cart;
+ const crab=d.crab||{};
+ s.crab.unlocked=!!crab.unlocked;
+ if(Array.isArray(crab.elapsed))for(let f=0;f<FLOORS;f++)s.crab.elapsed[f]=Math.max(0,Math.min(CRAB_ATTACK_SECONDS,Number(crab.elapsed[f])||0));
+ if(Array.isArray(crab.attacks))for(let f=0;f<FLOORS;f++)s.crab.attacks[f]=limit(crab.attacks[f],1000000);
+ s.crab.seed=(Number(crab.seed)>>>0)||0x8d129bb5;
+ if(Array.isArray(crab.patrol))for(let f=0;f<FLOORS;f++){
+  const p=crab.patrol[f]||{};s.crab.patrol[f]={aisle:limit(p.aisle,AISLES-1),z:Math.max(12,Math.min(90,Number(p.z)||15))};
+ }
+ if(Array.isArray(crab.recent))s.crab.recent=crab.recent.slice(-8).filter(e=>Number.isInteger(e?.floor)&&e.floor>=0&&e.floor<FLOORS);
  }catch(_){return newState();}
  return s;
 }
-export function serialize(s){return JSON.stringify({version:4,money:s.money,pending:s.pending,floor:s.floor,fill:Array.from(s.fill),levels:s.levels,belts:s.belts,beltReceipts:s.beltReceipts,beltStock:s.beltStock,beltItems:s.beltItems,beltFlowTimer:s.beltFlowTimer,beltTimers:s.beltTimers,beltDirection:s.beltDirection,claws:s.claws,clawInventory:s.clawInventory,clawNextId:s.clawNextId,stockPiles:s.stockPiles,pallet:{...s.pallet,driving:false},ladderInventory:s.ladderInventory,ladders:s.ladders,ladderNextId:s.ladderNextId,robots:s.robots,robotNextId:s.robotNextId,cart:s.cart,platforms:s.platforms,platformNextId:s.platformNextId,activePlatformId:s.cart?.id,cursor:s.cursor});}
+export function serialize(s){return JSON.stringify({version:4,money:s.money,pending:s.pending,floor:s.floor,fill:Array.from(s.fill),levels:s.levels,belts:s.belts,beltReceipts:s.beltReceipts,beltStock:s.beltStock,beltItems:s.beltItems,beltFlowTimer:s.beltFlowTimer,beltTimers:s.beltTimers,beltDirection:s.beltDirection,claws:s.claws,clawInventory:s.clawInventory,clawNextId:s.clawNextId,stockPiles:s.stockPiles,pallet:{...s.pallet,driving:false},ladderInventory:s.ladderInventory,ladders:s.ladders,ladderNextId:s.ladderNextId,robots:s.robots,robotNextId:s.robotNextId,cart:s.cart,platforms:s.platforms,platformNextId:s.platformNextId,activePlatformId:s.cart?.id,cursor:s.cursor,crab:s.crab});}
 export const capacity=s=>1+s.levels.capacity+2*(s.levels.carryHarness||0),walkSpeed=s=>3.3+s.levels.speed*.45+(s.levels.courierStride||0)*.22;
 export const price=(u,l)=>Math.ceil(u.base*u.factor**l);
 export const skillAvailable=(s,u)=>!u.requires||Object.entries(u.requires).every(([id,level])=>(s.levels[id]||0)>=level);
@@ -151,7 +161,7 @@ export function purchase(s,id){
  if(id==='cart'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
  if(id==='ladderPlus'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
  s.money-=cost;s.money+=Math.floor(cost*Math.min(.1,(s.levels.cashback||0)*.02));s.levels[id]++;if(id==='robotReliability'&&s.levels.robotReliability===4){
-  for(const bot of s.robots){bot.broken=false;bot.stockedSinceService=0;bot.repairProgress=0;bot.breakAt=Infinity;}
+  for(const bot of s.robots){if(bot.wrecked)continue;bot.broken=false;bot.stockedSinceService=0;bot.repairProgress=0;bot.breakAt=Infinity;}
  }if(id==='robot')hireRobot(s,cost,false);if(id==='ladder'||id==='ladderUnit')s.ladderInventory.push({kind:id,paid:cost});if(id==='itemClaw')s.clawInventory.push({paid:cost});
  if(id==='cart'){
   const index=s.platforms.length;
@@ -189,18 +199,18 @@ export function incomplete(s,f,start=0){
 export function nextRobotFloor(s){for(let f=0;f<FLOORS;f++)if(incomplete(s,f,s.cursor[f])>=0)return f;return -1;}
 export function hireRobot(s,paid=250,placed=false){
  const f=nextRobotFloor(s);if(f<0)return null;
- const r={id:s.robotNextId++,floor:f,aisle:0,homeAisle:0,stockedSinceService:0,breakdowns:0,breakAt:0,broken:false,repairProgress:0,x:DOCK.x,z:REAR_CROSSWALK,placed,paid,phase:'supply',target:-1,carry:0,acc:0,liftY:0,source:null};
+ const r={id:s.robotNextId++,floor:f,aisle:0,homeAisle:0,stockedSinceService:0,breakdowns:0,breakAt:0,broken:false,wrecked:false,repairProgress:0,x:DOCK.x,z:REAR_CROSSWALK,placed,paid,phase:'supply',target:-1,carry:0,acc:0,liftY:0,source:null};
  s.robots.push(r);return r;
 }
 export function assignRobot(s,id,f,a,bay){
  const r=s.robots.find(x=>x.id===id);
- if(!r||!Number.isInteger(a)||a<0||a>=AISLES||!Number.isInteger(bay)||bay<0||bay>=BAYS||f<0||f>=FLOORS)return false;
+ if(!r||r.wrecked||!Number.isInteger(a)||a<0||a>=AISLES||!Number.isInteger(bay)||bay<0||bay>=BAYS||f<0||f>=FLOORS)return false;
  r.floor=f;r.aisle=a;r.homeAisle=a;r.x=aisleX(a);r.z=bayZ(bay);r.placed=true;r.phase='supply';r.target=-1;r.carry=0;r.acc=0;r.liftY=0;r.source=null;
  return true;
 }
 export function setRobotAisle(s,id,aisle){
  const r=s.robots.find(x=>x.id===id);
- if(!r||!Number.isInteger(aisle)||aisle<0||aisle>=AISLES)return false;
+ if(!r||r.wrecked||!Number.isInteger(aisle)||aisle<0||aisle>=AISLES)return false;
  r.homeAisle=aisle;r.aisle=aisle;r.target=-1;r.acc=0;
  // Existing cargo is not destroyed by a reassignment.
  if(!r.carry)r.phase='supply';
@@ -214,7 +224,7 @@ export function aisleComplete(s,f,a){
 }
 export function sellRobot(s,id){
  const index=s.robots.findIndex(r=>r.id===id);if(index<0)return 0;
- const [r]=s.robots.splice(index,1);const refund=Math.floor(r.paid/2);
+ const [r]=s.robots.splice(index,1);const refund=Math.floor(r.paid*(r.wrecked?.25:.5));
  s.money+=refund;s.levels.robot=s.robots.length;return refund;
 }
 export function deployLadder(s,f,a,bay){
@@ -401,6 +411,69 @@ export function takeBelt(s,f,a,segment=null){
  if(seg<0||seg>=s.belts[f][a]||!s.beltItems[f][a][seg])return false;
  s.beltItems[f][a][seg]--;s.beltStock[f][a]--;return true;
 }
+
+// Independent per-floor crab clocks run during active gameplay, even when the
+// player is on another floor. All randomness is seeded and persists in saves.
+export const completedFloors=s=>Array.from({length:FLOORS},(_,f)=>floorStocked(s,f)===itemsPerFloor).filter(Boolean).length;
+export function crabEnabled(s){
+ if(!s.crab.unlocked&&completedFloors(s)>=CRAB_UNLOCK_FLOORS)s.crab.unlocked=true;
+ return s.crab.unlocked;
+}
+function crabRandom(s){
+ let x=s.crab.seed>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;
+ s.crab.seed=(x>>>0)||0x8d129bb5;return s.crab.seed;
+}
+export function performCrabSwing(s,f,aisle=null,bay=null){
+ if(!crabEnabled(s)||f<0||f>=FLOORS||floorStocked(s,f)>=itemsPerFloor)return null;
+ const a=aisle===null?crabRandom(s)%AISLES:Math.max(0,Math.min(AISLES-1,Math.floor(aisle)));
+ const b=bay===null?4+crabRandom(s)%(BAYS-9):Math.max(1,Math.min(BAYS-2,Math.floor(bay)));
+ let fallen=0;const destroyed=[];
+ for(let bb=b-1;bb<=b+1;bb++)for(let side=0;side<2;side++)for(let tier=0;tier<TIERS;tier++){
+  const id=cellId(f,a,side,bb,tier);
+  fallen+=s.fill[id];s.fill[id]=0;
+ }
+ s.stocked-=fallen;
+ for(const robot of s.robots){
+  if(!robot.placed||robot.floor!==f||robot.wrecked)continue;
+  if(Math.abs(robot.x-aisleX(a))>3.1||Math.abs(robot.z-bayZ(b))>4.5)continue;
+  robot.wrecked=true;robot.broken=true;robot.repairProgress=0;robot.carry=0;
+  robot.target=-1;robot.source=null;robot.liftY=0;
+  destroyed.push(robot.id);
+ }
+ if(fallen){
+  for(const side of [-1,1]){
+   const count=Math.floor(fallen/2)+(side===1?fallen%2:0);
+   if(!count)continue;
+   const x=aisleX(a)+side*1.5,z=bayZ(b)+side*.75;
+   let pile=s.stockPiles.find(p=>p.crabDebris&&p.floor===f&&p.aisle===a&&Math.abs(p.z-z)<2&&Math.sign(p.x-aisleX(a))===side);
+   if(!pile&&s.stockPiles.length>=145)pile=s.stockPiles.find(p=>p.crabDebris&&p.floor===f);
+   if(pile)pile.count+=count;
+   else s.stockPiles.push({floor:f,aisle:a,x,z,count,crabDebris:true});
+  }
+ }
+ const event={floor:f,aisle:a,bay:b,fallen,robots:destroyed,number:++s.crab.attacks[f]};
+ s.crab.patrol[f]={aisle:a,z:bayZ(b)};
+ s.crab.recent.push(event);s.crab.recent=s.crab.recent.slice(-8);
+ return event;
+}
+export function advanceCrab(s,seconds){
+ if(!Number.isFinite(seconds)||seconds<=0)return [];
+ if(!crabEnabled(s))return [];
+ const delta=Math.min(seconds,7200),events=[];
+ for(let f=0;f<FLOORS;f++){
+  if(floorStocked(s,f)>=itemsPerFloor)continue;
+  s.crab.elapsed[f]+=delta;
+  while(s.crab.elapsed[f]>=CRAB_ATTACK_SECONDS){
+   s.crab.elapsed[f]-=CRAB_ATTACK_SECONDS;
+   const event=performCrabSwing(s,f);if(event)events.push(event);
+  }
+  const p=s.crab.patrol[f],step=delta*.43;
+  const cycle=2*(90-14),n=(p.z-14+step)%cycle;
+  p.z=n<76?14+n:90-(n-76);
+ }
+ return events;
+}
+
 export const remaining=s=>TOTAL_ITEMS-s.stocked;
 export const canOpenStore=s=>s.stocked===TOTAL_ITEMS&&remaining(s)===0;
 export function floorStocked(s,f){let sum=0,base=f*CELLS_PER_FLOOR;for(let i=0;i<CELLS_PER_FLOOR;i++)sum+=s.fill[base+i];return sum;}
@@ -486,14 +559,14 @@ export const ROBOT_REPAIR_SECONDS=6;
 export const repairRange=s=>3.2+.35*(s.levels.repairTraining||0);
 export function resetRobotRepair(s,id){
  const bot=s.robots.find(r=>r.id===id);
- if(!bot||!bot.broken)return false;
+ if(!bot||!bot.broken||bot.wrecked)return false;
  bot.repairProgress=0;return true;
 }
 // Continuous seconds of actual held-E work, not discrete key presses. The game
 // cancels partial progress on release, lost focus, moving away or switching bots.
 export function repairRobot(s,id,elapsed=0){
  const bot=s.robots.find(r=>r.id===id);
- if(!bot||!bot.broken)return false;
+ if(!bot||!bot.broken||bot.wrecked)return false;
  const dt=Math.max(0,Math.min(ROBOT_REPAIR_SECONDS,Number(elapsed)||0));
  if(dt===0)return false;
  bot.repairProgress=Math.min(ROBOT_REPAIR_SECONDS,(bot.repairProgress||0)+dt);
@@ -502,7 +575,7 @@ export function repairRobot(s,id,elapsed=0){
  return true;
 }
 export function botStep(s,r,dt){
- if(!r.placed||dt<=0||r.broken)return -1;
+ if(!r.placed||dt<=0||r.broken||r.wrecked)return -1;
  if(!r.breakAt)r.breakAt=nextRobotBreakpoint(s,r);
  if(r.phase==='supply')r.liftY=Math.max(0,(r.liftY||0)-dt*5);
  if(incomplete(s,r.floor,0)<0){
