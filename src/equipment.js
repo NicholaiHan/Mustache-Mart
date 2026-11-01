@@ -27,7 +27,7 @@ const beltStripe=equipmentMaterial('#c1d4d0',.07,.55);
 const beltCardboard=equipmentMaterial('#bca582',0,.9);
 function makeBelt(f,a,segment,freePiece=null){
  const group=new THREE.Group();getWorld().add(group);
- group.name='continuousConveyorSection';
+ group.name='continuousConveyorSection';group.userData.keepProportion=true;
  if(freePiece)group.position.set(freePiece.x,0,freePiece.z);
  else group.position.set(aisleX(a)+1.4,0,bayZ(BAYS-1-segment));
  const direction=freePiece?freePiece.dir:(s.beltDirection?.[f]?.[a]?.[segment]||0);
@@ -136,7 +136,7 @@ function makeReceivingSystem(){
 }
 function makeCart(){
  if(!s.levels.cart)return null;
- const root=new THREE.Group();getWorld().add(root);
+ const root=new THREE.Group();getWorld().add(root);root.userData.keepProportion=true;
  const shell=equipmentMaterial('#e5e2da',.25,.39);
  const steel=equipmentMaterial('#7e9091',.72,.31);
  const dark=equipmentMaterial('#283536',.16,.69);
@@ -165,7 +165,7 @@ function makeCart(){
  return root;
 }
 function makePalletJack(){
- const root=new THREE.Group();getWorld().add(root);
+ const root=new THREE.Group();getWorld().add(root);root.userData.keepProportion=true;
  const frame=equipmentMaterial('#e0a64d',.4,.44),steel=equipmentMaterial('#829193',.72,.32);
  const dark=equipmentMaterial('#273638',.11,.72),card=equipmentMaterial('#bca27a',.05,.85);
  for(const side of [-1,1]){
@@ -185,7 +185,7 @@ function makeClaws(){
  const groups=[];
  for(const claw of s.claws.filter(c=>c.floor===s.floor)){
   const root=new THREE.Group();getWorld().add(root);
-  root.position.set(claw.x,0,claw.z);
+  root.userData.keepProportion=true;root.position.set(claw.x,0,claw.z);
   const steel=equipmentMaterial('#76888a',.68,.33),yellow=equipmentMaterial('#e1af59',.24,.4),dark=equipmentMaterial('#344447',.22,.62);
   for(const side of [-1,1]){
    const support=round(.11,2.9,.13,steel,root);support.position.set(side*.49,1.54,.31);
@@ -209,7 +209,7 @@ function makeStockPiles(){
  const items=[];
  const cardboard=equipmentMaterial('#bea47c',.03,.87),wood=equipmentMaterial('#98734b',.1,.85);
  for(const p of s.stockPiles.filter(q=>q.floor===s.floor&&q.count>0)){
-  const g=new THREE.Group();getWorld().add(g);g.position.set(p.x,0,p.z);g.userData.pile=p;
+  const g=new THREE.Group();getWorld().add(g);g.position.set(p.x,0,p.z);g.userData.pile=p;g.userData.keepProportion=true;
   if(p.crabDebris){
    // Loose products, not a packed pallet: the player can pick up each spill
    // and re-stock the emptied shelves. Scattering is seeded by floor/aisle.
