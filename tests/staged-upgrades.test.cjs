@@ -330,6 +330,81 @@ test('crab stage 3: 30 permanent spring-neck wrecks, required 25% scrap and repl
  });
 });
 
+test('new visual stage E: 30 free-direction, free-location conveyor and claw inventory runs',()=>{
+ const game=source('game.js'),equipment=source('equipment.js');
+ assert.match(game,/freeBeltPlacement\(\)/);
+ assert.match(game,/turnFreeBelt\(s,/);
+ assert.match(equipment,/freePiece\?freePiece\.dir/);
+ simulate(i=>{
+  const s=r.newState();s.floor=i%r.FLOORS;s.money=100000;
+  const f=s.floor;
+  const x=48.35,z=92.75;
+  // 90-degree section can be independently oriented (west, north, south, east).
+  const a=r.placeFreeBelt(s,f,x,z,1);assert.ok(a);
+  const b=r.placeFreeBelt(s,f,x+2.65,z,2);assert.ok(b);
+  const c=r.placeFreeBelt(s,f,x+2.65,z+2.65,0);assert.ok(c);
+  assert.equal(r.freeBeltConnected(s,a.id),true);
+  assert.equal(r.freeBeltConnected(s,b.id),true);
+  assert.equal(r.freeBeltConnected(s,c.id),false);
+  assert.equal(r.placeFreeBelt(s,f,x,z,0),null,'duplicate grid position blocked');
+  assert.equal(r.turnFreeBelt(s,c.id),1);
+  assert.equal(r.turnFreeBelt(s,c.id),2);
+  assert.equal(r.turnFreeBelt(s,c.id),3);
+  assert.equal(r.turnFreeBelt(s,c.id),0);
+  s.stockPiles.push({floor:f,aisle:4,x:a.x+1.1,z:a.z+1.1,count:60});
+  s.clawInventory.push({paid:450});
+  const claw=r.deployFreeClaw(s,a.id);
+  assert.ok(claw);
+  assert.equal(r.deployFreeClaw(s,a.id),null);
+  r.advanceBelts(s,30);
+  const parcels=s.freeBelts.reduce((sum,b)=>sum+b.items,0);
+  const source=s.stockPiles.reduce((sum,p)=>sum+p.count,0);
+  assert.equal(source+parcels,60,'no phantom products or lost cartons');
+  assert.ok(b.items>0,'a real carton followed the turned first segment');
+  assert.ok(c.items>0,'the 90 degree route delivered cargo into next branch');
+  const restored=r.loadState(r.serialize(s));
+  assert.equal(restored.freeBelts.length,3);
+  assert.equal(restored.freeBelts.reduce((sum,b)=>sum+b.items,0),parcels);
+  assert.equal(restored.claws[0].freeBeltId,a.id);
+  assert.equal(r.takeFreeBelt(restored,c.id),true);
+  const held=restored.freeBelts.find(b=>b.id===c.id).items;
+  const refund=r.sellFreeBelt(restored,c.id);
+  assert.equal(refund,Math.floor(c.paid/2));
+  assert.equal(restored.freeBelts.length,2);
+  assert.equal(restored.stockPiles.reduce((sum,p)=>sum+p.count,0),source+held);
+ });
+});
+test('new visual stage F: 30 receiving portal and unobstructed loading position checks',()=>{
+ const env=source('environment.js');
+ assert.match(env,/function buildCreativeReceiving\(\)/);
+ assert.match(env,/THE SUPPLY PORTAL/);
+ assert.match(env,/DOCK 01/);
+ assert.match(env,/buildCreativeReceiving\(\);/);
+ simulate(i=>{
+  const s=r.newState();s.floor=i%r.FLOORS;
+  assert.ok(s.floor>=0&&s.floor<r.FLOORS);
+  assert.equal(r.loadState(r.serialize(s)).floor,s.floor);
+ });
+});
+test('new visual stage G: 30 no-crab-alert and bright-gold portrait checks',()=>{
+ const env=source('environment.js');
+ const html=fs.readFileSync(path.resolve(__dirname,'../index.html'),'utf8');
+ const game=source('game.js');
+ assert.doesNotMatch(html,/id="crabStatus"/);
+ assert.doesNotMatch(game,/updateCrabStatus/);
+ assert.match(env,/color:'#ffd029'/);
+ assert.match(env,/color:'#ffe77c'/);
+ assert.match(env,/EMPLOYEE OF THE MONTH/);
+ simulate(i=>{
+  const s=r.newState();s.floor=i%r.FLOORS;
+  s.money=300+i;s.levels.capacity=2;
+  const loaded=r.loadState(r.serialize(s));
+  assert.equal(loaded.money,300+i);
+  assert.equal(loaded.levels.capacity,2);
+  assert.equal(loaded.floor,s.floor);
+ });
+});
+
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
