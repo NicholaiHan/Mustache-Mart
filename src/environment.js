@@ -227,10 +227,93 @@ function buildShell(){
  // A single solid panel is never placed behind either interactive door.
  const wallTex=matteWallTexture();
  const wallMat=new THREE.MeshStandardMaterial({map:wallTex,roughness:.91,metalness:.012,bumpMap:wallTex,bumpScale:.011});
+ // Wall-integrated blue glazing, built as actual voids in the plaster, not
+ // separate surface-mounted billboards. Every window is cut from the shell.
+ const glassBlue=new THREE.MeshStandardMaterial({color:'#ade9ff',emissive:'#74caff',emissiveIntensity:.48,metalness:.04,roughness:.14,transparent:true,opacity:.88,depthWrite:false,side:THREE.DoubleSide});
+ const skyFill=new THREE.MeshBasicMaterial({color:'#ade9ff',side:THREE.DoubleSide});
+ const windowAlloy=new THREE.MeshStandardMaterial({color:'#d1dde0',metalness:.56,roughness:.33});
+ const windowGasket=new THREE.MeshStandardMaterial({color:'#566c72',metalness:.18,roughness:.59});
+ const windowSpecs={
+  side:[19,38,57,76].map(center=>({center,y:12.78,width:7.6,height:2.65})),
+  front:[13,63,81,94].map(center=>({center,y:9.75,width:5.6,height:2.35}))
+ };
+ const panel=(parent,w,h,d,x,y,z)=>{
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),wallMat);
+  mesh.position.set(x,y,z);parent.add(mesh);return mesh;
+ };
  const wallSegment=(x,z,w,d,h=CEILING_Y,y=CEILING_Y/2)=>{
-   const body=cube(w,h,d,wallMat);body.position.set(x,y,z);
+   const sideWall=d>w&&Math.abs(Math.abs(x-46.5)-56.5)<.6;
+   const frontWall=w>d&&Math.abs(z+12.7)<.1;
+   const alongX=frontWall;
+   const openingKind=sideWall?'side':frontWall?'front':null;
+   const min=(alongX?x-w/2:z-d/2),max=(alongX?x+w/2:z+d/2);
+   const specs=h===CEILING_Y&&openingKind?
+    windowSpecs[openingKind].filter(o=>o.center-o.width/2>min+.03&&o.center+o.width/2<max-.03):[];
+   const assembly=new THREE.Group();
+   assembly.name=specs.length?'integratedDaylightWall':'solidStructuralWall';
+   add(assembly);
+   if(!specs.length){
+    panel(assembly,w,h,d,x,y,z);
+   }else{
+    // Cut actual holes: lower and upper uninterrupted plaster bands, then
+    // only the strips BETWEEN openings. No wall mesh occludes the glass.
+    const sill=specs[0].y-specs[0].height/2;
+    const lintel=specs[0].y+specs[0].height/2;
+    panel(assembly,w,sill,d,x,sill/2,z);
+    panel(assembly,w,CEILING_Y-lintel,d,x,(CEILING_Y+lintel)/2,z);
+    let previous=min;
+    for(const spec of specs){
+     const left=spec.center-spec.width/2,right=spec.center+spec.width/2;
+     if(left>previous+.01){
+      const center=(previous+left)/2,length=left-previous;
+      panel(assembly,alongX?length:w,spec.height,alongX?d:length,
+        alongX?center:x,spec.y,alongX?z:center);
+     }
+     previous=right;
+    }
+    if(max>previous+.01){
+     const length=max-previous,center=(previous+max)/2;
+     panel(assembly,alongX?length:w,specs[0].height,alongX?d:length,
+       alongX?center:x,specs[0].y,alongX?z:center);
+    }
+    const windows=new THREE.Group();windows.name='daylightWindows';assembly.add(windows);
+    for(const spec of specs){
+     const pane=new THREE.Group();pane.name='recessedBlueWindow';
+     pane.userData={structuralOpening:true,width:spec.width,height:spec.height,wall:'integrated'};
+     pane.position.set(alongX?spec.center:x,spec.y,alongX?z:spec.center);
+     // For side walls the pane's local X follows world Z, with an inward
+     // normal; all parts stay INSIDE the original 0.5m-thick shell.
+     if(!alongX)pane.rotation.y=Math.PI/2;
+     windows.add(pane);
+     const glazing=round(spec.width-.13,spec.height-.13,.055,glassBlue,pane);
+     glazing.name='recessedGlass';glazing.position.z=.015;
+     const interiorGlow=round(spec.width-.20,spec.height-.20,.022,skyFill,pane);
+     interiorGlow.position.z=-.055;
+     for(const edge of [-1,1]){
+      const jamb=round(.10,spec.height,.19,windowAlloy,pane);
+      jamb.position.set(edge*(spec.width/2-.045),0,.055);
+      const verticalSeal=round(.018,spec.height-.14,.09,windowGasket,pane);
+      verticalSeal.position.set(edge*(spec.width/2-.11),0,.095);
+     }
+     for(const edge of [-1,1]){
+      const sillFrame=round(spec.width,.11,.19,windowAlloy,pane);
+      sillFrame.position.set(0,edge*(spec.height/2-.05),.055);
+     }
+     const divider=round(.085,spec.height-.10,.18,windowAlloy,pane);
+     divider.position.z=.085;
+     const middle=round(spec.width-.10,.075,.18,windowAlloy,pane);
+     middle.position.set(0,0,.085);
+     // Flush-mounted fasteners: frame highlights read as hardware recessed
+     // within the wall thickness, not a separate structure on its face.
+     for(const dx of [-spec.width/2+.13,spec.width/2-.13]){
+      for(const dy of [-spec.height/2+.13,spec.height/2-.13]){
+       const screw=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.02,8),windowGasket);
+       screw.rotation.x=Math.PI/2;screw.position.set(dx,dy,.115);pane.add(screw);
+      }
+     }
+    }
+   }
    if(h===CEILING_Y){
-    // These decorative trims are offset toward the store, not coplanar with plaster.
     const horizontal=w>d;
     const trim=cube(horizontal?w-.08:.16,.22,horizontal?.12:d-.08,'#8a9691');
     trim.position.set(horizontal?x:x+(x>50?-.4:.4),.2,horizontal?z+(z<0?.36:-.36):z);
@@ -240,12 +323,10 @@ function buildShell(){
  };
  wallSegment(46.5,100.7,113,.5);
  if(s.floor===0){
-   // Single fire exit on the back-left wall, with a real door-shaped aperture.
    wallSegment(-10,35.15,.5,96.3);
    wallSegment(-10,93.85,.5,14.3);
    wallSegment(-10,85,.5,3.4,CEILING_Y-4.65,(CEILING_Y+4.65)/2);
    wallSegment(103,44,.5,114);
-   // Front entrance opening x=42.5..50.5, with a tall structural lintel.
    wallSegment(16.25,-12.7,52.5,.5);
    wallSegment(76.75,-12.7,52.5,.5);
    wallSegment(46.5,-12.7,8,.5,CEILING_Y-5.45,(CEILING_Y+5.45)/2);
@@ -254,46 +335,6 @@ function buildShell(){
    wallSegment(103,44,.5,114);
    wallSegment(46.5,-12.7,113,.5);
  }
- // Daylight-blue clerestory windows: luminous glazing makes the immense
- // warehouse feel sunlit, even though the outside remains a solid shell.
- // Mount panels above walkways, never across the fire exit or front entrance.
- const windows=new THREE.Group();windows.name='daylightWindows';add(windows);
- const skyBlue=new THREE.MeshBasicMaterial({color:'#ade9ff',side:THREE.DoubleSide});
- const aquaGlass=new THREE.MeshStandardMaterial({color:'#bceeff',emissive:'#81cfff',emissiveIntensity:.45,metalness:.02,roughness:.12,transparent:true,opacity:.87,depthWrite:false,side:THREE.DoubleSide});
- const sunlightBlue=new THREE.MeshBasicMaterial({color:'#c5efff',transparent:true,opacity:.11,depthWrite:false,side:THREE.DoubleSide});
- const windowFrame=new THREE.MeshStandardMaterial({color:'#edf9fc',metalness:.45,roughness:.23});
- const windowShade=new THREE.MeshStandardMaterial({color:'#759dac',metalness:.43,roughness:.31});
- const glassPane=(x,y,z,w,h,vertical=false)=>{
-  const group=new THREE.Group();group.name='lightBlueWindow';group.position.set(x,y,z);windows.add(group);
-  if(vertical)group.rotation.y=Math.PI/2;
-  const surround=round(w+.28,h+.28,.12,windowShade,group);surround.position.z=.014;
-  const daylight=round(w,h,.025,skyBlue,group);daylight.position.z=.095;
-  const glass=round(w-.12,h-.12,.025,aquaGlass,group);glass.position.z=.122;
-  for(const px of [-w/2,w/2]){
-   const frame=round(.085,h+.22,.12,windowFrame,group);frame.position.set(px,0,.158);
-  }
-  for(const py of [-h/2,0,h/2]){
-   const frame=round(w+.22,.065,.12,windowFrame,group);frame.position.set(0,py,.158);
-  }
-  const sheen=round(.12,h*.82,.008,sunlightBlue,group);sheen.position.set(-w*.29,0,.184);sheen.rotation.z=-.24;
- };
- for(const z of [19,38,57,76]){
-  // Side walls face the store; low windows would be hidden by tall racks.
-  glassPane(-9.46,12.78,z,7.6,2.65,true);
-  glassPane(102.47,12.78,z,7.6,2.65,true);
- }
- for(const x of [13,63,81,94]){
-  // Front panes are well clear of the grand-opening doorway and portraits.
-  glassPane(x,9.75,-12.10,5.6,2.35,false);
- }
- // A few soft transparent blue daylight pools imply light travelling inward.
- // These meshes are non-solid and do not alter player/robot collisions.
- for(const [x,z] of [[6,19],[96,38],[6,57],[96,76],[13,1],[81,1]]){
-  const pool=new THREE.Mesh(new THREE.PlaneGeometry(4.5,10),sunlightBlue);
-  pool.name='daylightFloorPool';pool.rotation.x=-Math.PI/2;
-  pool.position.set(x,.027,z);windows.add(pool);
- }
-
  buildEmployeeOfMonthPortrait();
  // Uprights, panel joints, painted trims and wayfinding details are actual geometry.
  for(const x of [-5,5,16,28,40,53,65,78,91]){
