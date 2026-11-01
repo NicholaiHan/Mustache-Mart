@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {BAYS,aisleX,bayZ} from './rules.mjs';
+import {addPackedCarton,addInventoryPallet,cartonMaterials} from './carton-model.js';
 // Equipment design and conveyor/cart/ladder geometry.
 export function equipmentMaterial(hex, metalness=.12, roughness=.48){
  return new THREE.MeshStandardMaterial({color:hex,metalness,roughness});
@@ -207,7 +208,7 @@ function makeClaws(){
 }
 function makeStockPiles(){
  const items=[];
- const cardboard=equipmentMaterial('#bea47c',.03,.87),wood=equipmentMaterial('#98734b',.1,.85);
+ const materials=cartonMaterials();
  for(const p of s.stockPiles.filter(q=>q.floor===s.floor&&q.count>0)){
   const g=new THREE.Group();getWorld().add(g);g.position.set(p.x,0,p.z);g.userData.pile=p;g.userData.keepProportion=true;
   if(p.crabDebris){
@@ -223,10 +224,12 @@ function makeStockPiles(){
    }
    items.push(g);continue;
   }
-  const pallet=round(1.65,.15,1.65,wood,g);pallet.position.y=.13;
+  // Player-collectible piles use the SAME cardboard, tape, carton labels,
+  // barcode print and wooden pallet as the receiving stockroom's decoration.
+  const pallet=addInventoryPallet({round,parent:g,materials,x:0,z:0,width:1.9,depth:1.8});
   for(let tier=0;tier<Math.min(4,Math.ceil(p.count/70));tier++){
-   for(let side of [-1,1]){
-    const box=round(.72,.46,.8,cardboard,g);box.position.set(side*.38,.5+tier*.5,0);
+   for(const side of [-1,1]){
+    addPackedCarton({round,parent:pallet,materials,x:side*.43,y:.68+tier*.69,z:0,variant:tier+(side+1),scale:.79});
    }
   }
   items.push(g);
