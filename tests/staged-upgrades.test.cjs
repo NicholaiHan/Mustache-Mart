@@ -993,6 +993,21 @@ test('developer budget and code separation: 30 $100k-credit and stable legacy-sa
  });
 });
 
+test('offline server module safety: 30 approved local-module and no save mutation checks',()=>{
+ const server=fs.readFileSync(path.resolve(__dirname,'../server.cjs'),'utf8');
+ for(const module of ['natural-crab','carton-model','elevator-ui','visual-proportions']){
+  assert.match(server,new RegExp("/src/"+module+"\\\\.js"),module+' must load offline');
+ }
+ assert.match(server,/const PUBLIC_FILES = new Map/);
+ assert.doesNotMatch(server,/serveStatic\(.*req\.url/);
+ simulate(i=>{
+  const s=r.newState();s.floor=i%r.FLOORS;s.money=3000+i;
+  const original=r.serialize(s),restored=r.loadState(original);
+  assert.equal(restored.money,s.money);
+  assert.equal(restored.floor,s.floor);
+  assert.equal(restored.robots.length,s.robots.length);
+ });
+});
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
