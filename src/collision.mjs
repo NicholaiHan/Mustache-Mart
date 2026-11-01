@@ -87,7 +87,7 @@ export function blockedEquipment(s,x,z,radius=PLAYER_RADIUS){
  // Every purchased lift occupies physical space; active drivers are not
  // blocked by their own platform when calculating navigation.
  for(const c of (s.platforms?.length?s.platforms:(s.levels?.cart?[s.cart]:[]))){
-   if(c.floor===floor&&!c.mounted&&Math.hypot(x-aisleX(c.aisle),z-c.z)<.84+radius)return true;
+   if(c.floor===floor&&!c.mounted&&Math.hypot(x-(c.x??aisleX(c.aisle)),z-c.z)<.84+radius)return true;
  }
  return false;
 }
