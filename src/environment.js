@@ -254,6 +254,46 @@ function buildShell(){
    wallSegment(103,44,.5,114);
    wallSegment(46.5,-12.7,113,.5);
  }
+ // Daylight-blue clerestory windows: luminous glazing makes the immense
+ // warehouse feel sunlit, even though the outside remains a solid shell.
+ // Mount panels above walkways, never across the fire exit or front entrance.
+ const windows=new THREE.Group();windows.name='daylightWindows';add(windows);
+ const skyBlue=new THREE.MeshBasicMaterial({color:'#ade9ff',side:THREE.DoubleSide});
+ const aquaGlass=new THREE.MeshStandardMaterial({color:'#bceeff',emissive:'#81cfff',emissiveIntensity:.45,metalness:.02,roughness:.12,transparent:true,opacity:.87,depthWrite:false,side:THREE.DoubleSide});
+ const sunlightBlue=new THREE.MeshBasicMaterial({color:'#c5efff',transparent:true,opacity:.11,depthWrite:false,side:THREE.DoubleSide});
+ const windowFrame=new THREE.MeshStandardMaterial({color:'#edf9fc',metalness:.45,roughness:.23});
+ const windowShade=new THREE.MeshStandardMaterial({color:'#759dac',metalness:.43,roughness:.31});
+ const glassPane=(x,y,z,w,h,vertical=false)=>{
+  const group=new THREE.Group();group.name='lightBlueWindow';group.position.set(x,y,z);windows.add(group);
+  if(vertical)group.rotation.y=Math.PI/2;
+  const surround=round(w+.28,h+.28,.12,windowShade,group);surround.position.z=.014;
+  const daylight=round(w,h,.025,skyBlue,group);daylight.position.z=.095;
+  const glass=round(w-.12,h-.12,.025,aquaGlass,group);glass.position.z=.122;
+  for(const px of [-w/2,w/2]){
+   const frame=round(.085,h+.22,.12,windowFrame,group);frame.position.set(px,0,.158);
+  }
+  for(const py of [-h/2,0,h/2]){
+   const frame=round(w+.22,.065,.12,windowFrame,group);frame.position.set(0,py,.158);
+  }
+  const sheen=round(.12,h*.82,.008,sunlightBlue,group);sheen.position.set(-w*.29,0,.184);sheen.rotation.z=-.24;
+ };
+ for(const z of [19,38,57,76]){
+  // Side walls face the store; low windows would be hidden by tall racks.
+  glassPane(-9.46,12.78,z,7.6,2.65,true);
+  glassPane(102.47,12.78,z,7.6,2.65,true);
+ }
+ for(const x of [13,63,81,94]){
+  // Front panes are well clear of the grand-opening doorway and portraits.
+  glassPane(x,9.75,-12.10,5.6,2.35,false);
+ }
+ // A few soft transparent blue daylight pools imply light travelling inward.
+ // These meshes are non-solid and do not alter player/robot collisions.
+ for(const [x,z] of [[6,19],[96,38],[6,57],[96,76],[13,1],[81,1]]){
+  const pool=new THREE.Mesh(new THREE.PlaneGeometry(4.5,10),sunlightBlue);
+  pool.name='daylightFloorPool';pool.rotation.x=-Math.PI/2;
+  pool.position.set(x,.027,z);windows.add(pool);
+ }
+
  buildEmployeeOfMonthPortrait();
  // Uprights, panel joints, painted trims and wayfinding details are actual geometry.
  for(const x of [-5,5,16,28,40,53,65,78,91]){
