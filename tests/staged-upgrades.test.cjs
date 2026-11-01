@@ -765,13 +765,13 @@ test('wider store stage: 30 reversible X geometry and legacy aisle coordinates p
  assert.match(game,/world\.scale\.x=MAP_WIDTH_MULTIPLIER/);
  assert.match(game,/camera\.position\.set\(toWideX\(V\.x\)/);
  assert.match(game,/fromWideX\(point\.x\)/);
- assert.ok(game.includes('crabModel.scale.set(.44,.68,.68)'));
+ assert.ok(game.includes('crabModel.scale.set(.36,.68,.68)'));
 
  simulate(i=>{
   const x=r.aisleX(i%r.AISLES),left=r.aisleX(0),right=r.aisleX(9);
-  assert.equal(r.MAP_WIDTH_MULTIPLIER,1.30);
+  assert.equal(r.MAP_WIDTH_MULTIPLIER,1.60);
   assert.ok(Math.abs(r.fromWideX(r.toWideX(x))-x)<1e-8);
-  assert.ok(Math.abs(r.toWideX(right)-r.toWideX(left)-(right-left)*1.3)<1e-8);
+  assert.ok(Math.abs(r.toWideX(right)-r.toWideX(left)-(right-left)*1.6)<1e-8);
   const old=r.newState();old.floor=i%r.FLOORS;
   old.fill[r.cellId(old.floor,i%r.AISLES,0,0,0)]=1;old.stocked=1;
   const migrated=r.loadState(r.serialize(old));
@@ -781,7 +781,7 @@ test('wider store stage: 30 reversible X geometry and legacy aisle coordinates p
 });
 test('crab lane stage: 30 large moving crab patrols remain inside broadened aisles',()=>{
  const game=source('game.js'),characters=source('characters.js');
- assert.ok(game.includes('crabModel.scale.set(.44,.68,.68)'));
+ assert.ok(game.includes('crabModel.scale.set(.36,.68,.68)'));
 
  assert.match(game,/crabModel\.position\.set\(aisleX\(p\.aisle\)\+\.16/);
  assert.match(characters,/megaRobotCrab/);
@@ -795,13 +795,13 @@ test('crab lane stage: 30 large moving crab patrols remain inside broadened aisl
   assert.ok(state.crab.patrol[f].z>=14&&state.crab.patrol[f].z<=90);
   assert.ok(state.crab.patrol[f].z!==prior||i%2===0);
   assert.equal(events.length,0);
-  const crabDiameterLogical=10.4*.44,wideLaneWidth=(10-1.69)*r.MAP_WIDTH_MULTIPLIER;
+  const crabDiameterLogical=10.4*.36,wideLaneWidth=(10-1.69)*r.MAP_WIDTH_MULTIPLIER;
   assert.ok(crabDiameterLogical<wideLaneWidth,'resized crab fits visible widened corridor');
  });
 });
 test('smaller crab: 30 cosmetic shrink checks preserve 15-floor raids and save state',()=>{
  const game=source('game.js');
- assert.ok(game.includes('crabModel.scale.set(.44,.68,.68)'),'the entire crab is reduced in 3D');
+ assert.ok(game.includes('crabModel.scale.set(.36,.68,.68)'),'the entire crab is reduced in 3D');
  simulate(i=>{
   const state=r.newState();state.money=7300+i;state.floor=i%r.FLOORS;
   const savedBefore=r.serialize(state);
@@ -819,6 +819,53 @@ test('smaller crab: 30 cosmetic shrink checks preserve 15-floor raids and save s
   assert.equal(loaded.money,7300+i);
   assert.equal(loaded.crab.attacks[eventFloor],before+1);
   assert.ok(savedBefore.includes('\"fill\"'));
+ });
+});
+test('wide aisle upgrade: 30 preserved legacy saves at 16 meter visual separation',()=>{
+ const render=source('game.js');
+ assert.match(render,/world\.scale\.x=MAP_WIDTH_MULTIPLIER/);
+ assert.match(render,/fromWideX\(point\.x\)/);
+ simulate(i=>{
+  const s=r.newState();s.money=50000+i*19;s.floor=i%r.FLOORS;
+  s.levels.speed=i%4;
+  const oldAisle=i%r.AISLES,oldX=r.aisleX(oldAisle);
+  s.fill[r.cellId(s.floor,oldAisle,0,i%r.BAYS,i%r.TIERS)]=1+i%4;
+  s.stocked=s.fill.reduce((a,b)=>a+b,0);
+  const before=r.serialize(s),after=r.loadState(before);
+  assert.equal(after.money,s.money);
+  assert.equal(after.stocked,s.stocked);
+  assert.equal(after.levels.speed,s.levels.speed);
+  assert.equal(r.aisleX(oldAisle),oldX,'saved logical coordinate never changes');
+  assert.ok(Math.abs(r.toWideX(r.aisleX(1))-r.toWideX(r.aisleX(0))-16)<1e-9);
+  assert.ok(Math.abs(r.fromWideX(r.toWideX(oldX))-oldX)<1e-9);
+  assert.equal(r.MAP_WIDTH_MULTIPLIER,1.6);
+ });
+});
+test('detailed crab upgrade: 30 animations, one-time raids and existing save safety',()=>{
+ const code=source('characters.js'),game=source('game.js');
+ for(const name of ['crabSegmentedCarapace','crabHydraulicCylinder','crabPolishedPistonRod',
+  'crabLegDriveGear','crabPincerRotaryJoint','crabCoolingVent','crabArmorRivets',
+  'crabSerratedPincerTeeth','crabAnimatedWarningBeacon','crabEyeBezel']){
+  assert.ok(code.includes(name),'missing mechanical detail '+name);
+ }
+ assert.match(code,/new THREE\.InstancedMesh\(rivetGeo,polished,130\)/);
+ assert.match(game,/warningLights\|\|\[\]/);
+ assert.match(game,/crabModel\.scale\.set\(\.36,\.68,\.68\)/);
+ simulate(i=>{
+  const state=r.newState();state.money=10000+i*7;
+  const floor=i%r.FLOORS;state.floor=floor;
+  r.setDeveloperCrab(state,'on');
+  assert.equal(r.crabEnabled(state,true),true);
+  assert.deepEqual(r.advanceCrab(state,1199,true),[]);
+  const attacks=r.advanceCrab(state,1,true);
+  assert.equal(attacks.length,r.FLOORS,'all unfinished floors receive only one sweep');
+  assert.equal(state.crab.attacks[floor],1);
+  assert.equal(state.money,10000+i*7);
+  assert.equal(state.stocked,0);
+  const restored=r.loadState(r.serialize(state));
+  assert.equal(restored.crab.attacks[floor],1);
+  assert.equal(restored.floor,floor);
+  assert.equal(restored.money,state.money);
  });
 });
 test('window detail stage: 30 decoration positions do not intersect clerestory aperture heights',()=>{
