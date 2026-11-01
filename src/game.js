@@ -165,7 +165,9 @@ function buildWorld(){
   // Make the complete crab about one-third smaller (body, legs and pincers),
   // while keeping the widened aisle clearance and normal patrol animation.
   // Only the model is scaled: raid timing, stock damage and saves are unchanged.
-  crabModel.scale.set(.44,.68,.68);
+  // Keep the crab's previous compact physical silhouette even as the
+  // aisles expand to 16m visually. Only cosmetic geometry changes.
+  crabModel.scale.set(.36,.68,.68);
  }
  for(const platform of platformsOnFloor(s)){
   const model=makeCart();if(model){cartMeshes.push({platform,model});if(platform===s.cart)cartMesh=model;}
