@@ -46,12 +46,12 @@ const assert=require('node:assert/strict');
   assert.match(await page.locator('#saveOriginStatus').textContent(),/THIS BROWSER SAVE/);
   assert.equal(await page.locator('#saveExport').count(),1,'save backup export is accessible from the introduction');
   assert.equal(await page.locator('#saveImportFile').count(),1,'save file import is accessible from the introduction');
-  await page.waitForFunction(()=>document.querySelector('#buildChip')?.textContent.includes('2026.10.31.7'));
-  assert.match(await page.locator('#buildIntro').innerText(),/UPDATED EDITION.*2026\.10\.31\.7/);
+  await page.waitForFunction(()=>document.querySelector('#buildChip')?.textContent.includes('2026.10.31.8'));
+  assert.match(await page.locator('#buildIntro').innerText(),/UPDATED EDITION.*2026\.10\.31\.8/);
   assert.match(await page.locator('#devBanner').innerText(),/DEVELOPMENT MODE/);
   assert.equal(await page.locator('#devBanner').isVisible(),true);
   const build=await page.evaluate(async()=>await (await fetch('./build.json')).json());
-  assert.equal(build.version,'2026.10.31.7');
+  assert.equal(build.version,'2026.10.31.8');
   console.log('PASS: game prints latest build badge, features, manifest and $500 dev banner');
 
   // Each floor must have exactly one actual framed painting with its own
