@@ -405,6 +405,45 @@ test('new visual stage G: 30 no-crab-alert and bright-gold portrait checks',()=>
  });
 });
 
+test('new stage: 30 automatic robot dispatch, least-crowded fallback and Mike movement runs',()=>{
+ const env=source('environment.js'),game=source('game.js');
+ assert.match(env,/daylightWindows/,'sunlight-blue windows must exist on each floor');
+ assert.match(env,/color:'#ade9ff'/,'glazing has clear sky-blue illumination');
+ assert.match(env,/daylightFloorPool/,'daylight pools imply light entering');
+ assert.match(game,/Move to chosen floor \/ aisle/,'Mike can relocate without manual placement');
+ assert.match(game,/Math\.max\(s\.money,500000\)/,'developer mode grants at least $5,000');
+ simulate(i=>{
+  const s=r.newState();s.floor=i%r.FLOORS;s.money=100000000;
+  const ids=[];
+  for(let a=0;a<10;a++){
+   assert.equal(r.purchase(s,'robot'),true);
+   const b=s.robots.at(-1);ids.push(b.id);
+   assert.equal(b.placed,true);
+   assert.equal(b.floor,s.floor);
+   assert.equal(b.homeAisle,a,'first ten purchases choose each empty aisle in order');
+   assert.equal(b.x,r.aisleX(a));
+  }
+  assert.equal(r.purchase(s,'robot'),true);
+  assert.equal(s.robots.at(-1).homeAisle,0,'full floor falls back to nearest least-crowded aisle 1');
+  assert.equal(r.purchase(s,'robot'),true);
+  assert.equal(s.robots.at(-1).homeAisle,1,'next extra bot chooses nearest least-crowded aisle 2');
+  const original=s.robots[0];
+  original.carry=2;
+  assert.equal(r.moveRobotFromMike(s,original.id,(s.floor+1)%r.FLOORS,8),true);
+  assert.equal(original.floor,(i%r.FLOORS+1)%r.FLOORS);
+  assert.equal(original.homeAisle,8);
+  assert.equal(original.carry,2,'moving a robot must not delete carried cargo');
+  assert.equal(original.phase,'shelf');
+  const restored=r.loadState(r.serialize(s));
+  const saved=restored.robots.find(b=>b.id===original.id);
+  assert.equal(saved.floor,original.floor);
+  assert.equal(saved.homeAisle,8);
+  assert.equal(saved.placed,true);
+  assert.equal(restored.stocked,s.stocked);
+  assert.equal(restored.levels.robot,12);
+ });
+});
+
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
