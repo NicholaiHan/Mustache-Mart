@@ -1,6 +1,6 @@
 {
-  "version": "2026.11.01.5",
-  "name": "Smaller Mega Robot Crab — Same Raids and Saves",
+  "version": "2026.11.01.6",
+  "name": "Wider Aisles and Highly Detailed Mechanical Crab",
   "build_date": "2026-11-01",
   "includes": [
     "Robot Mike with white eyes and mustache",
@@ -19,6 +19,9 @@
     "30-percent wider rendered supermarket and aisles, with original saved logical shelf, bot and conveyor positions preserved",
     "Narrowed crab footprint and widened path clearance so giant moving crab visibly patrols aisles without clipping racks",
     "Crab model reduced in width, height and depth to fit comfortably within widened store aisles without changing gameplay or saved progress",
+    "Store aisle centers widened again to 16 meters visually with 180.8 meter world width; original saves and equipment coordinates preserved",
+    "Crab upgraded with segmented armored shell, gear hubs, articulated servo knees, hydraulic leg pistons and claw rams",
+    "Crab cooling vents, alloy side access panels, optical sensors, serrated pincer teeth, hazard stripes, batched rivets and strike warning beacons",
     "Wall panels, side rails, pipe conduits and mechanical vent hardware lowered beneath clerestory window openings",
     "Dev-only crab spawn, removal, and normal unlock controls, plus Shift J/K/N keyboard shortcuts, without affecting standard saves",
     "Top robot shelves require purchased motorized robot lift at both target selection and final stocking; manual tall ladders cannot bypass",
