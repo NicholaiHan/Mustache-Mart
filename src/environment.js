@@ -357,8 +357,7 @@ function buildShelves(){
  for(let a=0;a<AISLES;a++){
   const aisleLabel=textLabel('AISLE '+String(a+1).padStart(2,'0')+'  |  '+goods[a%goods.length],5.6,.7,'#465f55','#ffffff',39);
   aisleLabel.position.set(aisleX(a),4.35,9.1);add(aisleLabel);
-  const highTag=textLabel(goods[a%goods.length]+'  •  '+(a+1),5.6,.78,'#d7dbd5','#384441',47);
-  highTag.position.set(aisleX(a),14.55,9.3);add(highTag);
+  // No elevated aisle-top flags: the single entrance-facing aisle sign remains.
   for(let side=0;side<2;side++)for(let bay=0;bay<BAYS;bay++){
    const sg=side===0?-1:1,x=aisleX(a)+sg*3.4,z=bayZ(bay);
    dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);
