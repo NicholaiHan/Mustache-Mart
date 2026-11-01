@@ -12,7 +12,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,skillAvailable,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
+ floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -34,7 +34,7 @@ const TEST_ENDING=location.hash==='#ending-test', PREVIEW_ENDING=location.hash==
 const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
 let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0,shopCategory='tools';
 let doorInteractionHeld=false,ignoreMouseUntil=0,placementRobotId=null,placementSpot=null,robotGhost=null,climbingLadderId=null;
-let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],feederCrates=[],clawVisual=null,cartMesh=null,ladderMesh=null,palletMesh=null,placedClawMeshes=[],pileMeshes=[];
+let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],feederCrates=[],clawVisual=null,cartMesh=null,cartMeshes=[],ladderMesh=null,palletMesh=null,placedClawMeshes=[],pileMeshes=[];
 let selectedBeltAisle=0;
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
 let receiptTimeout=0,payrollTransactions=0;
@@ -101,11 +101,13 @@ const checkout=createCheckout({getWorld:()=>world,getFloor:()=>s.floor,round,tex
 function buildWorld(){
  clearWorld(world);
  world=new THREE.Group();scene.add(world);
- currentFloor=s.floor;beltCrates=[];feederCrates=[];clawVisual=null;cartMesh=null;ladderMesh=null;palletMesh=null;placedClawMeshes=[];pileMeshes=[];robotModels=new Map();robotGhost=null;
+ currentFloor=s.floor;beltCrates=[];feederCrates=[];clawVisual=null;cartMesh=null;cartMeshes=[];ladderMesh=null;palletMesh=null;placedClawMeshes=[];pileMeshes=[];robotModels=new Map();robotGhost=null;
  buildShell();buildService();buildShelves();doors.build();checkout.build();makeReceivingSystem();
  for(let a=0;a<AISLES;a++)for(let segment=0;segment<s.belts[s.floor][a];segment++)makeBelt(s.floor,a,segment);
  for(const robot of s.robots)if(robot.placed&&robot.floor===s.floor)robotModels.set(robot.id,botAppearance(robot));
- cartMesh=makeCart();
+ for(const platform of platformsOnFloor(s)){
+  const model=makeCart();if(model){cartMeshes.push({platform,model});if(platform===s.cart)cartMesh=model;}
+ }
  palletMesh=makePalletJack();placedClawMeshes=makeClaws();pileMeshes=makeStockPiles();
  ladderMesh=makeLadder();
  uiUpdate();
@@ -203,12 +205,13 @@ function act(source='keyboard'){
  }
 }
 function nearbyPallet(d=3){return s.pallet.floor===s.floor&&nearby(s.pallet.x,s.pallet.z,d);}
-function nearbyPlatform(d=3){return s.levels.cart&&s.cart.floor===s.floor&&nearby(aisleX(s.cart.aisle),s.cart.z,d);}
+function nearbyPlatform(d=3){return !!closestPlatform(s,V.x,V.z,s.floor,d);}
 function toggleVehicle(){
  if(s.pallet.driving){s.pallet.driving=false;notify('Parked pallet jack. U unloads inventory at an aisle.');save();return;}
  if(s.cart.mounted){s.cart.mounted=false;V.y=0;notify('Exited motorized platform.');save();return;}
  if(nearbyPallet(3.8)){s.pallet.driving=true;climbingLadderId=null;notify('PALLET JACK · WASD drive · U load at dock / unload beside aisle · F park');return;}
- if(nearbyPlatform(3.6)){s.cart.mounted=true;climbingLadderId=null;notify('MOTORIZED PLATFORM · WASD drive · Space raise · Ctrl lower · F exit');return;}
+ const platform=closestPlatform(s,V.x,V.z,s.floor,3.6);
+ if(platform){selectPlatform(s,platform.id);climbingLadderId=null;save();notify('PLATFORM #'+platform.id+' · WASD drive · Space raise · Ctrl lower · F exit');return;}
  notify('Approach the pallet jack or the motorized ladder platform, then press F.');
 }
 function handlePalletCargo(){
@@ -749,12 +752,12 @@ function animate(now){
    if(id>=0&&decode(id).floor===s.floor)drawProduct(id,s.fill[id]-1);
   }
   tickCart(dt);
-  if(s.levels.cart&&cartMesh){
-   cartMesh.visible=s.cart.floor===s.floor;
-   if(cartMesh.visible){
-    cartMesh.position.set(aisleX(s.cart.aisle),0,s.cart.z);
-    const platform=cartMesh.getObjectByName('riderPlatform');
-    if(platform)platform.position.y=s.cart.liftHeight;
+  for(const {platform,model} of cartMeshes){
+   model.visible=platform.floor===s.floor;
+   if(model.visible){
+    model.position.set(aisleX(platform.aisle),0,platform.z);
+    const lift=model.getObjectByName('riderPlatform');
+    if(lift)lift.position.y=platform.liftHeight;
    }
   }
   if(palletMesh){
