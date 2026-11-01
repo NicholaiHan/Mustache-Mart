@@ -1093,7 +1093,8 @@ if(DEV_MODE){
    completeFloors(n=7){for(let f=0;f<Math.min(FLOORS,n);f++)for(let i=f*CELLS_PER_FLOOR;i<(f+1)*CELLS_PER_FLOOR;i++)s.fill[i]=SLOTS;s.stocked=s.fill.reduce((sum,n)=>sum+n,0);crabEnabled(s);buildWorld();return s.crab.unlocked;},
    advance(seconds){const events=advanceCrab(s,seconds);if(events.some(e=>e.floor===s.floor))buildWorld();return events;},
    swing(f,a,b){const event=performCrabSwing(s,f,a,b);if(event?.floor===s.floor)buildWorld();return event;},
-   status(){return {unlocked:s.crab.unlocked,elapsed:s.crab.elapsed.slice(),attacks:s.crab.attacks.slice(),recent:s.crab.recent.slice(),wrecked:s.robots.filter(r=>r.wrecked).map(r=>r.id),piles:s.stockPiles.filter(p=>p.crabDebris).map(p=>({...p})),visible:!!crabModel};},
+   status(){return {unlocked:s.crab.unlocked,elapsed:s.crab.elapsed.slice(),attacks:s.crab.attacks.slice(),recent:s.crab.recent.slice(),wrecked:s.robots.filter(r=>r.wrecked).map(r=>r.id),piles:s.stockPiles.filter(p=>p.crabDebris).map(p=>({...p})),visible:!!crabModel,wreckModels:world.children.filter(x=>x.name==='crabDestroyedStocker').length};},
+   stockTarget(f,a,b,count=2){let inserted=0;for(let bb=b-1;bb<=b+1;bb++)for(let side=0;side<2;side++)for(let tier=0;tier<TIERS;tier++){const id=cellId(f,a,side,bb,tier);const n=Math.max(0,Math.min(SLOTS,count));inserted+=n-s.fill[id];s.fill[id]=n;}s.stocked+=inserted;buildWorld();return inserted;},
    spawnBot(f,a,bay,paid=400){const bot={id:s.robotNextId++,floor:f,aisle:a,homeAisle:a,x:aisleX(a),z:bayZ(bay),placed:true,paid,phase:'supply',target:-1,carry:0,acc:0,liftY:0,source:null,broken:false,wrecked:false,stockedSinceService:0,breakdowns:0,breakAt:0,repairProgress:0};s.robots.push(bot);s.levels.robot=s.robots.length;buildWorld();return bot.id;},
    robot(id){const r=s.robots.find(r=>r.id===id);return r?{...r}:null;},
    scrap(id){const money=sellRobot(s,id);buildWorld();return money;}
