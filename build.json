@@ -1,10 +1,15 @@
 {
-  "version": "2026.10.31.6",
-  "name": "15 Employee of the Month Portraits of Mustache Mike",
+  "version": "2026.10.31.7",
+  "name": "Mega Robot Crab - Seven-Floor Boss Raids",
   "build_date": "2026-10-31",
   "includes": [
     "Robot Mike with white eyes and mustache",
     "Gold-framed Employee of the Month paintings with 15 unique working portraits of Mustache Mike, one on every floor",
+    "Mega robot crab unlocks permanently after seven complete floors; one swing every 20 minutes of active play per unfinished floor",
+    "Giant walking steel crab with animated legs, hydraulic claws and a countdown warning",
+    "Crab strikes knock stock from shelves to collectable loose-carton floor piles; stocking progress decreases accordingly",
+    "Hit stocking robots are permanently scrapped with popped head, oversized spring, loose bolts and screws",
+    "Crab wrecks must be sold for 25% of purchase price before a replacement can be purchased",
     "Four powered cashier conveyors and payment terminals",
     "Mike behind desk and professional payroll window",
     "Seamless industrial conveyor visuals with contiguous rubber surfaces, steel rails, end rollers and routing joints",
