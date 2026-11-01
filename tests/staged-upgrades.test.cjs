@@ -736,6 +736,88 @@ test('stage infrastructure polish: 30 instanced mechanical detail and save safet
  });
 });
 
+test('recovery stage: 30 old saves, ranks, floors and stocked products survive widened map',()=>{
+ const game=source('game.js'),html=fs.readFileSync(path.resolve(__dirname,'../index.html'),'utf8');
+ assert.match(game,/mustacheMartSaveSnapshotsV1/);
+ assert.match(game,/archiveSave\(current,'BEFORE MANUAL RESTORE'\)/);
+ assert.match(game,/BEFORE FILE IMPORT/);
+ assert.match(game,/showRecoveryCandidates\(\)/);
+ assert.match(html,/id="scanSaveBackups"/);
+ assert.match(html,/localhost:8011\/#dev/);
+ simulate(i=>{
+  const s=r.newState();s.floor=i%r.FLOORS;s.money=i*3719;
+  s.levels.robotSpeed=i%6;s.levels.capacity=i%4;
+  const id=r.cellId(i%r.FLOORS,i%r.AISLES,i%2,(i*7)%r.BAYS,i%r.TIERS);
+  s.fill[id]=1+i%r.SLOTS;s.stocked=s.fill.reduce((t,n)=>t+n,0);
+  const bot=r.hireRobot(s,300,true);bot.x=r.aisleX(i%r.AISLES);
+  bot.aisle=i%r.AISLES;
+  const original=r.serialize(s),restored=r.loadState(original);
+  assert.equal(r.serialize(restored).length>10000,true);
+  assert.equal(restored.stocked,s.stocked);
+  assert.equal(restored.money,s.money);
+  assert.equal(restored.floor,s.floor);
+  assert.equal(restored.levels.robotSpeed,s.levels.robotSpeed);
+  assert.equal(restored.robots[0].x,bot.x);
+ });
+});
+test('wider store stage: 30 reversible X geometry and legacy aisle coordinates preserved',()=>{
+ const game=source('game.js');
+ assert.match(game,/world\.scale\.x=MAP_WIDTH_MULTIPLIER/);
+ assert.match(game,/camera\.position\.set\(toWideX\(V\.x\)/);
+ assert.match(game,/fromWideX\(point\.x\)/);
+ assert.match(game,/crabModel\.scale\.x=\.65/);
+ simulate(i=>{
+  const x=r.aisleX(i%r.AISLES),left=r.aisleX(0),right=r.aisleX(9);
+  assert.equal(r.MAP_WIDTH_MULTIPLIER,1.30);
+  assert.ok(Math.abs(r.fromWideX(r.toWideX(x))-x)<1e-8);
+  assert.ok(Math.abs(r.toWideX(right)-r.toWideX(left)-(right-left)*1.3)<1e-8);
+  const old=r.newState();old.floor=i%r.FLOORS;
+  old.fill[r.cellId(old.floor,i%r.AISLES,0,0,0)]=1;old.stocked=1;
+  const migrated=r.loadState(r.serialize(old));
+  assert.equal(migrated.stocked,1);
+  assert.equal(r.aisleX(i%r.AISLES),x,'logical X never changes across build');
+ });
+});
+test('crab lane stage: 30 large moving crab patrols remain inside broadened aisles',()=>{
+ const game=source('game.js'),characters=source('characters.js');
+ assert.match(game,/crabModel\.scale\.x=\.65/);
+ assert.match(game,/crabModel\.position\.set\(aisleX\(p\.aisle\)\+\.16/);
+ assert.match(characters,/megaRobotCrab/);
+ simulate(i=>{
+  const state=r.newState();state.money=200+i;
+  r.setDeveloperCrab(state,'on');
+  assert.equal(r.crabEnabled(state,true),true);
+  const f=i%r.FLOORS;
+  const prior=state.crab.patrol[f].z;
+  const events=r.advanceCrab(state,Math.min(60,1+i),true);
+  assert.ok(state.crab.patrol[f].z>=14&&state.crab.patrol[f].z<=90);
+  assert.ok(state.crab.patrol[f].z!==prior||i%2===0);
+  assert.equal(events.length,0);
+  const crabDiameterLogical=10.4*.65,wideLaneWidth=(10-1.69)*r.MAP_WIDTH_MULTIPLIER;
+  assert.ok(crabDiameterLogical<wideLaneWidth,'resized crab fits visible widened corridor');
+ });
+});
+test('window detail stage: 30 decoration positions do not intersect clerestory aperture heights',()=>{
+ const env=source('environment.js');
+ assert.match(env,/for\(const y of \[5\.65,8\.35\]\)/);
+ assert.match(env,/spine\.position\.set\(x,7\.60,z\)/);
+ assert.match(env,/vent\.position\.set\(x,8\.85,z\)/);
+ assert.match(env,/panel\.position\.set\(x,6\.62,-12\.31\)/);
+ simulate(i=>{
+  const sideBottom=12.78-2.65/2,frontBottom=9.75-2.35/2;
+  const topRail=8.35+.085/2;
+  const topConduit=7.6+3.3/2;
+  const sideVentTop=8.85+1.36/2;
+  const frontPanelTop=6.62+2.8/2;
+  assert.ok(topRail<sideBottom);
+  assert.ok(topConduit<sideBottom);
+  assert.ok(sideVentTop<sideBottom);
+  assert.ok(frontPanelTop<frontBottom);
+  const state=r.newState();state.floor=i%r.FLOORS;
+  assert.equal(r.loadState(r.serialize(state)).floor,state.floor);
+ });
+});
+
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
