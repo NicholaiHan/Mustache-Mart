@@ -454,11 +454,12 @@ function upcomingCoinOffer(){
  }
  return null;
 }
+const coinCash=cents=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cents/100);
 function renderCoinFlip(){
  const key=activeCoinOffer;if(!key)return;
  const stake=coinFlipStake(s,key),second=key==='floor3';
  $('coinTitle').textContent=second?'FLOOR 3 · ALL-IN COIN FLIP':'THE $3,000 SECRET FLIP';
- $('coinStake').textContent=centsText(stake|| (second?s.money:COIN_FLIP_FIRST_STAKE))+' AT STAKE';
+ $('coinStake').textContent=coinCash(stake|| (second?s.money:COIN_FLIP_FIRST_STAKE))+' AT STAKE';
  $('coinDescription').textContent=second?
   'You finished Floor 3. YES flips a fair coin for your ENTIRE CURRENT CASH BALANCE. Heads doubles your money; tails takes ALL of it. NO permanently rejects this offer. This is your only decision.':
   'You have reached $3,000 cash. YES flips a fair coin: HEADS wins another $3,000, TAILS loses $3,000. NO permanently rejects the offer. There is no waiting or retrying.';
@@ -496,7 +497,7 @@ function acceptSecretCoin(){
  const coin=$('coinEmblem');coin.classList.remove('flip-result');
  coin.textContent=result.won?'H':'T';void coin.offsetWidth;coin.classList.add('flip-result');
  $('coinOutcome').textContent=(result.won?'HEADS · YOU WON! ':'TAILS · YOU LOST. ')+
-  (result.won?'+':'−')+centsText(result.stake)+' · NEW BALANCE '+centsText(result.balanceAfter);
+  (result.won?'+':'−')+coinCash(result.stake)+' · NEW BALANCE '+coinCash(result.balanceAfter);
  $('coinDescription').textContent=result.won?
   'You won the one-time coin flip. Your result is permanently saved.':
   'You lost the one-time coin flip. Your result is permanently saved.';
