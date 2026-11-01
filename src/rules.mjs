@@ -214,22 +214,6 @@ export function acceptCoinFlip(s,event,randomValue=Math.random()){
  entry.result={stake,choice:'yes',landed,won,balanceAfter:s.money};
  return {...entry.result,event};
 }
-export function resolveCoinFlip(s,event,choice,randomValue=Math.random()){
- // The caller passes an independent fair random value in [0,1); never
- // accepts a bet size from the UI or permits a stale/second click wager.
- if(choice!=='heads'&&choice!=='tails')return null;
- if(!Number.isFinite(randomValue)||randomValue<0||randomValue>=1)return null;
- const stake=coinFlipStake(s,event);
- if(stake<=0)return null;
- const landed=randomValue<.5?'heads':'tails';
- const won=landed===choice;
- s.money+=won?stake:-stake;
- const entry=s.coinOffers[event];
- entry.played=true;entry.seen=true;
- entry.result={stake,choice,landed,won,balanceAfter:s.money};
- return {...entry.result,event};
-}
-
 export const capacity=s=>1+s.levels.capacity+2*(s.levels.carryHarness||0),walkSpeed=s=>3.3+s.levels.speed*.45+(s.levels.courierStride||0)*.22;
 export const price=(u,l)=>Math.ceil(u.base*u.factor**l);
 export const skillAvailable=(s,u)=>!u.requires||Object.entries(u.requires).every(([id,level])=>(s.levels[id]||0)>=level);
