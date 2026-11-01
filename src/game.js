@@ -12,7 +12,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,skillAvailable,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
+ floorStocked,itemsPerFloor,remaining,canOpenStore,completedFloors,crabEnabled,advanceCrab,performCrabSwing,CRAB_UNLOCK_FLOORS,CRAB_ATTACK_SECONDS,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -35,7 +35,7 @@ const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
 let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0,shopCategory='tools';
 let doorInteractionHeld=false,ignoreMouseUntil=0,placementRobotId=null,placementSpot=null,robotGhost=null,climbingLadderId=null;
 let repairingRobotId=null,repairKeyConsumed=false;
-let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],feederCrates=[],clawVisual=null,cartMesh=null,cartMeshes=[],ladderMesh=null,palletMesh=null,placedClawMeshes=[],pileMeshes=[];
+let currentFloor=-1,world=null,robotModels=new Map(),crabModel=null,crabSwingEnds=0,beltCrates=[],feederCrates=[],clawVisual=null,cartMesh=null,cartMeshes=[],ladderMesh=null,palletMesh=null,placedClawMeshes=[],pileMeshes=[];
 let selectedBeltAisle=0;
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
 let receiptTimeout=0,payrollTransactions=0;
@@ -89,7 +89,7 @@ const dummy=new THREE.Object3D(),color=new THREE.Color();
 const placeRay=new THREE.Raycaster(),groundForPlacement=new THREE.Plane(new THREE.Vector3(0,1,0),0),placeHit=new THREE.Vector3();
 
 const {add,cube,roundedGeo,round,textLabel,clearWorld}=createRendering({getWorld:()=>world,scene,toon});
-const {makeMike,botAppearance}=createCharacters({s,add,round,toon,textLabel,getWorld:()=>world});
+const {makeMike,botAppearance,makeMegaCrab}=createCharacters({s,add,round,toon,textLabel,getWorld:()=>world});
 const {buildShell,buildService,buildShelves,drawProduct,getMike}=createEnvironment({
  s,scene,add,cube,round,roundedGeo,textLabel,toon,dummy,color,goods,pastel,
  FLOOR_W,FLOOR_D,CEILING_Y,RACK_HEIGHT,TIER_Y,makeMike
@@ -102,10 +102,11 @@ const checkout=createCheckout({getWorld:()=>world,getFloor:()=>s.floor,round,tex
 function buildWorld(){
  clearWorld(world);
  world=new THREE.Group();scene.add(world);
- currentFloor=s.floor;beltCrates=[];feederCrates=[];clawVisual=null;cartMesh=null;cartMeshes=[];ladderMesh=null;palletMesh=null;placedClawMeshes=[];pileMeshes=[];robotModels=new Map();robotGhost=null;
+ currentFloor=s.floor;beltCrates=[];feederCrates=[];clawVisual=null;cartMesh=null;cartMeshes=[];ladderMesh=null;palletMesh=null;placedClawMeshes=[];pileMeshes=[];robotModels=new Map();crabModel=null;robotGhost=null;
  buildShell();buildService();buildShelves();doors.build();checkout.build();makeReceivingSystem();
  for(let a=0;a<AISLES;a++)for(let segment=0;segment<s.belts[s.floor][a];segment++)makeBelt(s.floor,a,segment);
  for(const robot of s.robots)if(robot.placed&&robot.floor===s.floor)robotModels.set(robot.id,botAppearance(robot));
+ if(s.crab.unlocked&&floorStocked(s,s.floor)<itemsPerFloor)crabModel=makeMegaCrab();
  for(const platform of platformsOnFloor(s)){
   const model=makeCart();if(model){cartMeshes.push({platform,model});if(platform===s.cart)cartMesh=model;}
  }
@@ -155,7 +156,7 @@ function manualStock(){
 function nearestBrokenRobot(){
  let nearest=null,dist=repairRange(s);
  for(const robot of s.robots){
-  if(!robot.broken||!robot.placed||robot.floor!==s.floor)continue;
+  if(!robot.broken||robot.wrecked||!robot.placed||robot.floor!==s.floor)continue;
   const d=Math.hypot(V.x-robot.x,V.z-robot.z);
   if(d<dist){nearest=robot;dist=d;}
  }
@@ -296,6 +297,7 @@ function nearestBeltStock(){
  return best;
 }
 function startRobotPlacement(id){
+ if(s.robots.some(r=>r.id===id&&r.wrecked)){notify('CRAB DESTROYED THIS ROBOT · Sell for 25% before buying and deploying a replacement.');return;}
  placementRobotId=id;placementSpot=null;show(null);running=true;document.exitPointerLock?.();
  robotGhost=botAppearance({x:V.x,z:V.z,carry:0,id:-1});
  robotGhost.scale.setScalar(.9);
@@ -345,11 +347,12 @@ function sellNearby(){
   if(d<dist){dist=d;best={type:'belt',a,seg:n-1};}
  }
  if(!best){notify('Walk close to a robot, item claw, ladder, or END conveyor segment and press X.');return;}
+ const wasWrecked=best.type==='robot'&&!!s.robots.find(r=>r.id===best.id)?.wrecked;
  const refund=best.type==='ladder'?sellLadder(s,best.id):best.type==='robot'?sellRobot(s,best.id):best.type==='claw'?sellClaw(s,best.id):sellBelt(s,s.floor,best.a,best.seg);
  if(!refund){notify('Cannot sell that equipment.');return;}
  if(best.type==='ladder'&&climbingLadderId===best.id){climbingLadderId=null;V.y=0;V.vy=0;}
  buildWorld();save();
- notify('Sold '+best.type+' for '+centsText(refund)+' (half the original purchase price).');
+ notify('Sold '+best.type+' for '+centsText(refund)+(wasWrecked?' (25% crab-damage scrap value; replacement slot now free).':' (50% of original cost).'));
 }
 function pointerRequest(){
  if(!renderer.domElement.requestPointerLock)return;
@@ -559,11 +562,13 @@ function renderShop(){
    for(const r of s.robots){
     const item=document.createElement('div');item.className='upgrade toolManagement';
     const name=document.createElement('strong');
-    name.textContent='Stocker #'+r.id+' · '+(r.broken?'REPAIR NEEDED · ':'')+(r.placed?floorLabel(r.floor)+' / Aisle '+(r.aisle+1):'Pending placement')+' · '+(r.stockedSinceService||0)+' stocked since service';
+    name.textContent='Stocker #'+r.id+' · '+(r.wrecked?'CRAB DESTROYED · SELL REQUIRED · ':r.broken?'REPAIR NEEDED · ':'')+(r.placed?floorLabel(r.floor)+' / Aisle '+(r.aisle+1):'Pending placement')+' · '+(r.stockedSinceService||0)+' stocked since service';
     item.append(name);const buttons=document.createElement('div');buttons.className='robotActions';
     const relocate=document.createElement('button');relocate.textContent=r.placed?'Move / redeploy':'Deploy';
-    relocate.addEventListener('click',()=>startRobotPlacement(r.id));
-    const sell=document.createElement('button');sell.textContent='Sell for '+centsText(Math.floor(r.paid/2));
+    relocate.disabled=!!r.wrecked;
+ relocate.title=r.wrecked?'Irreparable crab damage: sell and purchase a new robot.':'';
+ relocate.addEventListener('click',()=>startRobotPlacement(r.id));
+    const sell=document.createElement('button');sell.textContent=(r.wrecked?'Scrap 25% · ':'Sell 50% · ')+centsText(Math.floor(r.paid*(r.wrecked?.25:.5)));
     sell.addEventListener('click',()=>{sellRobot(s,r.id);buildWorld();save();renderShop();uiUpdate();});
     const chooser=document.createElement('select');chooser.setAttribute('aria-label','Choose aisle for stocker '+r.id);
     for(let aisle=0;aisle<AISLES;aisle++){
@@ -571,7 +576,8 @@ function renderShop(){
      option.textContent='Aisle '+(aisle+1);option.selected=aisle===(r.homeAisle??r.aisle);
      chooser.append(option);
     }
-    chooser.addEventListener('change',()=>{
+    chooser.disabled=!!r.wrecked;
+ chooser.addEventListener('change',()=>{
      if(setRobotAisle(s,r.id,Number(chooser.value))){
       notify('Stocker #'+r.id+' assigned to Aisle '+(Number(chooser.value)+1)+'. Next unfinished aisle follows automatically.');
       save();renderShop();
@@ -640,8 +646,10 @@ function buildNextBelt(){
 }
 function updatePrompt(){
  let msg='';
+ const wreckNearby=s.robots.find(r=>r.wrecked&&r.placed&&r.floor===s.floor&&nearby(r.x,r.z,3.3));
  const brokenNearby=nearestBrokenRobot();
- if(brokenNearby){
+ if(wreckNearby)msg='CRAB DESTROYED STOCKER #'+wreckNearby.id+' · X SCRAP FOR 25% · THEN PURCHASE A NEW ROBOT';
+ else if(brokenNearby){
   const progress=Math.floor((brokenNearby.repairProgress||0)/ROBOT_REPAIR_SECONDS*100);
   msg='REPAIR STOCKER #'+brokenNearby.id+' · HOLD E FOR 6 SEC · '+progress+'%';
  }
@@ -724,7 +732,9 @@ function syncRobots(){
  for(const r of s.robots){
   if(r.placed&&r.floor===s.floor){
    if(!robotModels.has(r.id))robotModels.set(r.id,botAppearance(r));
-   const obj=robotModels.get(r.id);obj.visible=true;obj.position.set(r.x,(s.levels.robotLift?0:(r.liftY||0))+.04*Math.sin(performance.now()/230+r.id),r.z);
+   const obj=robotModels.get(r.id);obj.visible=true;
+   if(r.wrecked){obj.position.set(r.x,0,r.z);continue;}
+   obj.position.set(r.x,(s.levels.robotLift?0:(r.liftY||0))+.04*Math.sin(performance.now()/230+r.id),r.z);
    const body=obj.getObjectByName('liftBody');
    if(body)body.position.y=r.liftY||0;
    const jack=obj.getObjectByName('liftingJack');
@@ -736,6 +746,55 @@ function syncRobots(){
   }else if(robotModels.has(r.id)){const obj=robotModels.get(r.id);obj.visible=false;robotModels.delete(r.id);}
  }
 }
+function syncCrab(now){
+ if(!crabModel)return;
+ const p=s.crab.patrol[s.floor],wave=now*.001;
+ crabModel.position.set(aisleX(p.aisle),.15*Math.sin(wave*3.6),p.z);
+ for(const leg of crabModel.userData.legs||[]){
+  leg.joint.rotation.z=Math.sin(wave*2.1+leg.index*1.6+leg.side)*.18;
+  leg.joint.rotation.y=Math.sin(wave*1.4+leg.index*1.1)*.085;
+ }
+ const striking=now<crabSwingEnds;
+ for(const claw of crabModel.userData.jaws||[]){
+  claw.rotation.y=Math.sin(wave*2)*.2+(striking?Math.sin(wave*23)*.95:0);
+  claw.rotation.z=striking?Math.sin(wave*19)*.28:Math.sin(wave*2.5)*.09;
+ }
+}
+function updateCrabStatus(){
+ const indicator=$('crabStatus');if(!indicator)return;
+ if(!s.crab.unlocked){
+  const done=s.stocked>=CRAB_UNLOCK_FLOORS*itemsPerFloor?completedFloors(s):Math.min(6,Math.floor(s.stocked/itemsPerFloor));
+  indicator.textContent='CRAB ALERT LOCKED · COMPLETE '+CRAB_UNLOCK_FLOORS+' FLOORS ('+done+'/'+CRAB_UNLOCK_FLOORS+')';
+  indicator.classList.remove('crabActive');return;
+ }
+ const f=s.floor,completed=floorStocked(s,f)>=itemsPerFloor;
+ const remaining=Math.max(0,CRAB_ATTACK_SECONDS-s.crab.elapsed[f]);
+ const minutes=Math.floor(remaining/60),seconds=Math.floor(remaining%60);
+ indicator.classList.add('crabActive');
+ indicator.textContent=completed?'MEGA CRAB · THIS FLOOR IS COMPLETE / SAFE':
+  'MEGA CRAB ACTIVE · '+floorLabel(f)+' SWING IN '+String(minutes).padStart(2,'0')+':'+String(seconds).padStart(2,'0')+
+  ' · '+s.crab.attacks[f]+' SWINGS';
+}
+function tickCrabRaids(elapsed,now){
+ if(!running||modal||ending)return;
+ const justUnlocked=!s.crab.unlocked;
+ const events=advanceCrab(s,Math.min(elapsed,.25));
+ if(justUnlocked&&s.crab.unlocked){
+  buildWorld();notify('WARNING: MEGA ROBOT CRAB UNLOCKED! Every unfinished floor faces a swing every 20 minutes.');
+  save();
+ }
+ for(const event of events){
+  if(event.floor===s.floor){
+   crabSwingEnds=now+2400;
+   buildWorld();
+   notify('CRAB SWING · AISLE '+(event.aisle+1)+' · '+event.fallen+' GOODS ON FLOOR · '+event.robots.length+' ROBOTS DESTROYED!');
+  }
+  // Raids on other floors are simulated and saved even when not rendered.
+  save();
+ }
+ syncCrab(now);
+}
+
 // The player visibly carries a labeled warehouse package, not a skin-colored cube.
 const hand=new THREE.Group();camera.add(hand);hand.position.set(.51,-.47,-1.01);
 const carried=round(.42,.39,.34,new THREE.MeshStandardMaterial({map:cartonTexture(),roughness:.88}),hand);
@@ -780,6 +839,7 @@ function animate(now){
   hand.visible=V.carry>0;hand.scale.setScalar(.45+Math.min(1,V.carry/capacity(s))*.55);
  }
  if(!ending){
+  tickCrabRaids(elapsed,now);
   advanceBelts(s,Math.min(elapsed,2));
   for(const r of s.robots){
    const prevTarget=r.target,prevCount=prevTarget>=0?s.fill[prevTarget]:-1;
@@ -811,6 +871,7 @@ function animate(now){
    entry.box.visible=ready;
   }
   syncRobots();
+  syncCrab(now);
   if(clawVisual){
    const cycle=(now*.00066)%1;
    // Lift while crossing the dock, close the jaws to grasp, and release at chute.
@@ -853,7 +914,7 @@ function animate(now){
   robotGhost.visible=(!!placementSpot||(V.z>=11&&V.z<=92))&&!isBlocked(x,z,s.floor);
  }
  if(!modal){updatePrompt();}
- if(now-savingAt>260){uiUpdate();savingAt=now;}
+ if(now-savingAt>260){uiUpdate();updateCrabStatus();savingAt=now;}
  renderer.render(scene,camera);
 }
 window.addEventListener('keydown',e=>{
@@ -1027,6 +1088,15 @@ if(DEV_MODE){
      contentSample:pixels?Array.from(pixels):null};
    });
   },
+  crabTest:{
+   completeFloors(n=7){for(let f=0;f<Math.min(FLOORS,n);f++)for(let i=f*CELLS_PER_FLOOR;i<(f+1)*CELLS_PER_FLOOR;i++)s.fill[i]=SLOTS;s.stocked=s.fill.reduce((sum,n)=>sum+n,0);crabEnabled(s);buildWorld();return s.crab.unlocked;},
+   advance(seconds){const events=advanceCrab(s,seconds);if(events.some(e=>e.floor===s.floor))buildWorld();return events;},
+   swing(f,a,b){const event=performCrabSwing(s,f,a,b);if(event?.floor===s.floor)buildWorld();return event;},
+   status(){return {unlocked:s.crab.unlocked,elapsed:s.crab.elapsed.slice(),attacks:s.crab.attacks.slice(),recent:s.crab.recent.slice(),wrecked:s.robots.filter(r=>r.wrecked).map(r=>r.id),piles:s.stockPiles.filter(p=>p.crabDebris).map(p=>({...p})),visible:!!crabModel};},
+   spawnBot(f,a,bay,paid=400){const bot={id:s.robotNextId++,floor:f,aisle:a,homeAisle:a,x:aisleX(a),z:bayZ(bay),placed:true,paid,phase:'supply',target:-1,carry:0,acc:0,liftY:0,source:null,broken:false,wrecked:false,stockedSinceService:0,breakdowns:0,breakAt:0,repairProgress:0};s.robots.push(bot);s.levels.robot=s.robots.length;buildWorld();return bot.id;},
+   robot(id){const r=s.robots.find(r=>r.id===id);return r?{...r}:null;},
+   scrap(id){const money=sellRobot(s,id);buildWorld();return money;}
+  },
   setCarry(count){V.carry=Math.min(capacity(s),Math.max(0,count));},
   setUpgrade(id,level){if(id in s.levels)s.levels[id]=level;},
   giveClaw(){s.clawInventory.push({paid:450});return s.clawInventory.length;},
@@ -1040,6 +1110,6 @@ if(DEV_MODE){
    snapshot(){return {beltItems:s.beltItems[s.floor].map(row=>row.slice()),selectedBeltAisle,feedCrates:feederCrates.length,devMode:DEV_MODE,checkoutCount:s.floor===0?4:0,x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,platformCount:s.platforms.length,activePlatformId:s.cart.id,levels:{...s.levels}};}
  };
 }
-buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();showSaveOrigin();
+buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();updateCrabStatus();showSaveOrigin();
 if(PREVIEW_ENDING)beginEnding();
 requestAnimationFrame(animate);
