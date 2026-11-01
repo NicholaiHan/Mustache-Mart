@@ -1247,11 +1247,55 @@ function showSaveOrigin(){
  const status=$('saveOriginStatus');
  const totalRanks=Object.values(s.levels).reduce((sum,n)=>sum+n,0);
  const locationLabel=location.protocol+'//'+location.host;
- status.textContent='THIS BROWSER SAVE · '+locationLabel+' · '+s.stocked.toLocaleString()+' products stocked · '+totalRanks+' total upgrade ranks · '+centsText(s.money)+' cash. '+(!ORIGINAL_SAVE_DATA?'No previous saved game was found at this browser address. Your older skills may still be on another port (8000 or 8011), or in another browser.':'Your progress was loaded from this browser address.');
+ status.textContent='THIS BROWSER SAVE · '+locationLabel+' · '+s.stocked.toLocaleString()+' products stocked · '+totalRanks+' total upgrade ranks · '+centsText(s.money)+' cash. '+(!ORIGINAL_SAVE_DATA?'No previous saved game found at THIS address. Try the other local host/port options below.':'Loaded '+ORIGINAL_SAVE_SOURCE+' on this browser address.');
  const btn=$('devEnable');
  btn.textContent=DEV_MODE?'Refill developer cash to $5,000':'Enable $5,000 Developer Mode';
  $('devStatus').textContent=DEV_MODE?'Developer Mode ON · Refill this account to at least $5,000 whenever needed.':'Developer Mode OFF · Enable without losing existing shelf or skill progress.';
 }
+// Only user-selected archived backups may replace an existing valid save.
+// This panel cannot access another browser or host+port, so it explicitly
+// explains those separate recovery locations instead of inventing progress.
+function showRecoveryCandidates(){
+ const list=$('saveRecoveryList');list.replaceChildren();
+ const candidates=[
+  {origin:'Current saved game',data:localStorage.getItem(SAVE_KEY),time:''},
+  ...readRecoveryArchives().map((e,i)=>({origin:'Automatic backup '+(i+1)+' · '+e.reason,
+    data:e.data,time:e.at})),
+  {origin:'Older original V3 save',data:localStorage.getItem('mustacheMartV3'),time:''}
+ ].filter(e=>validSave(e.data));
+ if(!candidates.length){
+  list.textContent='No valid saved game exists at this specific address. Check the other host/port links above or import a previously downloaded backup.';
+  return;
+ }
+ const seen=new Set();
+ for(const entry of candidates){
+  if(seen.has(entry.data))continue;
+  seen.add(entry.data);
+  const info=progressSummary(entry.data),line=document.createElement('div');
+  line.className='saveRecoveryEntry';
+  const infoPanel=document.createElement('div'),title=document.createElement('strong'),desc=document.createElement('small');
+  title.textContent=entry.origin;
+  desc.textContent=info.stocked.toLocaleString()+' items stocked · '+info.upgrades+' upgrades · '+
+    info.robots+' robots · '+centsText(info.money)+' saved cash'+(entry.time?' · '+new Date(entry.time).toLocaleString():'');
+  infoPanel.append(title,desc);
+  const btn=document.createElement('button');
+  btn.type='button';btn.textContent='Restore this save';
+  btn.addEventListener('click',()=>{
+   const current=localStorage.getItem(SAVE_KEY);
+   if(!confirm('Restore '+entry.origin+'? Your current progress will first be copied to the recovery archive. Do not continue if the chosen save is not the one you want.'))return;
+   if(validSave(current))archiveSave(current,'BEFORE MANUAL RESTORE');
+   const candidate=loadState(entry.data);
+   // Preserve complete original 15-floor stocking state and purchased skills.
+   s=candidate;if(DEV_MODE)s.money=Math.max(s.money,500000);
+   localStorage.setItem(SAVE_KEY,serialize(s));
+   location.reload();
+  });
+  line.append(infoPanel,btn);list.append(line);
+ }
+}
+$('scanSaveBackups').addEventListener('click',showRecoveryCandidates);
+showRecoveryCandidates();
+
 $('devEnable').addEventListener('click',()=>{
  if(!DEV_MODE){
   // Changing the fragment keeps the same browser origin/local save.
@@ -1265,7 +1309,7 @@ $('devEnable').addEventListener('click',()=>{
  notify(s.money===previous?'Developer funds ready · '+centsText(s.money):'Developer account refilled to '+centsText(s.money));
 });
 $('play').addEventListener('click',resume);
-$('reset').addEventListener('click',e=>{e.stopPropagation();if(confirm('Erase your new 15-floor save and restart?')){localStorage.removeItem(SAVE_KEY);location.reload();}});
+$('reset').addEventListener('click',e=>{e.stopPropagation();if(confirm('Reset the current game? This archives its previous save first. You can restore archived progress using Find saved backups.')){const old=localStorage.getItem(SAVE_KEY);if(validSave(old))archiveSave(old,'BEFORE USER RESET');localStorage.removeItem(SAVE_KEY);s=newState();if(DEV_MODE)s.money=500000;save();location.reload();}});
 // Browser localStorage is isolated by host+port. Portable save files provide
 // deliberate, lossless transfer without clearing either browser origin.
 $('saveExport').addEventListener('click',()=>{
@@ -1290,6 +1334,8 @@ $('saveImportFile').addEventListener('change',async e=>{
    throw new Error('This file is not a compatible Mustache Mart save.');
   const restored=loadState(raw);
   if(!confirm('Import this save? It will replace progress on this browser address only. Your backup file and any save on another port will not be deleted.')){status.textContent='Import canceled; progress unchanged.';return;}
+  // Keep a recoverable copy of the current working save before importing.
+  const active=localStorage.getItem(SAVE_KEY);if(validSave(active))archiveSave(active,'BEFORE FILE IMPORT');
   // Update the live state before reloading, because beforeunload calls save().
   // Otherwise that handler could overwrite the imported backup with old data.
   s=restored;
