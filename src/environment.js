@@ -27,6 +27,179 @@ function contactShadow(x,z,w,d,opacity=.18){
  const shadow=add(new THREE.Mesh(new THREE.PlaneGeometry(w,d),mat));
  shadow.rotation.x=-Math.PI/2;shadow.position.set(x,.018,z);
 }
+// One offline-rendered "photographic" employee portrait per floor. Mike's
+// ceramic robot head, white pixel eyes, and white mustache match his 3D model.
+// Each of the 15 jobs uses a unique pose, work prop, and color-graded backdrop.
+const MIKE_PORTRAIT_JOBS=[
+ ['CLOSING SHIFT','Checking the sales ledger','#537978','ledger'],
+ ['STOCKING STAR','Unpacking the first delivery','#846d59','box'],
+ ['QUALITY CONTROL','Inspecting the shelves','#667d8c','scanner'],
+ ['SAFETY LEAD','Checking emergency equipment','#7f695e','clipboard'],
+ ['ORDER EXPERT','Filling customer orders','#65765c','parcel'],
+ ['NIGHT OPERATIONS','Running the night inventory','#5c667f','tablet'],
+ ['MAINTENANCE PRO','Fixing a stocking robot','#8a7859','wrench'],
+ ['FLOOR MANAGER','Leading a team meeting','#6b8180','clipboard'],
+ ['DELIVERY CHAMP','Scanning incoming pallets','#8a7366','scanner'],
+ ['CLEAN AISLES','Polishing the checkout lane','#708678','cloth'],
+ ['INVENTORY HERO','Counting warehouse stock','#66707d','ledger'],
+ ['AUTOMATION ACE','Calibrating the conveyor','#8b7a60','wrench'],
+ ['CUSTOMER SERVICE','Helping a shopper','#806c7a','parcel'],
+ ['PRECISION PICKER','Verifying product labels','#668684','tablet'],
+ ['GRAND OPENING','Preparing the final inspection','#ac8558','clipboard']
+];
+function mikePortraitCanvas(floor){
+ const [award,activity,accent,prop]=MIKE_PORTRAIT_JOBS[floor];
+ const canvas=document.createElement('canvas');canvas.width=720;canvas.height=860;
+ const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,seed=floor+1;
+ const rect=(x,y,width,height,fill)=>{ctx.fillStyle=fill;ctx.fillRect(x,y,width,height);};
+ const ellipse=(x,y,rx,ry,fill)=>{ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();};
+ const line=(a,b,c,d,width,color)=>{ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.lineWidth=width;ctx.strokeStyle=color;ctx.lineCap='round';ctx.stroke();};
+ const rounded=(x,y,width,height,r,fill)=>{
+  ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x,y,width,height,r);ctx.fill();
+ };
+ const gradient=ctx.createLinearGradient(0,0,w,h);
+ gradient.addColorStop(0,'#1c3137');gradient.addColorStop(.48,accent);gradient.addColorStop(1,'#192c33');
+ rect(0,0,w,h,gradient);
+ // Soft-focus store background: every floor gets a different rack arrangement.
+ for(let i=0;i<8;i++){
+  const x=((i*151+seed*43)%890)-80,y=95+((i*93+seed*37)%380);
+  ctx.globalAlpha=.11+(i%3)*.02;
+  rounded(x,y,72+(i%3)*25,290+(i%2)*90,9,i%2?'#fff4d7':'#101f26');
+  for(let j=0;j<5;j++)rect(x+7,y+28+j*49,62,.008*400,'#f0eed7');
+ }
+ ctx.globalAlpha=1;
+ // Overhead industrial lights create studio-photo highlights.
+ for(let i=0;i<3;i++){
+  const x=100+i*255+((seed*17)%50);
+  const glow=ctx.createRadialGradient(x,75,5,x,75,190);
+  glow.addColorStop(0,'rgba(255,247,218,.31)');glow.addColorStop(1,'rgba(255,247,218,0)');
+  rect(x-190,-115,380,380,glow);
+ }
+ const spotlight=ctx.createRadialGradient(345,425,50,345,455,500);
+ spotlight.addColorStop(0,'rgba(247,239,219,.22)');spotlight.addColorStop(1,'rgba(4,16,20,.42)');
+ rect(0,0,w,h,spotlight);
+ // Environmental prop: loading racks, checkout scanners, ledgers, etc.
+ const tilt=(seed%5-2)*.065,look=(seed%3-1)*16;
+ const body=ctx.createLinearGradient(200,430,525,775);
+ body.addColorStop(0,'#faf6e8');body.addColorStop(.46,'#d8e4df');body.addColorStop(1,'#8fada9');
+ ctx.save();ctx.translate(360,0);ctx.rotate(tilt);ctx.translate(-360,0);
+ // Back arm: active working pose differs per floor, not a repeated portrait.
+ const raised=seed%3===0,handY=raised?350:560,handX=seed%2===0?575:143;
+ line(266,588,handX,handY,77,'#829a9c');
+ line(266,588,handX,handY,53,'#e2e5db');
+ ellipse(handX,handY,44,37,'#384b50');
+ // Mike's angular, ceramic body.
+ rounded(197,515,321,330,93,body);
+ rounded(230,562,255,145,38,'#e5e7dd');
+ rounded(274,581,173,38,12,'#30494d');
+ rounded(313,595,96,10,5,'#a6e3d3');
+ rounded(325,706,77,38,8,'#b99b68');
+ ctx.fillStyle='#354548';ctx.font='bold 23px system-ui';ctx.textAlign='center';ctx.fillText('M I K E',363,732);
+ // Polished articulated neck, bronzed collar, and robot head casing.
+ rounded(300,466,115,96,18,'#4a6265');rounded(289,499,136,28,11,'#b3945d');
+ const skull=ctx.createLinearGradient(242,190,520,390);
+ skull.addColorStop(0,'#ffffff');skull.addColorStop(.52,'#e8ede7');skull.addColorStop(1,'#93aaa7');
+ rounded(221+look,186,278,302,58,skull);
+ rounded(232+look,198,256,27,13,'#fefbf2');
+ rounded(246+look,256,228,157,35,'#1b3036');
+ rounded(254+look,261,210,112,19,'#15252b');
+ // Digital pixel-matrix eyes, using the same white bars as Mike's 3D face.
+ for(const ex of [304+look,416+look]){
+  for(let row=0;row<3;row++)for(let col=0;col<4;col++){
+   if(row===1||(row===0&&(col===1||col===2)))
+    rounded(ex+(col-1.5)*10,298+(row-1)*11,9,9,2,'#eaffff');
+  }
+ }
+ // His trademark flat white twin-tip mustache on black glass.
+ ctx.strokeStyle='#fdfdf5';ctx.lineWidth=14;ctx.lineCap='round';
+ ctx.beginPath();ctx.moveTo(350+look,365);ctx.quadraticCurveTo(321+look,387,282+look,364);
+ ctx.moveTo(350+look,365);ctx.quadraticCurveTo(386+look,387,427+look,355);ctx.stroke();
+ ctx.strokeStyle='#9aefde';ctx.lineWidth=4;line(326+look,396,373+look,396,4,'#a6eee0');
+ rounded(272+look,227,170,9,4,'#bd9e6b');
+ // Foreground hand and the specific work object make every scene unique.
+ const workHandY=590-((seed*31)%125);
+ line(482,588,555,workHandY,64,'#849b9d');
+ line(482,588,555,workHandY,43,'#f4f2e8');
+ ellipse(559,workHandY,31,34,'#2d4145');
+ ctx.save();ctx.translate(564,workHandY-42);ctx.rotate((seed%4-2)*.15);
+ if(prop==='box'||prop==='parcel'){
+  rounded(-52,-66,110,92,9,'#b79b72');
+  rect(-4,-66,13,92,'#ece2c8');
+  line(-42,-22,41,-22,3,'#876e50');
+ }else if(prop==='wrench'){
+  line(-10,-68,17,25,14,'#abb8b7');
+  ellipse(-15,-78,21,19,'#ccd5d0');
+  ellipse(-15,-78,10,8,'#32484d');
+ }else if(prop==='scanner'){
+  rounded(-20,-67,44,82,12,'#243b41');
+  rounded(-11,-59,26,18,4,'#a7ded1');
+  line(4,15,16,38,13,'#c4a36a');
+ }else if(prop==='cloth'){
+  ctx.beginPath();ctx.moveTo(-54,-54);ctx.lineTo(48,-43);ctx.lineTo(35,35);ctx.lineTo(-47,17);ctx.closePath();ctx.fillStyle='#ddebc8';ctx.fill();
+ }else if(prop==='tablet'){
+  rounded(-48,-91,98,139,12,'#21333b');
+  rounded(-39,-82,80,110,6,'#8dbeb9');
+  for(let j=0;j<4;j++)rect(-29,-61+j*24,59,7,j%2?'#4c7775':'#e1efe3');
+ }else{
+  rounded(-52,-88,104,143,9,'#c6b08a');
+  rounded(-40,-72,80,116,4,'#f3eddc');
+  for(let j=0;j<5;j++)line(-28,-53+j*21,28,-53+j*21,3,'#6a8580');
+  rounded(-16,-96,32,15,4,'#555b52');
+ }
+ ctx.restore();
+ ctx.restore();
+ // Film-like treatment, top workplace stamp, and a small unique floor caption.
+ const vignette=ctx.createRadialGradient(350,390,230,350,390,620);
+ vignette.addColorStop(0,'rgba(0,0,0,0)');vignette.addColorStop(1,'rgba(3,13,17,.55)');
+ rect(0,0,w,h,vignette);
+ rect(0,0,w,75,'rgba(12,30,34,.82)');
+ rect(0,790,w,70,'rgba(12,30,34,.83)');
+ ctx.textBaseline='middle';ctx.textAlign='center';ctx.fillStyle='#f4e6b9';
+ ctx.font='bold 25px system-ui';ctx.fillText(award,360,38);
+ ctx.font='bold 23px system-ui';ctx.fillStyle='#eef5ed';
+ ctx.fillText(activity,360,824);
+ ctx.font='bold 17px system-ui';ctx.textAlign='right';ctx.fillStyle='#d3c7ab';
+ ctx.fillText('FLOOR '+String(floor+1).padStart(2,'0'),690,752);
+ return canvas;
+}
+function buildEmployeeOfMonthPortrait(){
+ const floor=s.floor;
+ if(floor<0||floor>=MIKE_PORTRAIT_JOBS.length)return;
+ const group=new THREE.Group();
+ group.name='employeeOfMonthPortrait';
+ group.userData={floor,subject:'Mustache Mike',job:MIKE_PORTRAIT_JOBS[floor][0]};
+ // Occupies the front wall just to the right of the elevator frame.
+ group.position.set(31,0,-12.19);add(group);
+ const gold=new THREE.MeshStandardMaterial({color:'#bb8b37',metalness:.84,roughness:.25});
+ const highlight=new THREE.MeshStandardMaterial({color:'#efcd78',metalness:.72,roughness:.29});
+ const shadowGold=new THREE.MeshStandardMaterial({color:'#65502d',metalness:.72,roughness:.39});
+ const velvet=new THREE.MeshStandardMaterial({color:'#152d2d',roughness:.87,metalness:.03});
+ const backing=round(3.54,4.94,.18,shadowGold,group);backing.position.set(0,3.61,0);
+ const outer=round(3.47,4.86,.17,gold,group);outer.position.set(0,3.61,.14);
+ const inner=round(3.18,4.57,.11,highlight,group);inner.position.set(0,3.61,.265);
+ const matte=round(2.98,4.35,.105,velvet,group);matte.position.set(0,3.61,.37);
+ const photoTexture=new THREE.CanvasTexture(mikePortraitCanvas(floor));
+ photoTexture.colorSpace=THREE.SRGBColorSpace;photoTexture.anisotropy=4;
+ const image=new THREE.Mesh(new THREE.PlaneGeometry(2.73,3.15),
+  new THREE.MeshBasicMaterial({map:photoTexture,side:THREE.FrontSide}));
+ image.name='uniqueWorkingPortrait';
+ image.position.set(0,3.55,.454);group.add(image);
+ // Etched title and nameplates in separate gold ribbons remain legible.
+ const title=textLabel('EMPLOYEE OF THE MONTH',2.77,.32,'#e5bb60','#333322',28,'interior');
+ title.position.set(0,5.51,.463);group.add(title);
+ const name=textLabel('Mustache Mike',2.75,.43,'#d7af58','#252d29',44,'interior');
+ name.position.set(0,1.54,.466);group.add(name);
+ const floorBadge=textLabel('AWARD • '+floorLabel(floor),1.35,.18,'#284340','#f4e0a4',26,'interior');
+ floorBadge.position.set(0,1.21,.464);group.add(floorBadge);
+ for(const x of [-1.67,1.67]){
+  const raised=round(.075,4.7,.085,highlight,group);raised.position.set(x,3.61,.35);
+ }
+ for(const y of [1.28,5.95]){
+  const lip=round(3.39,.075,.09,highlight,group);lip.position.set(0,y,.35);
+ }
+ return group;
+}
+
 function buildShell(){
  const theme=pastel[s.floor%pastel.length];
  scene.background.set('#d8ddda');scene.fog.color.set('#d8ddda');
@@ -67,6 +240,7 @@ function buildShell(){
    wallSegment(103,44,.5,114);
    wallSegment(46.5,-12.7,113,.5);
  }
+ buildEmployeeOfMonthPortrait();
  // Uprights, panel joints, painted trims and wayfinding details are actual geometry.
  for(const x of [-5,5,16,28,40,53,65,78,91]){
   if(s.floor===0&&x>42&&x<52)continue;
