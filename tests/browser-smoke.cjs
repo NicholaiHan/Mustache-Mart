@@ -107,10 +107,15 @@ const assert=require('node:assert/strict');
   assert.match(await page.locator('#coinStake').textContent(),/\$3,000/);
   assert.equal((await page.evaluate(()=>window.__martTest.coinOffers())).cash.unlocked,true);
   assert.equal((await page.evaluate(()=>window.__martTest.coinOffers())).cash.played,false);
-  await page.locator('#coinLater').click();
+  assert.equal(await page.locator('#coinLater').count(),0,'there must be no Not now or waiting option');
+  assert.equal(await page.locator('#secretFlipBtn').count(),0,'there is no deferral/reopen shortcut');
+  assert.match(await page.locator('#coinHeads').textContent(),/^YES/);
+  assert.match(await page.locator('#coinTails').textContent(),/^NO/);
+  assert.match(await page.locator('#coinDescription').textContent(),/permanently rejects/);
+  await page.locator('#coinTails').click();
+  assert.equal((await page.evaluate(()=>window.__martTest.coinOffers())).cash.declined,true);
   assert.equal((await page.evaluate(()=>window.__martTest.coinOffers())).cash.played,false);
-  assert.equal(await page.locator('#secretFlipBtn').isVisible(),true,'first wager can be revisited');
-  console.log('PASS: $3,000 secret coin offer appears after developer cash, can be deferred, remains available');
+  console.log('PASS: cash coin offer only YES/NO; NO is permanent; waiting path removed');
   // Actual collision-safe loading position, not inside the receiving counter.
   await page.evaluate(()=>{window.__martTest.teleport(1.5,93.1);window.__martTest.setLook(Math.PI,-.07);});
   assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(1.5,93.1)),false);
@@ -323,6 +328,9 @@ const assert=require('node:assert/strict');
   await page.evaluate(()=>window.__martTest.teleport(23,-9));
   await page.keyboard.press('r');
   await page.locator('#elevator.open').waitFor();
+  assert.equal(await page.locator('.elevatorSymbol svg').count(),1,'custom SVG elevator icon replaces emoji');
+  assert.equal(await page.locator('#elevatorlist .elevatorFloor').count(),15);
+  assert.equal(await page.locator('.elevatorOverview').count(),1);
   await page.locator('#elevatorlist button').last().click({noWaitAfter:true,timeout:90000});
   try{
     await page.waitForFunction(()=>document.querySelector('#floorStat')?.textContent.includes('F15'),undefined,{timeout:45000});
@@ -367,6 +375,7 @@ const assert=require('node:assert/strict');
   assert.match(await page.locator('#coinTitle').textContent(),/FLOOR 3.*ALL-IN/);
   assert.match(await page.locator('#coinStake').textContent(),/\$123\.45/);
   await page.screenshot({path:path.join(art,'secret-floor3-all-in-offer.png'),timeout:90000});
+  assert.match(await page.locator('#coinHeads').textContent(),/^YES/);
   await page.locator('#coinHeads').click();
   const outcome=await page.evaluate(()=>({
    cash:window.__martTest.snapshot().money,
@@ -375,7 +384,7 @@ const assert=require('node:assert/strict');
   assert.equal(outcome.status.played,true);
   assert.equal(outcome.status.result.stake,12345,'wagers exact balance at the moment of the flip');
   assert.ok([0,24690].includes(outcome.cash),'all-in result is either zero or exactly doubled');
-  await page.locator('#coinLater').click();
+  await page.locator('#coinClose').click();
   assert.equal((await page.evaluate(()=>window.__martTest.coinOffers())).floor3.played,true);
   console.log('PASS: finishing Floor 3 triggers a fair, one-use all-in flip, and result persists');
   await page.evaluate(()=>window.__martTest.setCompletion(true));
