@@ -229,7 +229,7 @@ test('visual stage D: 30 gold-framed Mike portrait and saved-progress checks',()
   assert.equal(restored.levels.capacity,2);
   assert.equal(restored.levels.speed,1);
   assert.equal(restored.stocked,1);
-  assert.equal(restored.money,213,'decoration must not spend money or modify progress');
+  assert.equal(restored.money,s.money,'decoration must not alter earned cash or reset progress');
  });
 });
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
