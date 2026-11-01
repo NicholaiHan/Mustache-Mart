@@ -232,6 +232,104 @@ test('visual stage D: 30 gold-framed Mike portrait and saved-progress checks',()
   assert.equal(restored.money,s.money,'decoration must not alter earned cash or reset progress');
  });
 });
+
+const crabUnlockFixture=()=>{
+ const state=r.newState();state.money=1e8;
+ for(let f=0;f<7;f++)state.fill.fill(r.SLOTS,f*r.CELLS_PER_FLOOR,(f+1)*r.CELLS_PER_FLOOR);
+ state.stocked=7*r.itemsPerFloor;
+ return state;
+};
+test('crab stage 1: 30 seven-floor unlock and isolated per-floor 20-minute schedules',()=>{
+ simulate(i=>{
+  const s=r.newState();s.money=100000;
+  for(let f=0;f<6;f++)s.fill.fill(r.SLOTS,f*r.CELLS_PER_FLOOR,(f+1)*r.CELLS_PER_FLOOR);
+  s.stocked=6*r.itemsPerFloor;
+  assert.equal(r.crabEnabled(s),false);
+  assert.deepEqual(r.advanceCrab(s,3600),[],'before seven completed floors the crab never attacks');
+  s.fill.fill(r.SLOTS,6*r.CELLS_PER_FLOOR,7*r.CELLS_PER_FLOOR);
+  s.stocked=7*r.itemsPerFloor;
+  assert.equal(r.crabEnabled(s),true);
+  assert.equal(r.completedFloors(s),7);
+  assert.deepEqual(r.advanceCrab(s,1199),[]);
+  assert.equal(s.crab.attacks.slice(7).every(x=>x===0),true);
+  const saved=r.loadState(r.serialize(s));
+  assert.equal(saved.crab.unlocked,true);
+  assert.equal(saved.crab.elapsed[7],1199);
+  const events=r.advanceCrab(saved,1);
+  assert.equal(events.length,8,'one swing on every unfinished floor F08..F15');
+  assert.equal(events.every(e=>e.floor>=7&&e.floor<15&&e.number===1),true);
+  assert.equal(saved.crab.attacks.slice(0,7).every(x=>x===0),true,'finished floors remain safe');
+  assert.equal(saved.crab.attacks.slice(7).every(x=>x===1),true);
+  assert.equal(saved.crab.elapsed[7],0);
+  assert.deepEqual(r.advanceCrab(saved,600),[]);
+  assert.equal(r.loadState(r.serialize(saved)).crab.elapsed[7],600);
+ });
+});
+test('crab stage 2: 30 one-swing shelf spills preserve all dropped goods',()=>{
+ simulate(i=>{
+  const s=crabUnlockFixture(),floor=7,aisle=i%r.AISLES,bay=4+i%(r.BAYS-9);
+  // 24 cells in one 3-bay sweep: one shelf package or a full four each.
+  let amount=0;
+  for(let b=bay-1;b<=bay+1;b++)for(let side=0;side<2;side++)for(let tier=0;tier<r.TIERS;tier++){
+   const n=1+(i+tier)%r.SLOTS;
+   s.fill[r.cellId(floor,aisle,side,b,tier)]=n;amount+=n;
+  }
+  s.stocked+=amount;
+  const event=r.performCrabSwing(s,floor,aisle,bay);
+  assert.equal(event.fallen,amount);assert.equal(event.robots.length,0);
+  assert.equal(s.stocked,7*r.itemsPerFloor);
+  assert.equal(s.crab.attacks[floor],1);
+  for(let b=bay-1;b<=bay+1;b++)for(let side=0;side<2;side++)for(let tier=0;tier<r.TIERS;tier++)
+   assert.equal(s.fill[r.cellId(floor,aisle,side,b,tier)],0);
+  const dropped=s.stockPiles.filter(p=>p.crabDebris&&p.floor===floor);
+  assert.equal(dropped.reduce((sum,p)=>sum+p.count,0),amount,'all knocked goods land on the floor');
+  const loaded=r.loadState(r.serialize(s));
+  assert.equal(loaded.stockPiles.filter(p=>p.crabDebris).reduce((sum,p)=>sum+p.count,0),amount);
+  assert.equal(loaded.stocked,s.stocked);
+  assert.equal(loaded.crab.attacks[floor],1);
+  // Taking floor goods removes them from the pile without inventing products.
+  const collected=r.takePile(loaded,loaded.stockPiles.findIndex(p=>p.crabDebris),1);
+  assert.equal(collected,1);
+ });
+});
+test('crab stage 3: 30 permanent spring-neck wrecks, required 25% scrap and replacement slots',()=>{
+ const characters=source('characters.js');
+ assert.match(characters,/function makeMegaCrab\(\)/);
+ assert.match(characters,/comedicBodySpring/);
+ assert.match(characters,/detachedRobotHead/);
+ assert.match(characters,/looseScrew/);
+ assert.match(characters,/looseBolt/);
+ simulate(i=>{
+  const s=crabUnlockFixture(),floor=7,aisle=i%r.AISLES,bay=5+i%20;
+  const robot=r.hireRobot(s,250+i,true);
+  assert.equal(r.assignRobot(s,robot.id,floor,aisle,bay),true);
+  const far=r.hireRobot(s,500,true);
+  assert.equal(r.assignRobot(s,far.id,floor,(aisle+3)%r.AISLES,bay),true);
+  const event=r.performCrabSwing(s,floor,aisle,bay);
+  assert.deepEqual(event.robots,[robot.id]);
+  assert.equal(robot.broken,true);
+  assert.equal(robot.wrecked,true);
+  assert.equal(far.wrecked,false);
+  assert.equal(r.botStep(s,robot,100),-1);
+  assert.equal(r.repairRobot(s,robot.id,6),false);
+  assert.equal(r.assignRobot(s,robot.id,floor,aisle,bay),false);
+  assert.equal(r.setRobotAisle(s,robot.id,aisle),false);
+  assert.equal(r.purchase(s,'robot'),false,'must scrap destroyed robot before replacement purchase');
+  s.levels.robotReliability=3;s.money=1e8;
+  assert.equal(r.purchase(s,'robotReliability'),true);
+  assert.equal(robot.wrecked,true,'max reliability does not un-destroy a robot');
+  const saved=r.loadState(r.serialize(s));
+  assert.equal(saved.robots.find(bot=>bot.id===robot.id).wrecked,true);
+  const oldMoney=s.money,refund=r.sellRobot(s,robot.id);
+  assert.equal(refund,Math.floor((250+i)*.25));
+  assert.equal(s.money,oldMoney+refund);
+  assert.equal(s.levels.robot,s.robots.length);
+  assert.equal(r.purchase(s,'robot'),true);
+  assert.equal(s.robots[s.robots.length-1].wrecked,false);
+  assert.equal(s.robots[s.robots.length-1].placed,false);
+ });
+});
+
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
