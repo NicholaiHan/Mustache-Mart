@@ -25,11 +25,12 @@ const beltGold=equipmentMaterial('#bb934f',.31,.48);
 const beltShadow=equipmentMaterial('#172125',.08,.74);
 const beltStripe=equipmentMaterial('#c1d4d0',.07,.55);
 const beltCardboard=equipmentMaterial('#bca582',0,.9);
-function makeBelt(f,a,segment){
+function makeBelt(f,a,segment,freePiece=null){
  const group=new THREE.Group();getWorld().add(group);
  group.name='continuousConveyorSection';
- group.position.set(aisleX(a)+1.4,0,bayZ(BAYS-1-segment));
- const direction=s.beltDirection?.[f]?.[a]?.[segment]||0;
+ if(freePiece)group.position.set(freePiece.x,0,freePiece.z);
+ else group.position.set(aisleX(a)+1.4,0,bayZ(BAYS-1-segment));
+ const direction=freePiece?freePiece.dir:(s.beltDirection?.[f]?.[a]?.[segment]||0);
  group.rotation.y=-direction*Math.PI/2;
  // Bays are 2.65m apart. The 2.68m working ribbon overlaps its neighbors
  // by just 3cm, removing visible gaps while preserving individual sections
@@ -73,7 +74,7 @@ function makeBelt(f,a,segment){
  }
  // Only the rear intake and forward outlet expose pulley housings and drive
  // motors. Intermediate joints now read as one uninterrupted moving surface.
- const lastSection=segment===(s.belts[f]?.[a]||1)-1;
+ const lastSection=freePiece||segment===(s.belts[f]?.[a]||1)-1;
  if(segment===0||lastSection){
   const end=segment===0?1:-1;
   const pulley=new THREE.Mesh(new THREE.CylinderGeometry(.135,.135,1.04,12),beltRim);
@@ -97,7 +98,7 @@ function makeBelt(f,a,segment){
   crate.position.set(0,.88,.78-slot*.78);
   crate.visible=false;
   const tape=round(.056,.382,.49,beltStripe,crate);tape.position.set(0,0,.03);
-  getBeltCrates().push({crate,segment,aisle:a,slot});
+  getBeltCrates().push({crate,segment,aisle:a,slot,freeId:freePiece?.id||null});
  }
  return group;
 }
