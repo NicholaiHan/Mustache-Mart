@@ -20,11 +20,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.6** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.7** and the introduction must list the new cash registers, Mike, ladders and fire exit.
 3. **Development mode** (the `#dev` suffix) gives **at least $5,000** for testing. The title screen also has a **Refill developer cash to $5,000** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
 4. **Recovery:** Your skills and stocked shelves are saved by browser + exact host + port. The launcher now defaults to **8000**, where older saves are most likely. If you instead played on **8011**, run `PORT=8011 bash PLAY_LATEST_MAC.sh` and open `http://127.0.0.1:8011/#dev` in your original browser. Do not click Reset. Use **Download save backup** on the origin holding progress, then **Import save backup** on the origin you want to play from. The original save remains intact.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.6** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.7** is shown.
 
 ## Play on your MacBook
 
@@ -294,10 +294,25 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - Regression tests run 30 deterministic raid/save checks and rendered-browser tests verify the three model scale dimensions.
 
 
-## Build 2026.11.01.6 — Wider aisles and highly detailed robotic crab
+## Build 2026.11.01.7 — Wider aisles and highly detailed robotic crab
 
 - **Even wider supermarket aisles:** The 15-floor showroom is visually **60% wider than the original map**, increasing its X-axis width from 146.9 m in the previous build to **180.8 m**, with aisle-center spacing of **16 m instead of 13 m**. Logical aisle coordinates, stocking cell IDs, conveyor routes, robot assignments, equipment and old browser saves remain unchanged. World rendering, player movement, picking, and camera positions continue to use reversible width transformations.
 - **Crab stays compact:** The full crab model is kept approximately the same on-screen physical width after widening through a slightly smaller local horizontal scale (`0.36` instead of `0.44`, while retaining `0.68` height/depth). It moves through the extra aisle space without becoming huge again.
 - **Industrial crab detail pass:** Added five overlapping armor plates, beveled joints and side access hatches, heat exhaust and cooling louvers, aqua front optic sensors in alloy bezels, retractable mandibles, eight visible hydraulic/piston leg systems with knee gears and bolts, reinforcing shin guards and stabilizer feet, rotary pincer joints, serrated alloy teeth, warning/hazard stripes, fluid lines and four animated amber warning lights. Armor rivets use a single instanced mesh for performance.
 - **Existing game behavior unchanged:** 20-minute raid clocks, 7-floor unlock, claw destruction, robot scrapping, saved progression and developer spawn/remove commands still operate. Warning beacons blink more rapidly when a claw strike occurs. This is a cosmetic/model and visual-width upgrade, not a save wipe.
 - **Testing:** 30 simulated legacy-save geometry cases and 30 simulated crab-raid cases were added, with live browser checks of part counts, crab scale, and actual 180.8 m rendered width.
+
+
+## Build 2026.11.01.7 — Consistent proportions, living crab, warehouse cleanup and $100,000 developer mode
+
+- **Keep huge aisles, fix proportions:** Retain the 16-meter visual aisle spacing (60% expansion over original) while drawing small equipment models, racks, shipping boxes, signs, and robots at their natural proportions instead of stretching each sideways. A separate render-only `src/visual-proportions.js` module corrects individual geometry and instanced shelf units, but never modifies the original logical coordinates or saved game data.
+- **Blue windows on every floor:** The front metal façade's false gray window panels are removed. Every floor uses the same recessed blue clerestory system: four windows on the front and four per side, for 12 blue wall windows on each of 15 floors. Ground-floor door openings remain functional.
+- **Organic, realistic crab, no robotic body:** `src/natural-crab.js` replaces the long industrial-robot model with a domed mottled carapace, chitin ridges and spines, natural abdominal shell, eye stalks and glossy pupils, six mouthparts, eight articulated leg assemblies with cuticle bands and tapering claws, and muscular pincers with natural teeth. All robotic gearboxes, hydraulic pistons, warning beacons, armored steel plates and exhausts are gone. Its existing size stays compact. Attacks still take place once every 20 active minutes on unfinished floors.
+- **Crab can walk freely:** The crab now approaches the front crosswalk, moves sideways between aisles, then walks down the next aisle in smoothly saved motion. Conveyors and other store equipment do not restrict crab travel. No instant teleportation is needed when its target aisle changes. Existing per-floor raid scheduling and 25% robot-wreck scrapping remain unaffected.
+- **Remove two unwanted squares:** The pair of shopping-basket blocks at the front of the store that obscured the gold-framed Employee of the Month portrait has been removed.
+- **Matching stock crates behind receiving:** Real collectible pallet piles and decorative stock use the exact same `src/carton-model.js` helper: corrugated shipping cartons, adhesive tape, printed barcode labels, wooden pallets and pallet feet. Extra decorative stacks previously sitting out in the rear aisles are removed and grouped neatly behind the warehouse receiving divider.
+- **Cleaner Supply Portal:** Removed secondary collection, scanning, dispatch and goods-inbound signs around the portal. Retained the single main **THE SUPPLY PORTAL** identity and the **WAREHOUSE PICKUP** sign so controls remain easy to identify.
+- **Modern elevator controls:** Rebuilt the modal to resemble the actual brushed stainless elevator, with illuminated 15-floor pushbuttons, destination display, current floor indicator, individual stocking completion and accessible clear labels. Floor UI logic is isolated in `src/elevator-ui.js` rather than buried inside main gameplay.
+- **Developer cash is now $100,000:** Open `#dev`/`#rich` or use the developer refill button. Existing cash greater than $100,000 is retained. Developer mode continues to be an opt-in test setting, not a wipe of user progress.
+- **Code organized safely:** Four focused scene modules now handle the natural crab, box visuals, physical proportion compensation and elevator UI. The local loopback server explicitly allowlists these modules while preserving the existing network security policy. No game save format migration or progress reset is performed.
+- **Testing:** Six sets of 30 new simulation scenarios check these upgrades and a seventh set verifies offline module delivery; the existing game/stock conservation and original save tests remain in the regression suite. Browser smoke tests inspect the rendered game where possible.
