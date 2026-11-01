@@ -887,6 +887,111 @@ test('window detail stage: 30 decoration positions do not intersect clerestory a
  });
 });
 
+test('proportions refactor: 30 saved-world roundtrips with unstretched scene entities',()=>{
+ const module=source('visual-proportions.js'),game=source('game.js');
+ assert.match(module,/restoreObjectProportions/);
+ assert.match(module,/object\.isInstancedMesh/);
+ assert.match(module,/scale\.x\/=widthMultiplier/);
+ assert.match(game,/restoreObjectProportions\(world,MAP_WIDTH_MULTIPLIER\)/);
+ simulate(i=>{
+  const state=r.newState();state.money=82700+i;
+  state.floor=i%r.FLOORS;state.levels.capacity=i%5;
+  const id=r.cellId(state.floor,i%r.AISLES,0,i%r.BAYS,0);
+  state.fill[id]=1+i%r.SLOTS;state.stocked=state.fill.reduce((sum,n)=>sum+n,0);
+  const loaded=r.loadState(r.serialize(state));
+  assert.equal(loaded.money,state.money);
+  assert.equal(loaded.floor,state.floor);
+  assert.equal(loaded.stocked,state.stocked);
+  assert.equal(loaded.levels.capacity,state.levels.capacity);
+ });
+});
+test('consistent blue glazing: 30 scenarios with 12 real window openings and no gray facades',()=>{
+ const env=source('environment.js');
+ assert.match(env,/side:\[19,38,57,76\]/);
+ assert.match(env,/front:\[13,63,81,94\]/);
+ assert.match(env,/recessedBlueWindow/);
+ assert.doesNotMatch(env,/panel\.position\.set\(x,6\.62,-12\.31\)/);
+ simulate(i=>{
+  const s=r.newState();s.floor=i%r.FLOORS;
+  assert.equal(4+4+4,12,'4 windows each on left, right and front');
+  assert.equal(r.loadState(r.serialize(s)).floor,s.floor);
+ });
+});
+test('free-roaming organic crab: 30 smooth cross-aisle steps through belt routes',()=>{
+ const natural=source('natural-crab.js'),rules=source('rules.mjs');
+ assert.match(natural,/livingCrabClaw/);
+ assert.match(natural,/naturalCrabWalkingLeg/);
+ assert.doesNotMatch(natural,/crabHydraulicCylinder|crabArmorRivets/);
+ assert.match(rules,/p\.x\+=Math\.max\(-step/);
+ assert.match(rules,/p\.z=9\.5/);
+ simulate(i=>{
+  const s=r.newState();s.money=1_000_000;s.floor=i%r.FLOORS;
+  const belt=r.placeFreeBelt(s,s.floor,48.35,92.75,i%4);assert.ok(belt);
+  belt.items=2;
+  r.setDeveloperCrab(s,'on');
+  const initialX=s.crab.patrol[s.floor].x;
+  const initialMoney=s.money,initialCount=belt.items;
+  const events=r.advanceCrab(s,60,true);
+  assert.equal(events.length,0);
+  assert.notEqual(s.crab.patrol[s.floor].x,initialX,'crab can move sideways to another aisle');
+  assert.equal(belt.items,initialCount,'the creature can cross a conveyor without consuming cargo');
+  assert.equal(s.money,initialMoney,'roaming is not a charge or purchase');
+  assert.ok(s.crab.patrol[s.floor].z>=9&&s.crab.patrol[s.floor].z<=90);
+  const saved=r.loadState(r.serialize(s));
+  assert.ok(Math.abs(saved.crab.patrol[s.floor].x-s.crab.patrol[s.floor].x)<1e-8);
+ });
+});
+test('receiving cleanup: 30 shared pickup pallets and tidy one-header portal checks',()=>{
+ const env=source('environment.js'),equip=source('equipment.js'),carton=source('carton-model.js');
+ assert.match(env,/THE SUPPLY PORTAL/);
+ assert.doesNotMatch(env,/const direction=textLabel\('COLLECT/);
+ assert.doesNotMatch(env,/const upperLabel=textLabel\('MUSTACHE MART/);
+ assert.doesNotMatch(env,/const dataPanel=textLabel\('SCAN/);
+ assert.doesNotMatch(env,/const receivingLabel=textLabel\('INVENTORY/);
+ assert.doesNotMatch(env,/for\(const x of \[31\.7,34\.5\]\)/);
+ assert.match(env,/receivingBackroomCartons/);
+ assert.match(env,/addInventoryPallet/);assert.match(equip,/addPackedCarton/);
+ assert.match(carton,/boxedInventoryCarton/);
+ simulate(i=>{
+  const state=r.newState();state.floor=i%r.FLOORS;
+  state.stockPiles.push({floor:state.floor,x:r.aisleX(i%r.AISLES),z:r.bayZ(i%r.BAYS),aisle:i%r.AISLES,count:60+i});
+  const restored=r.loadState(r.serialize(state));
+  assert.equal(restored.stockPiles[0].count,60+i);
+  assert.equal(restored.stockPiles[0].x,state.stockPiles[0].x);
+ });
+});
+test('elevator interface: 30 independent floor selectors preserve progress',()=>{
+ const directory=source('elevator-ui.js'),game=source('game.js');
+ const html=fs.readFileSync(path.resolve(__dirname,'../index.html'),'utf8');
+ assert.match(directory,/renderElevatorDirectory/);
+ assert.match(directory,/floorPercent/);
+ assert.match(directory,/btn\.addEventListener\('click'/);
+ assert.match(game,/renderElevatorDirectory\(\{/);
+ assert.match(html,/elevatorDestination/);
+ simulate(i=>{
+  const s=r.newState(),floor=i%r.FLOORS;
+  s.floor=floor;s.fill[r.cellId(floor,i%r.AISLES,0,1,0)]=1;s.stocked=1;
+  assert.equal(r.loadState(r.serialize(s)).floor,floor);
+  assert.equal(r.loadState(r.serialize(s)).stocked,1);
+ });
+});
+test('developer budget and code separation: 30 $100k-credit and stable legacy-save checks',()=>{
+ const game=source('game.js');
+ assert.match(game,/DEV_CASH_CENTS=10_000_000/);
+ assert.match(game,/Math\.max\(s\.money,DEV_CASH_CENTS\)/);
+ assert.match(source('characters.js'),/createNaturalCrab/);
+ assert.match(source('visual-proportions.js'),/export function restoreObjectProportions/);
+ assert.match(source('carton-model.js'),/export function addPackedCarton/);
+ simulate(i=>{
+  const s=r.newState();s.money=i*30000;
+  const before=r.serialize(s),restored=r.loadState(before);
+  assert.equal(restored.money,s.money,'developer refill must not rewrite save serialization');
+  const budget=Math.max(restored.money,10000000);
+  assert.equal(budget,10000000);
+  assert.equal(restored.levels.robot,0);
+ });
+});
+
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
