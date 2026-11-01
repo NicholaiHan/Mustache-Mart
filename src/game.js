@@ -789,27 +789,12 @@ function syncCrab(now){
   claw.rotation.z=striking?Math.sin(wave*19)*.28:Math.sin(wave*2.5)*.09;
  }
 }
-function updateCrabStatus(){
- const indicator=$('crabStatus');if(!indicator)return;
- if(!s.crab.unlocked){
-  const done=s.stocked>=CRAB_UNLOCK_FLOORS*itemsPerFloor?completedFloors(s):Math.min(6,Math.floor(s.stocked/itemsPerFloor));
-  indicator.textContent='CRAB ALERT LOCKED · COMPLETE '+CRAB_UNLOCK_FLOORS+' FLOORS ('+done+'/'+CRAB_UNLOCK_FLOORS+')';
-  indicator.classList.remove('crabActive');return;
- }
- const f=s.floor,completed=floorStocked(s,f)>=itemsPerFloor;
- const remaining=Math.max(0,CRAB_ATTACK_SECONDS-s.crab.elapsed[f]);
- const minutes=Math.floor(remaining/60),seconds=Math.floor(remaining%60);
- indicator.classList.add('crabActive');
- indicator.textContent=completed?'MEGA CRAB · THIS FLOOR IS COMPLETE / SAFE':
-  'MEGA CRAB ACTIVE · '+floorLabel(f)+' SWING IN '+String(minutes).padStart(2,'0')+':'+String(seconds).padStart(2,'0')+
-  ' · '+s.crab.attacks[f]+' SWINGS';
-}
 function tickCrabRaids(elapsed,now){
  if(!running||modal||ending)return;
  const justUnlocked=!s.crab.unlocked;
  const events=advanceCrab(s,Math.min(elapsed,.25));
  if(justUnlocked&&s.crab.unlocked){
-  buildWorld();notify('WARNING: MEGA ROBOT CRAB UNLOCKED! Every unfinished floor faces a swing every 20 minutes.');
+  buildWorld();notify('Something enormous is moving through the store...');
   save();
  }
  for(const event of events){
@@ -946,7 +931,7 @@ function animate(now){
   robotGhost.visible=(!!placementSpot||(V.z>=11&&V.z<=92))&&!isBlocked(x,z,s.floor);
  }
  if(!modal){updatePrompt();}
- if(now-savingAt>260){uiUpdate();updateCrabStatus();savingAt=now;}
+ if(now-savingAt>260){uiUpdate();savingAt=now;}
  renderer.render(scene,camera);
 }
 window.addEventListener('keydown',e=>{
@@ -1147,6 +1132,6 @@ if(DEV_MODE){
    snapshot(){return {beltItems:s.beltItems[s.floor].map(row=>row.slice()),selectedBeltAisle,feedCrates:feederCrates.length,devMode:DEV_MODE,checkoutCount:s.floor===0?4:0,x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,platformCount:s.platforms.length,activePlatformId:s.cart.id,levels:{...s.levels}};}
  };
 }
-buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();updateCrabStatus();showSaveOrigin();
+buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();showSaveOrigin();
 if(PREVIEW_ENDING)beginEnding();
 requestAnimationFrame(animate);
