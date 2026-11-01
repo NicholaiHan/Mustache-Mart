@@ -178,7 +178,7 @@ function buildWorld(){
  palletMesh=makePalletJack();placedClawMeshes=makeClaws();pileMeshes=makeStockPiles();
  ladderMesh=makeLadder();
  // Normalize actual mesh widths, preserving intentionally wider aisle coordinates.
- restoreObjectProportions(world,MAP_WIDTH_MULTIPLIER);
+ world.userData.proportionStats=restoreObjectProportions(world,MAP_WIDTH_MULTIPLIER);
  uiUpdate();
 }
 // A transfer is recorded at the exact point the logical carton moves. A
@@ -1386,14 +1386,13 @@ if(DEV_MODE){
   },
   crabDetailStats(){
    if(!crabModel)return null;
-   const components={},names=['crabSegmentedCarapace','crabHydraulicCylinder','crabPolishedPistonRod','crabLegDriveGear',
-    'crabPincerRotaryJoint','crabCoolingVent','crabEyeBezel','crabArmorRivets','crabAnimatedWarningBeacon',
-    'crabSerratedPincerTeeth','crabExhaustLouver','crabShinArmor'];
+   const components={},names=['naturalCrabShell','naturalCrabUnderside','naturalCrabWalkingLeg','livingCrabClaw',
+    'carapaceRidgeBump','livingEye','crabEyeStalk','pincerTooth','legDactylus','naturalShellFreckle'];
    crabModel.traverse(node=>{if(names.includes(node.name))components[node.name]=(components[node.name]||0)+1;});
    return {components,...crabModel.userData.detailStats,walkingLegs:crabModel.userData.legs?.length||0,
     animatedClaws:crabModel.userData.jaws?.length||0};
   },
-  worldLayoutStats(){return {scaleX:world.scale.x,originX:world.position.x,
+  worldLayoutStats(){return {scaleX:world.scale.x,originX:world.position.x,proportions:world.userData.proportionStats,
    width:113*world.scale.x,aisleSeparation:(toWideX(aisleX(1))-toWideX(aisleX(0))),
    totalStocked:s.stocked,savedAisleX:aisleX(9),
    crabWidthScale:crabModel?.scale.x??null,crabHeightScale:crabModel?.scale.y??null,crabDepthScale:crabModel?.scale.z??null,crabVisible:!!crabModel};},
