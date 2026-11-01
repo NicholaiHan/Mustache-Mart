@@ -574,8 +574,8 @@ function buildService(){
  workTop.position.set(PAY.x,1.24,PAY.counterZ);
  // Finished fascia, glass and metal jambs mounted directly on plaster.
  const glassMat=new THREE.MeshStandardMaterial({
-  color:'#b8d1d3',transparent:true,opacity:.32,metalness:.1,
-  roughness:.12,depthWrite:false
+  color:'#b8ebff',emissive:'#85caff',emissiveIntensity:.28,transparent:true,opacity:.48,metalness:.05,
+  roughness:.10,depthWrite:false
  });
  const glass=cube(4.92,1.79,.05,glassMat);
  glass.position.set(PAY.x,2.62,PAY.glassZ);
