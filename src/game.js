@@ -200,8 +200,8 @@ function enqueueBeltVisualTransfer(event){
  const dst=to.find(b=>b.slot===Math.min(2,Math.max(0,toCount-1)))||to[0];
  if(!src?.crate||!dst?.crate)return;
  world.updateMatrixWorld(true);
- const start=src.crate.getWorldPosition(new THREE.Vector3());
- const finish=dst.crate.getWorldPosition(new THREE.Vector3());
+ const start=world.worldToLocal(src.crate.getWorldPosition(new THREE.Vector3()));
+ const finish=world.worldToLocal(dst.crate.getWorldPosition(new THREE.Vector3()));
  if(start.distanceTo(finish)>14)return;
  const graphic=src.crate.clone(true);
  graphic.name='movingRealConveyorCarton';graphic.visible=true;
