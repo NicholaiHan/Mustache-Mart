@@ -20,11 +20,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.31.6** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.10.31.7** and the introduction must list the new cash registers, Mike, ladders and fire exit.
 3. **Development mode** (the `#dev` suffix) gives **at least $500** for testing. The title screen also has a **Refill developer cash to $500** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
 4. **Recovery:** Your skills and stocked shelves are saved by browser + exact host + port. The launcher now defaults to **8000**, where older saves are most likely. If you instead played on **8011**, run `PORT=8011 bash PLAY_LATEST_MAC.sh` and open `http://127.0.0.1:8011/#dev` in your original browser. Do not click Reset. Use **Download save backup** on the origin holding progress, then **Import save backup** on the origin you want to play from. The original save remains intact.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.31.6** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.10.31.7** is shown.
 
 ## Play on your MacBook
 
@@ -189,14 +189,14 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - The `#dev` suffix gives at least $500 for testing. No in-game money or progress is reset by the visual upgrade.
 
 
-## Build 2026.10.31.6 — Fire exit detail and save safety
+## Build 2026.10.31.7 — Fire exit detail and save safety
 
 - **FIRE EXIT**: Rebuilt the inward-swinging back-left red steel door with structural framing, painted recessed panels, push-to-open panic bar, raised metal hardware, smoke seal, kick plate, illuminated emergency lamp and deeper brick alcove. The masonry's brick faces now sit in front of the opaque mortar backing, fixing a layering issue that hid brick detail. The brick obstruction still blocks any escape and the entrance completion rules are unchanged.
 - **Save origin**: The launcher defaults to **port 8000** instead of 8011, matching the original local save URL. Existing saves on 8011 are not deleted; use the explicit PORT override to view them. The opening screen displays your loaded stocked items and upgrade ranks, so an empty save on the wrong address is immediately apparent.
 - **Developer mode**: The title screen has an **Enable $500 Developer Mode** button even when the URL lacks #dev; inside developer mode the button becomes **Refill developer cash to $500**, which tops up the balance without modifying skill levels, shelf progress or other save fields.
 
 
-## Build 2026.10.31.6 — Clear aisle signage, multiple mobile ladders and hold-to-repair
+## Build 2026.10.31.7 — Clear aisle signage, multiple mobile ladders and hold-to-repair
 
 - **Visible aisle names:** Removed decorative colored flags, opaque raised plates and colored bottom strips that could cover suspended aisle text. Aisle identification now uses a single neutral sign oriented toward approaching players; shelf-end labels remain.
 - **Up to 10 motorized platform ladders:** Buy additional individually operated platforms at Mustache Mike (prices scale for successive purchases). Each is a separate physical object in the supermarket, with its own floor, aisle, position and lift height. Walk near any platform and press **F** to mount; use **WASD** to drive, **Space** to raise, **Ctrl** to lower, and **F** again to dismount. Robots do not drive or stock from these platforms. Existing older single-platform saves migrate into the multi-platform structure without resetting shelf and skill progress.
@@ -204,7 +204,7 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - **Testing:** Three dedicated 30-simulation regression groups cover the clean aisle sign layout, purchasing/operating/restoring multiple independent platforms, and uninterrupted/canceled repair timing. The other existing simulation tests remain in CI. Gameplay and visual browser checks run separately on macOS and Linux.
 
 
-## Build 2026.10.31.6 — Conveyor polish, no aisle-top flags, detailed walls
+## Build 2026.10.31.7 — Conveyor polish, no aisle-top flags, detailed walls
 
 - **Seamless conveyors:** The visual belt now spans 2.68 meters across physical bay centers spaced 2.65 meters apart. This removes visible gaps between neighboring straight belt sections without changing inventory, conveyors, claw logic or pricing. Added slim continuous steel guides, subtle rubber tread grooves, inlaid direction marks, realistic end rollers, and discreet motors at the ends of runs. A pivot cover identifies rotated outlets; the loading belt still holds at most three real products per section.
 - **No elevated aisle-top flags:** Removed the high decorative flags above each aisle entirely, while keeping the main neutral front aisle signs and shelf labels visible.
@@ -212,10 +212,20 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - **Regression checks:** Three separate groups of 30 accelerated automated simulations validate conveyor stock conservation and outlet turning, removal of elevated aisle flags, and wall/door clearance. The tests do not constitute 30 manually played 3D games; separate macOS/Linux browser smoke tests check rendered gameplay.
 
 
-## Build 2026.10.31.6 — Mustache Mike, Employee of the Month
+## Build 2026.10.31.7 — Mustache Mike, Employee of the Month
 
 - A **gold-framed "EMPLOYEE OF THE MONTH" painting** is hung on the interior front wall to the right of the elevator on **every floor (1–15)**.
 - The brass/gold frame has a deep inset mat, beveled edging, large legible award title, nameplate reading **"Mustache Mike"**, and floor-specific award badge.
 - Every floor renders a **distinct offline illustrated working portrait** of Mike that matches his 3D robot face with its digital white eyes and signature white mustache. All 15 paintings depict different work scenes such as packing, inspecting shelves, scanning inventory, repairing a robot, checking checklists, and preparing for the grand opening. They are original in-game graphics generated from Canvas code, **not externally hosted photographic images**.
 - Only the current floor's portrait is created when the floor loads, without changing local save data, item placement, upgrade levels, economy or collision rules. There are no new user download dependencies.
 - Automated regression coverage includes 30 saved-progress/floor-load simulations plus real headless-browser checks that count one framed portrait per floor and 15 distinct scenes.
+
+
+## Build 2026.10.31.7 — Giant Robot Crab raid boss
+
+- **Unlock at seven fully stocked floors:** An enormous animated steel robot crab appears on any incomplete floor. It patrols aisles with giant jointed legs, glowing eyes, and swing-capable hydraulic pincers. This unlock is permanent in your saved game, even if raided floor progress later falls.
+- **Independent 20-minute clocks:** During active play, each unfinished floor has its own 20-minute timer. When it expires, the crab swings **once** in a randomly chosen aisle, sweeping 3 adjacent shelf bays. Floors already completely stocked are immune. The clock runs across other floors while you work elsewhere; it pauses when the game is paused or closed, and resumes from your saved time. The HUD displays the next swing countdown for your floor.
+- **Dropped shelf stock:** Anything knocked from the affected cells becomes a collectible **loose floor spill**. Stocked counts decrease until recovered and replaced. No items are invented or deleted by the impact; salvaged drops remain in your save as tagged piles.
+- **Robot carnage:** Any player-owned stocker caught near the claw strike becomes an **irreparable wreck**. The former robot is visually replaced by a broken body with a spectacular coiled metal spring, a detached cracked robot head, and screws/bolts scattered around it. Neither six-second manual repairs nor maximum reliability upgrades can resurrect it.
+- **Mandatory scrap and replacement:** Crab-destroyed robots cannot be reassigned, repaired, or replaced while still owned. Visit Mustache Mike or stand by the wreck and press X to **sell for exactly 25%** (rounded down to cents); normal intact-robot resale remains 50%. After scrapping, the robot ownership slot frees up and you can purchase and deploy an entirely new robot.
+- **Simulation verification:** Three 30-seed deterministic regression stages verify unlocking/timers on all 15 floors, shelf/drop count conservation and save persistence, and permanent destruction/forced scrap/replacement. Browser tests additionally check the displayed crab model, actual wreck geometry, and 25% credit.
