@@ -162,9 +162,10 @@ function buildWorld(){
  for(const robot of s.robots)if(robot.placed&&robot.floor===s.floor)robotModels.set(robot.id,botAppearance(robot));
  if(crabEnabled(s,DEV_MODE)&&(s.crab.devOverride==='on'&&DEV_MODE||floorStocked(s,s.floor)<itemsPerFloor)){
   crabModel=makeMegaCrab();
-  // Scale the giant crab slightly narrower than the newly widened path so
-  // its legs and pincers do not pass through shelf uprights.
-  crabModel.scale.x=.65;
+  // Make the complete crab about one-third smaller (body, legs and pincers),
+  // while keeping the widened aisle clearance and normal patrol animation.
+  // Only the model is scaled: raid timing, stock damage and saves are unchanged.
+  crabModel.scale.set(.44,.68,.68);
  }
  for(const platform of platformsOnFloor(s)){
   const model=makeCart();if(model){cartMeshes.push({platform,model});if(platform===s.cart)cartMesh=model;}
@@ -1386,7 +1387,7 @@ if(DEV_MODE){
   worldLayoutStats(){return {scaleX:world.scale.x,originX:world.position.x,
    width:113*world.scale.x,aisleSeparation:(toWideX(aisleX(1))-toWideX(aisleX(0))),
    totalStocked:s.stocked,savedAisleX:aisleX(9),
-   crabWidthScale:crabModel?.scale.x??null,crabVisible:!!crabModel};},
+   crabWidthScale:crabModel?.scale.x??null,crabHeightScale:crabModel?.scale.y??null,crabDepthScale:crabModel?.scale.z??null,crabVisible:!!crabModel};},
   architectureStats(){
    let windows=0,cutWallSections=0,screws=0,vents=0,pipeBrackets=0,freeWindowOverlays=0;
    world.traverse(object=>{
