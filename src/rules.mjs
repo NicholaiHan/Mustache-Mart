@@ -167,7 +167,7 @@ export function purchase(s,id){
  if(id==='ladderPlus'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
  s.money-=cost;s.money+=Math.floor(cost*Math.min(.1,(s.levels.cashback||0)*.02));s.levels[id]++;if(id==='robotReliability'&&s.levels.robotReliability===4){
   for(const bot of s.robots){if(bot.wrecked)continue;bot.broken=false;bot.stockedSinceService=0;bot.repairProgress=0;bot.breakAt=Infinity;}
- }if(id==='robot'){const bot=hireRobot(s,cost,true);if(bot)autoPlaceRobot(s,bot.id,s.floor);}if(id==='ladder'||id==='ladderUnit')s.ladderInventory.push({kind:id,paid:cost});if(id==='itemClaw')s.clawInventory.push({paid:cost});
+ }if(id==='robot'){const bot=hireRobot(s,cost,false);if(bot)autoPlaceRobot(s,bot.id,s.floor);}if(id==='ladder'||id==='ladderUnit')s.ladderInventory.push({kind:id,paid:cost});if(id==='itemClaw')s.clawInventory.push({paid:cost});
  if(id==='cart'){
   const index=s.platforms.length;
   const p={id:s.platformNextId++,floor:s.floor,aisle:index%AISLES,z:16.2,
