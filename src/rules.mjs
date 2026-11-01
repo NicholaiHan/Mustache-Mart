@@ -14,7 +14,7 @@ export const UPGRADES=[
 {id:'ladder',name:'Portable Step Ladder',detail:'Deploy with L to reach 2-cent high racks.',base:45,factor:1,max:1},
 {id:'ladderPlus',name:'Telescopic Ladder Extension',detail:'Climb higher to reach the top 3-cent shelf; also extends placed ladders.',base:175,factor:1,max:1},
 {id:'ladderUnit',name:'Additional Portable Ladder',detail:'One more climbable ladder to install on any aisle; sell back for half its cost.',base:65,factor:1.2,max:24},
-{id:'cart',name:'Motorized Platform Ladder',detail:'Ride a guarded platform to upper shelves; drive with WASD when elevated (never stocks shelves automatically).',base:140,factor:1,max:1},
+{id:'cart',name:'Motorized Platform Ladder',detail:'Buy up to 10 separate player-operated lifting platforms. Ride the nearest one with F; none stock shelves automatically.',base:140,factor:1.55,max:10},
 {id:'cartSpeed',name:'Platform Drive Motor',detail:'Improve your motorized ladder platform driving speed.',base:110,factor:1.65,max:10},
 {id:'palletCapacity',name:'Pallet Jack Capacity',detail:'Increase carrying from 1/20 aisle through 1/16, 1/8, 1/4, 1/2, up to ONE whole aisle. Expensive logistics investment.',base:10000,factor:5,max:5},
 {id:'itemClaw',name:'Automated Item Claw',detail:'One placeable claw picks from the nearest stocked inventory source and feeds a connected conveyor. Use K to deploy.',base:450,factor:1.35,max:40},
@@ -42,7 +42,7 @@ export const UPGRADES=[
 export function cellId(f,a,side,bay,tier){return ((((f*AISLES+a)*2+side)*BAYS+bay)*TIERS+tier);}
 export function decode(id){const tier=id%TIERS;id=Math.floor(id/TIERS);const bay=id%BAYS;id=Math.floor(id/BAYS);const side=id%2;id=Math.floor(id/2);return {floor:Math.floor(id/AISLES),aisle:id%AISLES,side,bay,tier};}
 const limit=(v,max)=>Number.isFinite(Number(v))?Math.max(0,Math.min(max,Math.floor(Number(v)))):0;
-export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},cursor:Array(FLOORS).fill(0)};}
+export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{id:0,floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},platforms:[],platformNextId:1,cursor:Array(FLOORS).fill(0)};}
 export function loadState(text){
  const s=newState();if(!text)return s;
  try{
@@ -119,11 +119,29 @@ export function loadState(text){
  s.robotNextId=Math.max(limit(d.robotNextId,1000000)||1,...s.robots.map(r=>r.id+1));
  while(s.robots.length<s.levels.robot)hireRobot(s,250,true);
  s.levels.robot=s.robots.length;
- const c=d.cart||{};s.cart={floor:limit(c.floor,FLOORS-1),aisle:limit(c.aisle,AISLES-1),z:Math.max(11,Math.min(94,Number(c.z)||13)),acc:0,liftHeight:Math.max(0,Math.min(10,Number(c.liftHeight)||0)),mounted:false};
+ const normalizePlatform=(c,id)=>({id:limit(c?.id,1000000)||id,
+  floor:limit(c?.floor,FLOORS-1),aisle:limit(c?.aisle,AISLES-1),
+  z:Math.max(11,Math.min(94,Number(c?.z)||13)),acc:0,
+  liftHeight:Math.max(0,Math.min(10,Number(c?.liftHeight)||0)),
+  mounted:false,paid:limit(c?.paid,10000000)});
+ if(Array.isArray(d.platforms)&&d.platforms.length){
+  s.platforms=d.platforms.slice(0,10).map((c,i)=>normalizePlatform(c,i+1));
+ }else if(s.levels.cart){
+  // Upgrade a previous one-platform saved game without losing its position.
+  s.platforms=[normalizePlatform(d.cart||{},1)];
+ }
+ // For a valid older save with more units but no portable array, preserve count.
+ while(s.platforms.length<s.levels.cart){
+  const index=s.platforms.length;
+  s.platforms.push(normalizePlatform({floor:s.floor,aisle:index%AISLES,z:16},index+1));
+ }
+ if(s.platforms.length>s.levels.cart)s.levels.cart=s.platforms.length;
+ s.platformNextId=Math.max(limit(d.platformNextId,1000000)||1,...s.platforms.map(c=>c.id+1));
+ s.cart=s.platforms.find(c=>c.id===d.activePlatformId)||s.platforms[0]||s.cart;
  }catch(_){return newState();}
  return s;
 }
-export function serialize(s){return JSON.stringify({version:4,money:s.money,pending:s.pending,floor:s.floor,fill:Array.from(s.fill),levels:s.levels,belts:s.belts,beltReceipts:s.beltReceipts,beltStock:s.beltStock,beltItems:s.beltItems,beltFlowTimer:s.beltFlowTimer,beltTimers:s.beltTimers,beltDirection:s.beltDirection,claws:s.claws,clawInventory:s.clawInventory,clawNextId:s.clawNextId,stockPiles:s.stockPiles,pallet:{...s.pallet,driving:false},ladderInventory:s.ladderInventory,ladders:s.ladders,ladderNextId:s.ladderNextId,robots:s.robots,robotNextId:s.robotNextId,cart:s.cart,cursor:s.cursor});}
+export function serialize(s){return JSON.stringify({version:4,money:s.money,pending:s.pending,floor:s.floor,fill:Array.from(s.fill),levels:s.levels,belts:s.belts,beltReceipts:s.beltReceipts,beltStock:s.beltStock,beltItems:s.beltItems,beltFlowTimer:s.beltFlowTimer,beltTimers:s.beltTimers,beltDirection:s.beltDirection,claws:s.claws,clawInventory:s.clawInventory,clawNextId:s.clawNextId,stockPiles:s.stockPiles,pallet:{...s.pallet,driving:false},ladderInventory:s.ladderInventory,ladders:s.ladders,ladderNextId:s.ladderNextId,robots:s.robots,robotNextId:s.robotNextId,cart:s.cart,platforms:s.platforms,platformNextId:s.platformNextId,activePlatformId:s.cart?.id,cursor:s.cursor});}
 export const capacity=s=>1+s.levels.capacity+2*(s.levels.carryHarness||0),walkSpeed=s=>3.3+s.levels.speed*.45+(s.levels.courierStride||0)*.22;
 export const price=(u,l)=>Math.ceil(u.base*u.factor**l);
 export const skillAvailable=(s,u)=>!u.requires||Object.entries(u.requires).every(([id,level])=>(s.levels[id]||0)>=level);
@@ -134,7 +152,15 @@ export function purchase(s,id){
  if(id==='ladderPlus'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
  s.money-=cost;s.money+=Math.floor(cost*Math.min(.1,(s.levels.cashback||0)*.02));s.levels[id]++;if(id==='robotReliability'&&s.levels.robotReliability===4){
   for(const bot of s.robots){bot.broken=false;bot.stockedSinceService=0;bot.repairProgress=0;bot.breakAt=Infinity;}
- }if(id==='robot')hireRobot(s,cost,false);if(id==='ladder'||id==='ladderUnit')s.ladderInventory.push({kind:id,paid:cost});if(id==='itemClaw')s.clawInventory.push({paid:cost});return true;
+ }if(id==='robot')hireRobot(s,cost,false);if(id==='ladder'||id==='ladderUnit')s.ladderInventory.push({kind:id,paid:cost});if(id==='itemClaw')s.clawInventory.push({paid:cost});
+ if(id==='cart'){
+  const index=s.platforms.length;
+  const p={id:s.platformNextId++,floor:s.floor,aisle:index%AISLES,z:16.2,
+   acc:0,liftHeight:0,mounted:false,paid:cost};
+  s.platforms.push(p);
+  if(s.platforms.length===1)s.cart=p;
+ }
+ return true;
 }
 export function payOut(s){const p=s.pending;s.pending=0;s.money+=p;return p;}
 export function earnings(s,id,automatic=false){
@@ -516,6 +542,22 @@ export function botStep(s,r,dt){
 // Motorized platform ladder: a player-controlled vehicle, never an auto-stocker.
 // The upright platform can be raised while occupied and driven with WASD while
 // elevated; movement is clamped to a clear aisle and checks static obstacles in game.
+export const platformsOnFloor=(s,floor=s.floor)=>(s.platforms||[]).filter(p=>p.floor===floor);
+export function closestPlatform(s,x,z,floor=s.floor,maxDistance=3.6){
+ let best=null,dist=maxDistance;
+ for(const p of platformsOnFloor(s,floor)){
+  const d=Math.hypot(x-aisleX(p.aisle),z-p.z);
+  if(d<dist){best=p;dist=d;}
+ }
+ return best;
+}
+export function selectPlatform(s,id){
+ const p=(s.platforms||[]).find(p=>p.id===id);
+ if(!p)return false;
+ for(const other of s.platforms)other.mounted=false;
+ s.cart=p;p.mounted=true;
+ return true;
+}
 export function drivePlatform(s,forward,side,dt,canTravel=null){
  if(!s.levels.cart||!s.cart.mounted||dt<=0)return false;
  const c=s.cart;
