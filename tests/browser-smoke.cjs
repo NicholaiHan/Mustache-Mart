@@ -100,6 +100,17 @@ const assert=require('node:assert/strict');
   console.log('PASS: exported save downloads and confirmed import persists through reload without overwrite');
 
   await page.locator('#play').click();
+  // Developer credit starts above $3,000, so the hidden offer appears once at
+  // shift start. Declining preserves it for later instead of deleting it.
+  await page.locator('#coinflip.open').waitFor({timeout:30000});
+  assert.equal(await page.locator('#coinTitle').textContent(),'THE $3,000 SECRET FLIP');
+  assert.match(await page.locator('#coinStake').textContent(),/\$3,000/);
+  assert.equal((await page.evaluate(()=>window.__martTest.coinOffers())).cash.unlocked,true);
+  assert.equal((await page.evaluate(()=>window.__martTest.coinOffers())).cash.played,false);
+  await page.locator('#coinLater').click();
+  assert.equal((await page.evaluate(()=>window.__martTest.coinOffers())).cash.played,false);
+  assert.equal(await page.locator('#secretFlipBtn').isVisible(),true,'first wager can be revisited');
+  console.log('PASS: $3,000 secret coin offer appears after developer cash, can be deferred, remains available');
   // Actual collision-safe loading position, not inside the receiving counter.
   await page.evaluate(()=>{window.__martTest.teleport(1.5,93.1);window.__martTest.setLook(Math.PI,-.07);});
   assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(1.5,93.1)),false);
@@ -346,6 +357,27 @@ const assert=require('node:assert/strict');
   await page.evaluate(()=>{window.__martTest.teleport(46.5,-8.3);window.__martTest.setLook(0,0);});
   await page.keyboard.press('e');
   assert.equal(await page.evaluate(()=>window.__martTest.doorStatus().entrance),false,'must stay locked below 100%');
+  // Finishing the THIRD floor produces the one-time all-in second coin flip.
+  // Use the isolated QA hook to finish only that floor without a 9,600-click run.
+  await page.evaluate(()=>{
+   window.__martTest.coinTest.setCash(12345);
+   window.__martTest.coinTest.finishThirdFloor();
+  });
+  await page.locator('#coinflip.open').waitFor({timeout:30000});
+  assert.match(await page.locator('#coinTitle').textContent(),/FLOOR 3.*ALL-IN/);
+  assert.match(await page.locator('#coinStake').textContent(),/\$123\.45/);
+  await page.screenshot({path:path.join(art,'secret-floor3-all-in-offer.png'),timeout:90000});
+  await page.locator('#coinHeads').click();
+  const outcome=await page.evaluate(()=>({
+   cash:window.__martTest.snapshot().money,
+   status:window.__martTest.coinOffers().floor3
+  }));
+  assert.equal(outcome.status.played,true);
+  assert.equal(outcome.status.result.stake,12345,'wagers exact balance at the moment of the flip');
+  assert.ok([0,24690].includes(outcome.cash),'all-in result is either zero or exactly doubled');
+  await page.locator('#coinLater').click();
+  assert.equal((await page.evaluate(()=>window.__martTest.coinOffers())).floor3.played,true);
+  console.log('PASS: finishing Floor 3 triggers a fair, one-use all-in flip, and result persists');
   await page.evaluate(()=>window.__martTest.setCompletion(true));
   await page.waitForTimeout(180);
   assert.equal(await page.locator('#end').isVisible(),false,'completion alone must not start ending');
