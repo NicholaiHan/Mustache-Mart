@@ -54,6 +54,28 @@ const assert=require('node:assert/strict');
   assert.equal(build.version,'2026.10.31.5');
   console.log('PASS: game prints latest build badge, features, manifest and $500 dev banner');
 
+  // Each floor must have exactly one actual framed painting with its own
+  // distinct working portrait texture, not a copied floor-number label.
+  const seenJobs=new Set();
+  for(let floor=0;floor<15;floor++){
+   const portraits=await page.evaluate(n=>{
+    window.__martTest.setFloor(n);
+    return window.__martTest.portraitInfo();
+   },floor);
+   assert.equal(portraits.length,1,'exactly one framed painting on floor '+(floor+1));
+   const painting=portraits[0];
+   assert.equal(painting.floor,floor,'portrait belongs to its floor');
+   assert.equal(painting.subject,'Mustache Mike');
+   assert.equal(painting.imageWidth,720);
+   assert.equal(painting.imageHeight,860);
+   assert.ok(painting.frame>=8,'real 3D gold frame, label, mat and portrait exist');
+   seenJobs.add(painting.job);
+  }
+  assert.equal(seenJobs.size,15,'15 floors have 15 unique Mike-at-work portraits');
+  await page.evaluate(()=>window.__martTest.setFloor(0));
+  console.log('PASS: all 15 floors show one unique framed Mustache Mike employee painting');
+
+
   assert.equal(await page.evaluate(()=>window.__martTest.snapshot().money),50000,'development account starts with precisely $500');
   assert.equal(await page.evaluate(()=>window.__martTest.snapshot().checkoutCount),4,'four real checkout stations on floor 1');
   console.log('PASS: game renders fifteen-floor store with $500 developer account and four checkout lanes');
