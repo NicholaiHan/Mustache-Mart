@@ -78,7 +78,7 @@ test('30 accelerated complete full-building runs preserve 144,000 items, wages, 
      assert.ok(r.purchase(s,upgrade),'cannot purchase '+upgrade+' in run '+run);
    }
    const worker=s.robots[0];
-   assert.equal(worker.placed,false);
+   assert.equal(worker.placed,true,'new purchases auto-deploy');
    assert.equal(r.assignRobot(s,worker.id,0,0,18),true);
    for(let t=0;t<500;t++)r.botStep(s,worker,.1);
    assert.ok(s.stocked>1,'working robot must have stocked after a simulated shift');
@@ -123,7 +123,7 @@ test('built conveyors and moving robots have physical player collision',()=>{
  assert.equal(c.blockedEquipment(st,8,40),false);
  assert.equal(r.purchase(st,'robot'),true);
  const bot=st.robots[0];
- assert.equal(c.blockedEquipment(st,bot.x,bot.z),false,'unplaced robots are ghost inventory');
+ assert.equal(c.blockedEquipment(st,bot.x,bot.z),true,'automatically deployed stockers are immediately solid');
  assert.equal(r.assignRobot(st,bot.id,0,0,18),true);
  assert.equal(c.blockedEquipment(st,bot.x,bot.z),true,'deployed robots are solid');
  const escape=c.moveWithCollisions(bot.x,bot.z,2.5,0,0,(x,z)=>c.blockedEquipment(st,x,z));
