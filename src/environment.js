@@ -451,8 +451,73 @@ function addKiosk(x,z,name,accent,facing='interior'){
  const stripe=round(4.1,.22,.2,'#322947');stripe.position.set(x,.85,z-1.18);
  const sign=textLabel(name,4.6,.82,accent,'#303b3c',44,facing);sign.position.set(x,2.8,z-1);add(sign);
 }
+function buildCreativeReceiving(){
+ // "The Supply Portal": a deliberately showpiece receiving bay, with
+ // architectural arch, marquee, retro parcel chutes, giant dispatch display,
+ // illuminated gold piping and an oversized mustache emblem. All new pieces
+ // are high-mounted or lie directly within pre-existing counter footprint.
+ const root=new THREE.Group();root.name='receivingSupplyPortal';add(root);
+ const steel=new THREE.MeshStandardMaterial({color:'#5b7776',metalness:.57,roughness:.34});
+ const dark=new THREE.MeshStandardMaterial({color:'#193b3b',metalness:.26,roughness:.49});
+ const brass=new THREE.MeshStandardMaterial({color:'#e5b947',metalness:.35,roughness:.28,emissive:'#69470b',emissiveIntensity:.16});
+ const glow=new THREE.MeshBasicMaterial({color:'#f8eb9c'});
+ const mint=new THREE.MeshBasicMaterial({color:'#a8ffdd'});
+ const R=(w,h,d,material,x,y,z)=>{const mesh=round(w,h,d,material,root);mesh.position.set(x,y,z);return mesh;};
+ // Arch is lifted above the walkable pickup point (existing stock counter).
+ for(const xx of [-3.55,6.35]){
+  R(.36,4.95,.43,steel,xx,5.4,95);
+  R(.42,.16,.5,brass,xx,7.95,95);
+  R(.44,.24,.5,dark,xx,3.15,95);
+ }
+ R(10.35,.62,.63,steel,1.40,7.99,95);
+ R(10.12,.11,.69,glow,1.40,8.37,95);
+ R(10.12,.12,.68,brass,1.40,7.64,95);
+ R(7.42,.83,.28,dark,1.35,7.05,94.6);
+ const marquee=textLabel('THE SUPPLY PORTAL',7.12,.56,'#163939','#ffe394',43,'entrance');
+ marquee.position.set(1.4,7.05,94.30);root.add(marquee);
+ const direction=textLabel('COLLECT  •  SCAN  •  DISPATCH',6.92,.36,'#1b4441','#e9f2de',31,'entrance');
+ direction.position.set(1.4,6.35,94.25);root.add(direction);
+ // A vintage analog-style mechanical counter is placed above head level.
+ R(4.10,.75,.18,dark,1.45,5.48,94.26);
+ const counter=textLabel('DOCK 01    /    SUPPLY ACTIVE',3.89,.40,'#1b3f3d','#bbffdf',32,'entrance');
+ counter.position.set(1.45,5.5,94.12);root.add(counter);
+ // Oversized curled mustache emblem suspended below the marquee, not a
+ // freestanding obstruction in the collection path.
+ for(const sign of [-1,1]){
+  const wing=R(1.04,.19,.13,brass,1.4+sign*.60,6.01,94.29);
+  wing.rotation.z=sign*.22;
+  const tip=R(.26,.16,.13,glow,1.4+sign*1.15,6.16,94.29);
+  tip.rotation.z=-sign*.36;
+ }
+ // Conveyor chute rails and sensor housings mounted on the pre-existing dock
+ // counter. Color palette deliberately integrates with the industrial ceiling.
+ for(const side of [-1,1]){
+  R(.085,.42,1.84,brass,1.5+side*1.32,1.42,95.70);
+  R(.13,.20,.24,steel,1.5+side*1.32,1.71,95.01);
+  R(.08,.07,.17,mint,1.5+side*1.32,1.84,95.01);
+ }
+ for(let i=0;i<5;i++){
+  const bar=R(2.64,.042,.074,i%2?steel:brass,1.5,.88,94.92+i*.28);
+  bar.rotation.z=0;
+ }
+ // Parcel-sorter pipeline visible high on the wall; colored LEDs and meter.
+ R(8.0,.37,.28,steel,1.45,9.70,99.91);
+ R(7.7,.05,.33,brass,1.45,9.93,99.82);
+ for(let i=0;i<9;i++){
+  R(.35,.24,.09,i%2===0?mint:glow,-2.3+i*.94,9.67,99.68);
+ }
+ const upperLabel=textLabel('MUSTACHE MART   /   GOODS INBOUND',8.2,.42,'#294844','#ecf4d8',31,'entrance');
+ upperLabel.position.set(1.45,10.44,99.67);root.add(upperLabel);
+ // A floor-level receiving destination marker painted on the tiles.
+ // It carries no solid collision and doesn't prevent the actual inventory E.
+ const marker=textLabel('↓  PICKUP ZONE  ↓',5.4,.56,'#f4d472','#334f46',35,'interior');
+ marker.rotation.x=-Math.PI/2;marker.position.set(1.5,.035,92.5);root.add(marker);
+ return root;
+}
+
 function buildService(){
  addKiosk(DOCK.x,DOCK.z,'WAREHOUSE PICKUP','#c9b080','entrance');
+ buildCreativeReceiving();
  contactShadow(PAY.x,PAY.counterZ+.48,6.6,2.7,.22);
  contactShadow(1.5,-9,5.6,3.8,.2);
  contactShadow(DOCK.x,DOCK.z,5.5,4.2,.25);
