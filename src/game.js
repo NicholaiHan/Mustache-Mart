@@ -12,7 +12,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,skillAvailable,purchase,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
+ floorStocked,itemsPerFloor,remaining,canOpenStore,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -34,6 +34,7 @@ const TEST_ENDING=location.hash==='#ending-test', PREVIEW_ENDING=location.hash==
 const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
 let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0,shopCategory='tools';
 let doorInteractionHeld=false,ignoreMouseUntil=0,placementRobotId=null,placementSpot=null,robotGhost=null,climbingLadderId=null;
+let repairingRobotId=null,repairKeyConsumed=false;
 let currentFloor=-1,world=null,robotModels=new Map(),beltCrates=[],feederCrates=[],clawVisual=null,cartMesh=null,cartMeshes=[],ladderMesh=null,palletMesh=null,placedClawMeshes=[],pileMeshes=[];
 let selectedBeltAisle=0;
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
@@ -151,6 +152,44 @@ function manualStock(){
  // Shelves becoming full unlocks the entrance; the player decides when to open it.
  return true;
 }
+function nearestBrokenRobot(){
+ let nearest=null,dist=repairRange(s);
+ for(const robot of s.robots){
+  if(!robot.broken||!robot.placed||robot.floor!==s.floor)continue;
+  const d=Math.hypot(V.x-robot.x,V.z-robot.z);
+  if(d<dist){nearest=robot;dist=d;}
+ }
+ return nearest;
+}
+function cancelRepairHold(){
+ if(repairingRobotId!==null)resetRobotRepair(s,repairingRobotId);
+ repairingRobotId=null;repairKeyConsumed=false;
+}
+function tickRobotRepair(dt){
+ if(!held.KeyE||modal||ending||placementRobotId!==null||s.cart.mounted||s.pallet.driving){
+  if(repairingRobotId!==null)cancelRepairHold();
+  return false;
+ }
+ if(repairKeyConsumed)return true;
+ const robot=nearestBrokenRobot();
+ if(!robot){
+  if(repairingRobotId!==null){
+   resetRobotRepair(s,repairingRobotId);repairingRobotId=null;
+   repairKeyConsumed=true;return true;
+  }
+  return false;
+ }
+ if(repairingRobotId!==null&&repairingRobotId!==robot.id)
+  resetRobotRepair(s,repairingRobotId);
+ repairingRobotId=robot.id;
+ repairRobot(s,robot.id,dt);
+ if(!robot.broken){
+  repairingRobotId=null;repairKeyConsumed=true;
+  notify('STOCKER #'+robot.id+' repaired after 6 seconds · Back in service!');
+  save();
+ }
+ return true;
+}
 function act(source='keyboard'){
  if(modal||ending||placementRobotId!==null)return;
  if(doors.nearFire(V.x,V.z)){
@@ -174,15 +213,7 @@ function act(source='keyboard'){
    notify('CHECKOUT '+String(register+1).padStart(2,'0')+' · Card terminal powered; customer payments begin at the grand opening.');
    return;
  }
- const broken=s.robots.filter(r=>r.placed&&r.floor===s.floor&&r.broken).sort((a,b)=>
- Math.hypot(V.x-a.x,V.z-a.z)-Math.hypot(V.x-b.x,V.z-b.z))[0];
- if(broken&&Math.hypot(V.x-broken.x,V.z-broken.z)<3.2){
-  repairRobot(s,broken.id);
-  const need=Math.max(1,4-(s.levels.repairTraining||0));
-  notify(broken.broken?'Repairing stocker #'+broken.id+' · '+broken.repairProgress+'/'+need+' · press E again':
-   'Stocker #'+broken.id+' repaired and back in service!');
-  save();return;
- }
+ if(nearestBrokenRobot())return; // E must be continuously held; clicks never repair.
  if(nearby(1.5,-7,4.0)){
   // Clicking is used for robot placement / picking up inventory. Mike's
   // dialogue should only respond to the universal E interaction key.
@@ -609,7 +640,12 @@ function buildNextBelt(){
 }
 function updatePrompt(){
  let msg='';
- if(s.pallet.driving)msg='PALLET JACK '+s.pallet.load+'/'+palletCapacity(s)+' · WASD drive · U load/unload · F park';
+ const brokenNearby=nearestBrokenRobot();
+ if(brokenNearby){
+  const progress=Math.floor((brokenNearby.repairProgress||0)/ROBOT_REPAIR_SECONDS*100);
+  msg='REPAIR STOCKER #'+brokenNearby.id+' · HOLD E FOR 6 SEC · '+progress+'%';
+ }
+ else if(s.pallet.driving)msg='PALLET JACK '+s.pallet.load+'/'+palletCapacity(s)+' · WASD drive · U load/unload · F park';
  else if(s.cart.mounted)msg='LADDER PLATFORM · WASD move · Space elevate · Ctrl descend · F exit · E stock shelves';
  else if(nearbyPallet(4))msg='F drive pallet jack · U load '+palletCapacity(s)+' products at receiving / unload by aisles';
  else if(nearbyPlatform(3.6))msg='F ride motorized ladder platform · WASD move · Space raise · Ctrl lower';
@@ -625,10 +661,7 @@ function updatePrompt(){
  else if(s.clawInventory.length&&V.z>10)msg='K place bought item claw near conveyor outlet · Z rotate outlet · F use machines';
  else if(placementRobotId!==null)msg='ROBOT #'+placementRobotId+' · WALK to the aisle · LEFT CLICK to deploy · ESC cancel';
  else if(climbingLadderId!==null)msg='CLIMBING · W up · S down · C release · Hold E to stock';
- else if(s.robots.some(r=>r.floor===s.floor&&r.placed&&r.broken&&nearby(r.x,r.z,3.2))){
-  const robot=s.robots.find(r=>r.floor===s.floor&&r.placed&&r.broken&&nearby(r.x,r.z,3.2));
-  msg='STOCKER #'+robot.id+' NEEDS REPAIR · PRESS E ('+(robot.repairProgress||0)+'/'+Math.max(1,4-(s.levels.repairTraining||0))+')';
- }
+
  else if(nearestLadder(1.8))msg='E or C · Grab ladder · Hold W to climb / S to descend · X sell';
  else if(nearestBeltStock())msg='E · Take conveyor stock · X sell LAST segment';
  else if(doors.nearFire(V.x,V.z))msg='E · '+(doors.isFireOpen()?'Close':'Open')+' FIRE EXIT (brick wall behind)';
@@ -737,7 +770,8 @@ function animate(now){
   }
   if(climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted){V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0)V.vy=0;}
   if(climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted&&held.Space&&s.levels.jump&&V.y===0)V.vy=5.4;
-  if(!s.pallet.driving&&(held.KeyE||mouseDown)){actionClock+=dt;while(actionClock>=.32){actionClock-=.32;act(held.KeyE?'keyboard':'mouse');if(modal)break;}}else actionClock=0;
+  const repairing=tickRobotRepair(dt);
+  if(!repairing&&!s.pallet.driving&&(held.KeyE||mouseDown)){actionClock+=dt;while(actionClock>=.32){actionClock-=.32;act(held.KeyE?'keyboard':'mouse');if(modal)break;}}else actionClock=0;
  }
  if(!ending&&running){
   // Render the current floor; background robot simulation advances on every floor.
@@ -826,7 +860,7 @@ window.addEventListener('keydown',e=>{
  held[e.code]=true;
  if(e.repeat)return;
  if(e.code==='Escape'){
-  e.preventDefault();held={};mouseDown=false;actionClock=0;
+  e.preventDefault();held={};mouseDown=false;actionClock=0;cancelRepairHold();
   if(cancelPlacement())return;
   if(modal==='shop'||modal==='elevator'||modal==='intro')resume();
   else if(!ending){show('intro');$('play').textContent='Resume shift';}
@@ -853,10 +887,14 @@ window.addEventListener('keydown',e=>{
  if(e.code==='KeyU')handlePalletCargo();
  if(e.code==='KeyK')installClaw();
  if(e.code==='KeyZ')turnBelt();
- if(e.code==='KeyE'&&!s.pallet.driving&&!s.cart.mounted){e.preventDefault();actionClock=0;act('keyboard');}
+ if(e.code==='KeyE'&&!s.pallet.driving&&!s.cart.mounted){
+  e.preventDefault();actionClock=0;
+  if(nearestBrokenRobot())return; // Hold to repair; keydown is not an instant repair.
+  act('keyboard');
+ }
 });
-window.addEventListener('keyup',e=>{held[e.code]=false;if(e.code==='KeyE')doorInteractionHeld=false;});
-window.addEventListener('blur',()=>{held={};mouseDown=false;doorInteractionHeld=false;actionClock=0;});
+window.addEventListener('keyup',e=>{held[e.code]=false;if(e.code==='KeyE'){doorInteractionHeld=false;cancelRepairHold();}});
+window.addEventListener('blur',()=>{held={};mouseDown=false;doorInteractionHeld=false;actionClock=0;cancelRepairHold();});
 window.addEventListener('mousemove',e=>{
  if(!running||modal)return;
  if(placementRobotId!==null){
