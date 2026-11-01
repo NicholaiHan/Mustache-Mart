@@ -279,6 +279,22 @@ const assert=require('node:assert/strict');
   await page.keyboard.press('x');
   await page.waitForFunction(()=>window.__martTest.snapshot().belts[0]===0);
   console.log('PASS: empty belt stays empty until K claw is deployed; Z turns outlet right; real stock delivered, collected and sold');
+  // New free-placement conveyors: start in a rear crosswalk, route east,
+  // then turn south without using fixed aisle positions or receiving chutes.
+  const customBelts=await page.evaluate(()=>{
+   const t=window.__martTest;
+   const first=t.placeFreeBelt(60.95,92.75,1);
+   const corner=t.placeFreeBelt(63.6,92.75,2);
+   const last=t.placeFreeBelt(63.6,95.4,2);
+   return {first,corner,last,belts:t.freeBelts()};
+  });
+  assert.ok(customBelts.first&&customBelts.corner&&customBelts.last,'player can build outside fixed aisle coordinates');
+  assert.equal(customBelts.belts.filter(b=>b.floor===0).length,3);
+  assert.equal(customBelts.belts.find(b=>b.id===customBelts.first).dir,1);
+  assert.equal(customBelts.belts.find(b=>b.id===customBelts.corner).dir,2);
+  assert.equal(await page.evaluate(id=>window.__martTest.turnFreeBelt(id),customBelts.last),3,'outlet rotates to face other directions');
+  console.log('PASS: player can freely build 90-degree world-grid conveyors, save and rotate them independent of aisle runs');
+
   // Sweep a fast movement into the high-bay rack; it must not tunnel through steel.
   await page.evaluate(()=>window.__martTest.teleport(8,28));
   const pos=await page.evaluate(()=>window.__martTest.move(12,0));
@@ -352,7 +368,7 @@ const assert=require('node:assert/strict');
   assert.equal(scene.unlocked,true,'crab unlocks after seven complete floors');
   assert.equal(scene.stocked,48);
   assert.equal(scene.before.visible,true,'gigantic walking crab model is present on unfinished floor');
-  assert.match(await crabPage.locator('#crabStatus').textContent(),/MEGA CRAB ACTIVE/);
+  assert.equal(await crabPage.locator('#crabStatus').count(),0,'Crab Alert HUD is removed; boss still exists');
   const raid=await crabPage.evaluate(()=>window.__martTest.crabTest.swing(7,3,12));
   assert.equal(raid.fallen,48);
   assert.deepEqual(raid.robots,[scene.botId]);
