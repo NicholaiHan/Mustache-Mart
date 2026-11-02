@@ -620,6 +620,8 @@ test('robot ladder gating: 30 tall-ladder and exclusive auto-top-shelf cases',()
   assert.equal(r.robotCanReach(s,bot,t2),true);
   assert.equal(r.robotCanReach(s,bot,top),false,'tall manual ladder cannot unlock top tier');
   s.levels.robotLift=1;
+  assert.equal(r.robotCanReach(s,bot,top),false,'robot upgrade alone does not substitute for a real platform');
+  s.levels.cart=1;s.platforms.push({id:1,floor:f,aisle:a,x:r.aisleX(a),z:r.bayZ(b),liftHeight:9.2,mounted:false,paid:140});
   assert.equal(r.robotCanReach(s,bot,top),true);
   const restored=r.loadState(r.serialize(s));
   assert.equal(r.robotCanReach(restored,restored.robots[0],top),true);
@@ -705,6 +707,10 @@ test('stage motorized robot top shelf: 30 no-bypass cases and actual motorized s
   const loaded=r.loadState(r.serialize(state)),savedBot=loaded.robots.find(b=>b.id===robot.id);
   assert.equal(r.robotCanReach(loaded,savedBot,top),false,'reload cannot bypass top-shelf lock');
   loaded.levels.robotLift=1;
+  assert.equal(r.robotCanReach(loaded,savedBot,top),false);
+  loaded.levels.cart=1;
+  loaded.platforms.push({id:1,floor:0,aisle,x:r.aisleX(aisle),z:r.bayZ(bay),liftHeight:9.3,mounted:false,paid:140});
+  loaded.cart=loaded.platforms[0];
   assert.equal(r.robotCanReach(loaded,savedBot,top),true);
   loaded.fill.fill(r.SLOTS);
   loaded.fill[top]=r.SLOTS-1;
@@ -1060,7 +1066,7 @@ test('King of the Crab: 30 ride/unride trajectories across conveyors and save co
 });
 test('Robot top shelf: 30 no-lift cases against tall ladders, stale targets and high lift positions',()=>{
  const rules=source('rules.mjs');
- assert.match(rules,/if\(tier===3\)return s\.levels\.robotLift===1/);
+ assert.match(rules,/if\(tier===3\)return !!robotPlatformFor/);
  simulate(i=>{
   const s=r.newState();s.money=1_000_000;
   const aisle=i%r.AISLES,bay=3+i%18,top=r.cellId(0,aisle,0,bay,3);
@@ -1074,7 +1080,10 @@ test('Robot top shelf: 30 no-lift cases against tall ladders, stale targets and 
   assert.ok(bot.liftY<=5,'stale saved vertical position must be lowered');
   const saved=r.loadState(r.serialize(s));
   assert.equal(r.robotCanReach(saved,saved.robots[0],top),false);
-  saved.levels.robotLift=1;assert.equal(r.robotCanReach(saved,saved.robots[0],top),true);
+  saved.levels.robotLift=1;
+  assert.equal(r.robotCanReach(saved,saved.robots[0],top),false);
+  saved.platforms.push({id:1,floor:0,aisle,x:r.aisleX(aisle),z:r.bayZ(bay),liftHeight:9.4,mounted:false,paid:140});
+  assert.equal(r.robotCanReach(saved,saved.robots[0],top),true);
  });
 });
 test('Clear retail roof: 30 non-crossing light, vent and sprinkler arrays',()=>{
