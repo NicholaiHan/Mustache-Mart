@@ -1,8 +1,12 @@
 {
-  "version": "2026.11.01.8",
-  "name": "King of the Crab Riding, Menacing Crab, Robot Top-Shelf Lock and Roof Clearance",
+  "version": "2026.11.01.9",
+  "name": "Warehouse Crate Pickup, Clear Rear Walkways, $1M Dev and Crab Smack Preview",
   "build_date": "2026-11-01",
   "includes": [
+    "Removed eight invisible old pallet collisions from rear of supermarket",
+    "Real warehouse crates next to pickup now supply hand pickup, pallet jack, stocker robots, and item claws",
+    "Matching decorative cartons and wooden pallets staged behind receiving desk",
+    "Developer mode grants $1,000,000 and offers a direct current-floor real crab-smack test button",
     "Robot Mike with white eyes and mustache",
     "Gold-framed Employee of the Month paintings with 15 unique working portraits of Mustache Mike, one on every floor",
     "Mega robot crab unlocks permanently after seven complete floors; one swing every 20 minutes of active play per unfinished floor",
