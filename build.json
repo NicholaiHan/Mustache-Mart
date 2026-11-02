@@ -1,8 +1,11 @@
 {
-  "version": "2026.11.01.9",
-  "name": "Warehouse Crate Pickup, Clear Rear Walkways, $1M Dev and Crab Smack Preview",
+  "version": "2026.11.01.10",
+  "name": "Attached Supply Portal, Player Mobility Upgrades, Integrated Perimeter Shelves and Fire Exit Trim",
   "build_date": "2026-11-01",
   "includes": [
+    "Supply Portal sign, illuminated LED line and dots now share one continuous panel fixed to both load-bearing supports",
+    "Double Jump, Midair Control and Sprint Training added to Mustache Mike's upgrade network and saved player progression",
+    "Safety signs and rail trim flush with the wall beside the fire exit; perimeter pillars mounted against exterior walls and linked seamlessly to shelves",
     "Removed eight invisible old pallet collisions from rear of supermarket",
     "Real warehouse crates next to pickup now supply hand pickup, pallet jack, stocker robots, and item claws",
     "Matching decorative cartons and wooden pallets staged behind receiving desk",
