@@ -603,6 +603,7 @@ export function setDeveloperCrab(s,mode){
  s.crab.devOverride=mode;return true;
 }
 export function crabEnabled(s,developer=false){
+ if(s.levels.crabKing===1)return true; // A tamed crab remains available even on completed floors.
  if(developer&&s.crab.devOverride==='off')return false;
  if(developer&&s.crab.devOverride==='on')return true;
  if(!s.crab.unlocked&&s.stocked>=CRAB_UNLOCK_FLOORS*itemsPerFloor&&completedFloors(s)>=CRAB_UNLOCK_FLOORS)s.crab.unlocked=true;
@@ -661,14 +662,15 @@ export function moveTamedCrab(s,f,forward,side,dt,yaw=0){
  p.targetAisle=p.aisle;p.targetZ=p.z;p.roamTimer=90;
  return true;
 }
-export function advanceCrab(s,seconds,developer=false){
+export function advanceCrab(s,seconds,developer=false,riddenFloor=-1){
  if(!Number.isFinite(seconds)||seconds<=0)return [];
  if(!crabEnabled(s,developer))return [];
  // Ownership stops raids globally, including every unloaded floor.
  const tamed=!!s.levels.crabKing;
  const delta=Math.min(seconds,7200),events=[];
  for(let f=0;f<FLOORS;f++){
-  if(floorStocked(s,f)>=itemsPerFloor)continue;
+  if(tamed&&f===riddenFloor)continue; // Player steering has priority over AI.
+  if(floorStocked(s,f)>=itemsPerFloor&&!tamed)continue;
   if(!tamed)s.crab.elapsed[f]+=delta;
   while(!tamed&&s.crab.elapsed[f]>=CRAB_ATTACK_SECONDS){
    s.crab.elapsed[f]-=CRAB_ATTACK_SECONDS;
