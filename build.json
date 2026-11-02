@@ -1,8 +1,12 @@
 {
-  "version": "2026.11.01.10",
-  "name": "Attached Supply Portal, Player Mobility Upgrades, Integrated Perimeter Shelves and Fire Exit Trim",
+  "version": "2026.11.01.11",
+  "name": "Real Motorized-Platform Robot Stocking, Gold Frame Seam Repair, Save Protection and Double Jump Repricing",
   "build_date": "2026-11-01",
   "includes": [
+    "Top shelf robot stocking requires a physically present, unoccupied motorized platform raised above 8.7m beside the same shelf bay, plus the robot boarding upgrade",
+    "Double Jump costs $300; Sprint Training removed from the skill tree",
+    "Employee of the Month gold frame now has four continuous connected borders on every floor",
+    "Verified browser saves now keep a second live copy, timestamps, stale-tab overwrite protection, and uniquely named downloadable backups",
     "Supply Portal sign, illuminated LED line and dots now share one continuous panel fixed to both load-bearing supports",
     "Double Jump, Midair Control and Sprint Training added to Mustache Mike's upgrade network and saved player progression",
     "Safety signs and rail trim flush with the wall beside the fire exit; perimeter pillars mounted against exterior walls and linked seamlessly to shelves",
