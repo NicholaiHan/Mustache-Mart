@@ -7,7 +7,7 @@ export function createNaturalCrab({getWorld,tamed=false}){
  const root=new THREE.Group();
  root.name='megaRobotCrab'; // Retained historic scene identifier for dev QA.
  getWorld().add(root);
- const shell=new THREE.MeshStandardMaterial({color:'#9f4939',roughness:.73,metalness:0});
+ const shell=new THREE.MeshStandardMaterial({color:'#9f4939',roughness:.73,metalness:0,flatShading:true});
  const rusty=new THREE.MeshStandardMaterial({color:'#7c352b',roughness:.82,metalness:0});
  const warm=new THREE.MeshStandardMaterial({color:'#c87451',roughness:.78,metalness:0});
  const pale=new THREE.MeshStandardMaterial({color:'#e3b58c',roughness:.86,metalness:0});
@@ -28,8 +28,34 @@ export function createNaturalCrab({getWorld,tamed=false}){
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dif.normalize());
   parent.add(mesh);return mesh;
  }
- // Asymmetrical domed carapace and pale abdominal apron; nonmetallic, matte.
- ellipsoid(root,'naturalCrabShell',shell,0,3.54,.06,2.92,.94,2.24);
+ // Angular, low-domed carapace: flatten the round sphere's crown and
+ // widen the shoulder polygon. Vertex normals are recomputed for real
+ // crabbier facets, rather than just painting a pattern onto a round ball.
+ const shellGeo=new THREE.SphereGeometry(1,14,7);
+ const shellPositions=shellGeo.attributes.position;
+ for(let n=0;n<shellPositions.count;n++){
+  const x=shellPositions.getX(n),y=shellPositions.getY(n),z=shellPositions.getZ(n);
+  const flatTop=y>.20?.20+(y-.20)*.25:y;
+  shellPositions.setXYZ(n,x*(2.94-.14*Math.abs(z)),3.84+flatTop*.87,z*2.22);
+ }
+ shellGeo.computeVertexNormals();
+ const mainShell=new THREE.Mesh(shellGeo,shell);
+ mainShell.name='naturalCrabShell';root.add(mainShell);
+ // Multiple low-profile, articulated-looking carapace scutes give the top
+ // recognizable crab segmentation without spikes, spikes, or a metal body.
+ const scuteMaterial=new THREE.MeshStandardMaterial({color:'#b75f46',roughness:.86,metalness:0,flatShading:true});
+ const seamMaterial=new THREE.MeshStandardMaterial({color:'#6b322a',roughness:.89,metalness:0});
+ for(const z of [-1.05,-.12,.82])for(const x of [-1.36,0,1.36]){
+  const scute=new THREE.Mesh(new THREE.CylinderGeometry(.61,.68,.105,6,1),scuteMaterial);
+  scute.name='crabAngularCarapaceScute';
+  scute.scale.set(1.15,1,.82);
+  scute.position.set(x,4.19-.09*(Math.abs(x)/1.36),z);
+  scute.rotation.y=x*.11;root.add(scute);
+ }
+ for(const side of [-1,1])for(const z of [-.95,.05,1.02]){
+  branch(root,'crabCarapaceSegmentationSeam',seamMaterial,
+   [side*.35,4.19,z],[side*2.25,3.91,z+.10],.031,.027);
+ }
  ellipsoid(root,'naturalCrabUnderside',underside,0,3.04,.09,2.45,.52,1.93);
  ellipsoid(root,'naturalCrabFrontRim',warm,0,3.54,-1.73,2.55,.25,.43);
  for(let i=0;i<7;i++){
@@ -81,8 +107,10 @@ export function createNaturalCrab({getWorld,tamed=false}){
   ellipsoid(hip,'legJoint',joints,...merusEnd,.30,.26,.29);
   branch(hip,'legCarpus',shell,merusEnd,elbow,.27,.20);
   ellipsoid(hip,'legKnee',rusty,...elbow,.26,.23,.23);
+  ellipsoid(hip,'crabLegElbowJointCollar',pale,...elbow,.23,.09,.21);
   branch(hip,'legPropodus',warm,elbow,ankle,.17,.095);
   ellipsoid(hip,'legAnkle',joints,...ankle,.125,.16,.14);
+  ellipsoid(hip,'crabLegAnkleJointCollar',rusty,...ankle,.16,.095,.16);
   branch(hip,'legDactylus',pale,ankle,foot,.087,.017);
   for(let rib=0;rib<3;rib++){
    const t=(rib+1)/4;
@@ -176,15 +204,15 @@ export function createNaturalCrab({getWorld,tamed=false}){
  if(tamed){
   const leather=new THREE.MeshStandardMaterial({color:'#514037',roughness:.93,metalness:0});
   const rope=new THREE.MeshStandardMaterial({color:'#ad956d',roughness:.97,metalness:0});
-  const pad=ellipsoid(root,'crabKingRidingSaddle',leather,0,4.47,.40,1.24,.23,1.13);
+  const pad=ellipsoid(root,'crabKingRidingSaddle',leather,0,4.28,.40,1.24,.23,1.13);
   pad.rotation.x=.05;
   for(const side of [-1,1]){
-   const strap=ellipsoid(root,'crabKingRopeStrap',rope,side*1.11,4.32,.43,.075,.18,1.05);
+   const strap=ellipsoid(root,'crabKingRopeStrap',rope,side*1.11,4.13,.43,.075,.18,1.05);
    strap.rotation.z=side*.09;
   }
   const handle=new THREE.Mesh(new THREE.TorusGeometry(.38,.057,8,22,Math.PI),rope);
   handle.name='crabKingSaddleHandle';handle.rotation.x=Math.PI/2;
-  handle.position.set(0,4.80,-.23);root.add(handle);
+  handle.position.set(0,4.61,-.23);root.add(handle);
  }
  root.userData.tamed=tamed;
  root.userData.legs=legs;root.userData.jaws=jaws;
