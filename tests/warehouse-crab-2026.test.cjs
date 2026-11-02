@@ -54,7 +54,7 @@ test('separate decorative stock behind warehouse desk: 30 floor and visual check
  const env=source('environment.js');
  assert.match(env,/decorativeCartonsBehindWarehouseDesk/);
  assert.match(env,/decorativeWarehousePallet/);
- assert.match(env,/x,z:98\.9/,'decorative pallets belong behind the desk at z=96');
+ assert.match(env,/WAREHOUSE_STORAGE_LAYOUT\.decoration\.entries\(\)/,'decorative pallets use the shared right-rear stockroom layout');
  assert.match(env,/addPackedCarton/,'both decorations and real stock use matching packing details');
  repeat(i=>{
   const s=rules.newState();s.floor=i%rules.FLOORS;
