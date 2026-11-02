@@ -191,7 +191,7 @@ function buildEmployeeOfMonthPortrait(){
   const crest=round(.16,.26,.07,gold,group);crest.position.set(xx,yy,.43);
  }
  for(const x of [-1.50,1.50]){
-  const filigree=round(.055,3.5,.075,gold,group);filigree.position.set(x,3.64,.46);
+  const filigree=round(.055,4.76,.075,gold,group);filigree.position.set(x,3.61,.46);
  }
  const photoTexture=new THREE.CanvasTexture(mikePortraitCanvas(floor));
  photoTexture.colorSpace=THREE.SRGBColorSpace;photoTexture.anisotropy=4;
@@ -206,11 +206,15 @@ function buildEmployeeOfMonthPortrait(){
  name.position.set(0,1.54,.466);group.add(name);
  const floorBadge=textLabel('AWARD • '+floorLabel(floor),1.35,.18,'#284340','#f4e0a4',26,'interior');
  floorBadge.position.set(0,1.21,.464);group.add(floorBadge);
- for(const x of [-1.67,1.67]){
-  const raised=round(.075,4.7,.085,highlight,group);raised.position.set(x,3.61,.35);
+ // All four brilliant-gold border strips touch and overlap at the corners.
+ const halfWidth=1.67,bottom=1.23,top=5.99,rail=.13;
+ for(const x of [-halfWidth,halfWidth]){
+  const raised=round(rail,top-bottom+rail,.12,highlight,group);
+  raised.name='connectedPortraitGoldVertical';raised.position.set(x,(bottom+top)/2,.41);
  }
- for(const y of [1.28,5.95]){
-  const lip=round(3.39,.075,.09,highlight,group);lip.position.set(0,y,.35);
+ for(const y of [bottom,top]){
+  const lip=round(halfWidth*2+rail,rail,.12,highlight,group);
+  lip.name='connectedPortraitGoldHorizontal';lip.position.set(0,y,.41);
  }
  return group;
 }
