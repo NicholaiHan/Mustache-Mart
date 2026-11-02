@@ -626,7 +626,7 @@ function openShop(){
 const SKILL_LAYOUT={
  carryHarness:[0,205],courierStride:[0,424],warehouseLogistics:[0,643],
  warehouseFocus:[1,205],robotEfficiency:[1,350],clawCycle:[1,630],beltMotor:[1,790],
- repairTraining:[2,205],robotReliability:[2,350],
+ repairTraining:[2,205],robotReliability:[2,350],crabKing:[2,550],
  retailMargin:[3,205],robotCommission:[3,350],cashback:[3,500]
 };
 const FOUNDATION_LAYOUT={
@@ -639,7 +639,7 @@ const SKILL_X=[28,328,628,928];
 function makeUpgradeCard(u,view='economy'){
  const lv=s.levels[u.id],cost=price(u,lv),max=lv>=u.max;
  const scrapRequired=u.id==='robot'&&s.robots.some(r=>r.wrecked);
- const unlocked=skillAvailable(s,u);
+ const unlocked=skillAvailable(s,u)&&(u.id!=='crabKing'||s.crab.unlocked||completedFloors(s)>=CRAB_UNLOCK_FLOORS);
  const state=max?'maxed':scrapRequired?'locked':!unlocked?'locked':s.money<cost?'unaffordable':'ready';
  const row=document.createElement('div');
  row.className='upgrade '+(view==='skills'?'skillNode ':view==='tools'?'toolUpgrade ':'')+'state-'+state;
@@ -685,8 +685,8 @@ function makeUpgradeCard(u,view='economy'){
    return;
   }
   if(['cart','ladderPlus','robotLift','crabKing'].includes(u.id))buildWorld();
-  if(u.id==='crabKing')notify('KING OF THE CRAB UNLOCKED · Crab attacks disabled forever · Approach your crab and press G to ride!');
-  if(u.id==='itemClaw')notify('Item claw purchased. Stand by a conveyor outlet and press K to install it.');
+  if(u.id==='crabKing')notify('KING OF THE CRAB UNLOCKED · All crab attacks stopped! Approach its shell and press G to ride.');
+  else if(u.id==='itemClaw')notify('Item claw purchased. Stand by a conveyor outlet and press K to install it.');
   else notify('UPGRADE INSTALLED · '+u.name+' · Level '+s.levels[u.id]);
   save();renderShop();uiUpdate();
   const updated=$('shopitems').querySelector('[data-upgrade="'+u.id+'"]');
@@ -896,7 +896,9 @@ function updatePrompt(){
  let msg='';
  const wreckNearby=s.robots.find(r=>r.wrecked&&r.placed&&r.floor===s.floor&&nearby(r.x,r.z,3.3));
  const brokenNearby=nearestBrokenRobot();
- if(wreckNearby)msg='CRAB DESTROYED STOCKER #'+wreckNearby.id+' · X SCRAP FOR 25% · THEN PURCHASE A NEW ROBOT';
+ if(crabRiding)msg='KING OF THE CRAB · WASD RIDE · MOUSE LOOK · G DISMOUNT · NO MORE SWIPES';
+ else if(crabTamed(s)&&crabModel&&Math.hypot(V.x-s.crab.patrol[s.floor].x,V.z-s.crab.patrol[s.floor].z)<6.5)msg='G · MOUNT YOUR TAMED CRAB · NO DAMAGE TO STOCK OR ROBOTS';
+ else if(wreckNearby)msg='CRAB DESTROYED STOCKER #'+wreckNearby.id+' · X SCRAP FOR 25% · THEN PURCHASE A NEW ROBOT';
  else if(brokenNearby){
   const progress=Math.floor((brokenNearby.repairProgress||0)/ROBOT_REPAIR_SECONDS*100);
   msg='REPAIR STOCKER #'+brokenNearby.id+' · HOLD E FOR 6 SEC · '+progress+'%';
@@ -983,11 +985,11 @@ function syncRobots(){
    if(!robotModels.has(r.id))robotModels.set(r.id,botAppearance(r));
    const obj=robotModels.get(r.id);obj.visible=true;
    if(r.wrecked){obj.position.set(r.x,0,r.z);continue;}
-   obj.position.set(r.x,(s.levels.robotLift?0:(r.liftY||0))+.04*Math.sin(performance.now()/230+r.id),r.z);
+   obj.position.set(r.x,(s.levels.robotLift===1?0:Math.min(5,r.liftY||0))+.04*Math.sin(performance.now()/230+r.id),r.z);
    const body=obj.getObjectByName('liftBody');
-   if(body)body.position.y=r.liftY||0;
+   if(body)body.position.y=s.levels.robotLift===1?r.liftY||0:0;
    const jack=obj.getObjectByName('liftingJack');
-   if(jack){jack.scale.y=1+(r.liftY||0);jack.position.y=.98+(r.liftY||0)*.5;}
+   if(jack){const height=s.levels.robotLift===1?r.liftY||0:0;jack.scale.y=1+height;jack.position.y=.98+height*.5;}
    const crate=obj.getObjectByName('crate');if(crate)crate.visible=r.carry>0;
    const beacon=obj.getObjectByName('repairBeacon');
    if(beacon)beacon.visible=!!r.broken;
@@ -1408,6 +1410,7 @@ if(DEV_MODE){
   teleport(x,z){V.x=x;V.z=z;V.y=0;V.vy=0;},
   setLook(yaw,pitch){V.yaw=yaw;V.pitch=pitch;},
   mountCrab(){return toggleCrabRide();},
+  steerCrab(forward,side,seconds=0.1){return moveTamedCrab(s,s.floor,forward,side,seconds,V.yaw);},
   crabRideStatus(){return {riding:crabRiding,owned:crabTamed(s),player:{x:V.x,z:V.z,y:V.y},patrol:{...s.crab.patrol[s.floor]}};},
   setFloor(floor){
    if(!Number.isInteger(floor)||floor<0||floor>=FLOORS)return false;
