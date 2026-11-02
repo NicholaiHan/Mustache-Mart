@@ -20,11 +20,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.7** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.8** and the introduction must list the new cash registers, Mike, ladders and fire exit.
 3. **Development mode** (the `#dev` suffix) gives **at least $5,000** for testing. The title screen also has a **Refill developer cash to $5,000** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
 4. **Recovery:** Your skills and stocked shelves are saved by browser + exact host + port. The launcher now defaults to **8000**, where older saves are most likely. If you instead played on **8011**, run `PORT=8011 bash PLAY_LATEST_MAC.sh` and open `http://127.0.0.1:8011/#dev` in your original browser. Do not click Reset. Use **Download save backup** on the origin holding progress, then **Import save backup** on the origin you want to play from. The original save remains intact.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.7** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.8** is shown.
 
 ## Play on your MacBook
 
@@ -294,7 +294,7 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - Regression tests run 30 deterministic raid/save checks and rendered-browser tests verify the three model scale dimensions.
 
 
-## Build 2026.11.01.7 — Wider aisles and highly detailed robotic crab
+## Build 2026.11.01.8 — Wider aisles and highly detailed robotic crab
 
 - **Even wider supermarket aisles:** The 15-floor showroom is visually **60% wider than the original map**, increasing its X-axis width from 146.9 m in the previous build to **180.8 m**, with aisle-center spacing of **16 m instead of 13 m**. Logical aisle coordinates, stocking cell IDs, conveyor routes, robot assignments, equipment and old browser saves remain unchanged. World rendering, player movement, picking, and camera positions continue to use reversible width transformations.
 - **Crab stays compact:** The full crab model is kept approximately the same on-screen physical width after widening through a slightly smaller local horizontal scale (`0.36` instead of `0.44`, while retaining `0.68` height/depth). It moves through the extra aisle space without becoming huge again.
@@ -303,7 +303,7 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - **Testing:** 30 simulated legacy-save geometry cases and 30 simulated crab-raid cases were added, with live browser checks of part counts, crab scale, and actual 180.8 m rendered width.
 
 
-## Build 2026.11.01.7 — Consistent proportions, living crab, warehouse cleanup and $100,000 developer mode
+## Build 2026.11.01.8 — Consistent proportions, living crab, warehouse cleanup and $100,000 developer mode
 
 - **Keep huge aisles, fix proportions:** Retain the 16-meter visual aisle spacing (60% expansion over original) while drawing small equipment models, racks, shipping boxes, signs, and robots at their natural proportions instead of stretching each sideways. A separate render-only `src/visual-proportions.js` module corrects individual geometry and instanced shelf units, but never modifies the original logical coordinates or saved game data.
 - **Blue windows on every floor:** The front metal façade's false gray window panels are removed. Every floor uses the same recessed blue clerestory system: four windows on the front and four per side, for 12 blue wall windows on each of 15 floors. Ground-floor door openings remain functional.
@@ -316,3 +316,12 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - **Developer cash is now $100,000:** Open `#dev`/`#rich` or use the developer refill button. Existing cash greater than $100,000 is retained. Developer mode continues to be an opt-in test setting, not a wipe of user progress.
 - **Code organized safely:** Four focused scene modules now handle the natural crab, box visuals, physical proportion compensation and elevator UI. The local loopback server explicitly allowlists these modules while preserving the existing network security policy. No game save format migration or progress reset is performed.
 - **Testing:** Six sets of 30 new simulation scenarios check these upgrades and a seventh set verifies offline module delivery; the existing game/stock conservation and original save tests remain in the regression suite. Browser smoke tests inspect the rendered game where possible.
+
+
+## Build 2026.11.01.8 — King of the Crab, natural boss detail, upper-shelf safety and clear ceilings
+
+- **Robot top shelves need the actual robotic ladder.** The fourth/top tier is strictly inaccessible to stocker bots unless **Motorized Robot Ladder** is purchased. A normal tall ladder is not a substitute. Height and target handling is corrected for saved robots previously elevated; 30 additional regression scenarios cover stale robot heights, placed tall ladders and active stocking attempts.
+- **King of the Crab** is a one-time **$25,000** Mustache Mike skill-tree upgrade, available only once seven complete floors are stocked. Buying it permanently tames the crab across all 15 floors, prevents all further swipes/stock spills/robot damage and freezes every raid clock. Previously damaged robots remain damaged until sold, and old stock spills remain. The owned crab appears even on complete floors. Walk within 6.5 logical meters and press **G** to mount its natural leather saddle; **WASD** steers over conveyors without collision, **mouse** controls camera look and **G** dismounts. Mounting is blocked while using other vehicles. Steering coordinates and purchase ownership persist in the existing version-4 save, without losing progress. 60 new deterministic scenarios test ride controls and permanent raid immunity.
+- **More realistic, more menacing animal:** The crab is about **44% broader** than the prior release (visual horizontal model scale 0.52 vs 0.36), with defensive chitin spines, scarred shell patterning, toothy natural pincers, sharp mandible tusks, heavy brow plates, gill slits and segmented under-shell detail. No robotic body or mechanical hardware is restored.
+- **Clear roof equipment:** Fluorescent fixtures, longitudinal vents and sprinkler pipes are assigned independent X-coordinate lanes. Vent centerlines are now at 2, 50 and 98; light lanes at 8, 20, 32, 44, 56, 68, 80 and 92; sprinklers at 14, 62 and 86 (logical world meters). Their separation prevents overhead hardware obscuring light panels, with 30 new automatic non-overlap scenarios.
+- **Test suites:** Adds 120 deterministic scenarios across the four features, retains 15-floor progress/load regression tests, and adds browser checks for organic spine detail and the purchased saddle's mount/dismount mechanics.
