@@ -415,8 +415,14 @@ function buildShell(){
   }
  }
  // Removed gray faux window-panel rectangles. Every glazing opening is the same recessed sky-blue system on all 15 floors.
+ // Dedicated separated roof lanes: every overhead duct, sprinkler pipe
+ // and light strip has a different X corridor, with >=4m horizontal
+ // clearance. Fixtures remain lower than supports but never under vents.
+ const ROOF_LIGHT_X=[8,20,32,44,56,68,80,92];
+ const ROOF_DUCT_X=[2,50,98];
+ const ROOF_SPRINKLER_X=[14,62,86];
  // Ceiling infrastructure: sprinkler mains, segmented cable trays and diffuse luminaires.
- for(const x of [5,51,95]){
+ for(const x of ROOF_SPRINKLER_X){
    const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.087,.087,107,10),
      new THREE.MeshStandardMaterial({color:'#74878a',metalness:.58,roughness:.41}));
    pipe.rotation.x=Math.PI/2;pipe.position.set(x,CEILING_Y-1.45,44);add(pipe);
@@ -427,7 +433,7 @@ function buildShell(){
  }
  for(let z=-4;z<100;z+=18){
   const beam=cube(110,.35,.55,'#9aa4a3');beam.position.set(46.5,CEILING_Y-.58,z);
-  for(let x=-3;x<102;x+=10){
+  for(const x of ROOF_LIGHT_X){
    const fixture=round(4.1,.12,.52,new THREE.MeshBasicMaterial({color:'#fdfdf6'}));
    fixture.position.set(x,CEILING_Y-.85,z+1.7);
    const mount=cube(4.35,.1,.64,'#aab1ac');mount.position.set(x,CEILING_Y-.68,z+1.7);
@@ -441,7 +447,7 @@ function buildShell(){
   }
  }
  // Visible ceiling ducts and sprinkler runs reinforce the industrial scale.
- for(const x of [1,48,96]){
+ for(const x of ROOF_DUCT_X){
   const vent=cube(1.3,.66,109,'#b4c0c0');vent.position.set(x,CEILING_Y-1.15,44);
   for(let z=0;z<95;z+=12){
    const collar=cube(1.5,.75,.12,'#889695');collar.position.set(x,CEILING_Y-1.15,z);
@@ -475,7 +481,7 @@ function buildShell(){
  };
  // Bolted pipe saddles and threaded hangers hold the longitudinal sprinkler
  // runs to the ceiling beams instead of leaving pipes suspended in thin air.
- for(const x of [5,51,95]){
+ for(const x of ROOF_SPRINKLER_X){
   for(let z=5;z<=94;z+=10){
    const saddle=round(.4,.075,.20,chrome,hardwareGroup);
    saddle.name='sprinklerPipeBracket';saddle.position.set(x,CEILING_Y-1.33,z);
@@ -489,7 +495,7 @@ function buildShell(){
  }
  // Service hatches are flush against the main ductwork. Four individually
  // located bolts and a narrow access seam give each unit a functional look.
- for(const x of [1,48,96])for(let z=4;z<=91;z+=12){
+ for(const x of ROOF_DUCT_X)for(let z=4;z<=91;z+=12){
   const door=round(1.1,.031,2.35,chrome,hardwareGroup);
   door.name='ductInspectionHatch';door.position.set(x,CEILING_Y-1.49,z);
   const hinge=round(.08,.051,1.9,slotMaterial,hardwareGroup);
