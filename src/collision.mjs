@@ -1,6 +1,6 @@
 // Pure, deterministic first-person collision model (world units are metres).
 // Player radius is shared by player movement and automated collision regression tests.
-import {AISLES,BAYS,aisleX,bayZ} from './rules.mjs';
+import {AISLES,BAYS,aisleX,bayZ,WAREHOUSE_CRATE_SOURCES} from './rules.mjs';
 export const PLAYER_RADIUS=.34;
 // One shared layout contract for the payroll window, its physical solid,
 // the renderer, and the E interaction. Back faces deliberately intersect the
@@ -29,7 +29,6 @@ const boxes=[
  {name:'Receiving loading counter',x:1.5,z:96,hx:2.35,hz:1.47},
  {name:'Receiving terminal',x:3.7,z:95.8,hx:.5,hz:.4},
  {name:'Receiving rotated warehouse divider',x:10.6,z:96.35,hx:.38,hz:2.55},
- {name:'Receiving boxed stock behind divider',x:13.95,z:95.65,hx:2.75,hz:2.8},
  {name:'Receiving shutter',x:17,z:100.2,hx:5.6,hz:.24},
  {name:'Receiving storage stand',x:10.7,z:96.4,hx:.25,hz:.27}
 ];
@@ -37,8 +36,9 @@ const boxes=[
 for(const x of [32,57,70,83]){
  boxes.push({name:'Cashier checkout lane',x,z:1.7,hx:1.73,hz:3.7,floor:0});
 }
-for(let j=0;j<8;j++){
- boxes.push({name:'Stock pallet '+j,x:30+(j%4)*3.5,z:95+Math.floor(j/4)*3,hx:1.48,hz:1.32});
+// Replace the old invisible stock-pallet blockers with precisely visible crates.
+for(const crate of WAREHOUSE_CRATE_SOURCES){
+ boxes.push({name:'Warehouse inventory pallet '+crate.id,x:crate.x,z:crate.z,hx:1.11,hz:1.05});
 }
 for(let z=6;z<98;z+=20)for(const x of [-7,101]){
  boxes.push({name:'Structural column',x,z,hx:.5,hz:.5});
