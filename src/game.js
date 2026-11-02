@@ -685,7 +685,7 @@ function makeUpgradeCard(u,view='economy'){
    return;
   }
   if(['cart','ladderPlus','robotLift','crabKing'].includes(u.id))buildWorld();
-  if(u.id==='crabKing')notify('KING OF THE CRAB UNLOCKED · All crab attacks stopped! Approach its shell and press G to ride.');
+  if(u.id==='crabKing'){crabSwingEnds=0;notify('KING OF THE CRAB UNLOCKED · All crab attacks stopped! Approach its shell and press G to ride.');}
   else if(u.id==='itemClaw')notify('Item claw purchased. Stand by a conveyor outlet and press K to install it.');
   else notify('UPGRADE INSTALLED · '+u.name+' · Level '+s.levels[u.id]);
   save();renderShop();uiUpdate();
@@ -1007,7 +1007,7 @@ function syncCrab(now){
   leg.joint.rotation.z=Math.sin(wave*2.1+leg.index*1.6+leg.side)*.18;
   leg.joint.rotation.y=Math.sin(wave*1.4+leg.index*1.1)*.085;
  }
- const striking=now<crabSwingEnds;
+ const striking=!crabTamed(s)&&now<crabSwingEnds;
  for(const [i,lens] of (crabModel.userData.warningLights||[]).entries()){
   // Warm idle indicator and an obvious red-orange flicker during a swing.
   lens.visible=striking?Math.sin(wave*19+i*1.8)>-.5:Math.sin(wave*2+i*.7)>.36;
