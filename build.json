@@ -1,8 +1,14 @@
 {
-  "version": "2026.11.01.13",
-  "name": "Verified Visual Fixes: Crab, Shelves, Pallet Jack and Far-Right Warehouse",
-  "build_date": "2026-11-01",
+  "version": "2026.11.02.1",
+  "name": "Faceted Detailed Crab, Anti-Stacking Robots and Fire-Exit-Side Connected Supply Portal",
+  "build_date": "2026-11-02",
   "includes": [
+    "Crab carapace is more angular with flat-shaded faceted shell, low armored scutes, dark segmented seams and reinforced eight-part joint detail; no decorative spikes",
+    "70 robot units can be assigned to the same aisle without identical spawn berths, and moving bots apply near-field separation while still processing shelf/dock arrival",
+    "Entire physically connected portal gantry moves 3.2 metres toward the left FIRE EXIT, while the original service counter and usable pickup zone remain in place",
+    "LED dots and curled mustache emblem have solid overlapping mounting plates joined to sign and main steel crossbeam",
+    "Inventory and decorative crates moved back close to the relocated Supply Portal; shared rendering, robot pickup, collision and pallet-jack locations update together",
+    "New 180 targeted scenario regressions for crowding, recovery, actual portal geometry, warehouse access and crab anatomy",
     "Visual correction: crab has NO spines or decorative spikes, one enlarged crusher claw, and eight bent multi-segment crab legs",
     "Removed SAFETY FIRST wall sign entirely",
     "Rebuilt thin pallet jack with wider forks and full-size chassis, wheels, cargo deck and handle",
