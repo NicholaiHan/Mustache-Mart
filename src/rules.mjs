@@ -34,7 +34,7 @@ export const UPGRADES=[
 {id:'palletCapacity',name:'Pallet Jack Capacity',detail:'Increase carrying from 1/20 aisle through 1/16, 1/8, 1/4, 1/2, up to ONE whole aisle. Expensive logistics investment.',base:10000,factor:5,max:5},
 {id:'itemClaw',name:'Automated Item Claw',detail:'One placeable claw picks from the nearest stocked inventory source and feeds a connected conveyor. Use K to deploy.',base:450,factor:1.35,max:40},
 {id:'robot',name:'Mustache Stocker Bot',detail:'Spawns immediately into the first unoccupied aisle on your working floor; if all aisles have bots, joins the nearest least-crowded aisle. Move robots from Mike’s management pad. Intact bots sell for 50%; crab wrecks for 25%.',base:250,factor:1.38,max:70},
-{id:'robotLift',name:'Motorized Robot Ladder',detail:'The ONLY upgrade that lets robots stock the top (fourth) shelf. Without it, robots must remain below the final shelf.',base:850,factor:1,max:1},
+{id:'robotLift',name:'Motorized Robot Ladder',detail:'Allows robots to board a REAL raised Motorized Platform Ladder. Robots can stock the top shelf only while a deployed player platform is raised beside that shelf.',base:850,factor:1,max:1},
 {id:'crabKing',name:'King of the Crab',detail:'Complete seven floors, then tame the giant crab permanently. Press G near its shell to ride; steer with WASD. It stops swiping inventory and destroying robots on ALL floors.',base:2500000,factor:1,max:1,category:'skills',branch:'Crab Mastery'},
 {id:'robotSpeed',name:'Robot Espresso',detail:'Faster robot movement and stocking.',base:160,factor:1.52,max:12},
 {id:'autoPay',name:'Automatic Payroll Terminal',detail:'Deposit wages instantly without visiting the desk.',base:420,factor:1,max:1},
@@ -54,9 +54,8 @@ export const UPGRADES=[
 {id:'robotCommission',name:'Robot Commission',detail:'Earn +1¢ for every robotic package stocked per rank. Requires Retail Markup Lv 1.',base:1800,factor:2.4,max:5,category:'skills',branch:'Retail',requires:{retailMargin:1}},
 {id:'cashback',name:'Supplier Rebates',detail:'Receive 2% of the purchase price back on equipment purchases per rank. Requires Retail Markup Lv 2.',base:2600,factor:2.0,max:5,category:'skills',branch:'Retail',requires:{retailMargin:2}},
 {id:'warehouseLogistics',name:'Supply Chain Planning',detail:'Raise pallet capacity by 4 pieces per rank. Requires pallet capacity upgrade.',base:3200,factor:2.1,max:6,category:'skills',branch:'Handling',requires:{palletCapacity:1}},
-{id:'doubleJump',name:'Double Jump',detail:'Press Space again while airborne for a second jump. Requires Spring-Loaded Shoes.',base:600,factor:1,max:1,category:'skills',branch:'Handling',requires:{jump:1}},
-{id:'airControl',name:'Midair Control',detail:'Steer 12% faster in the air per rank; combine it with Double Jump for precision landings.',base:350,factor:1.65,max:4,category:'skills',branch:'Handling',requires:{doubleJump:1}},
-{id:'sprintTraining',name:'Sprint Training',detail:'Improve Shift-sprint speed by 12 percentage points per rank. Requires Warehouse Footwork Lv 2.',base:700,factor:1.8,max:5,category:'skills',branch:'Handling',requires:{courierStride:2}}
+{id:'doubleJump',name:'Double Jump',detail:'Press Space again while airborne for a second jump. Requires Spring-Loaded Shoes.',base:30000,factor:1,max:1,category:'skills',branch:'Handling',requires:{jump:1}},
+{id:'airControl',name:'Midair Control',detail:'Steer 12% faster in the air per rank; combine it with Double Jump for precision landings.',base:350,factor:1.65,max:4,category:'skills',branch:'Handling',requires:{doubleJump:1}}
 ];
 export function cellId(f,a,side,bay,tier){return ((((f*AISLES+a)*2+side)*BAYS+bay)*TIERS+tier);}
 export function decode(id){const tier=id%TIERS;id=Math.floor(id/TIERS);const bay=id%BAYS;id=Math.floor(id/BAYS);const side=id%2;id=Math.floor(id/2);return {floor:Math.floor(id/AISLES),aisle:id%AISLES,side,bay,tier};}
@@ -234,7 +233,7 @@ export function acceptCoinFlip(s,event,randomValue=Math.random()){
 }
 export const capacity=s=>1+s.levels.capacity+2*(s.levels.carryHarness||0),walkSpeed=s=>3.3+s.levels.speed*.45+(s.levels.courierStride||0)*.22;
 // Pure player locomotion helpers keep input edge detection and platform rules in the game.
-export const playerMoveMultiplier=(s,sprinting=false,airborne=false)=>(sprinting?1.4+.12*(s.levels.sprintTraining||0):1)*(airborne?1+.12*(s.levels.airControl||0):1);
+export const playerMoveMultiplier=(s,sprinting=false,airborne=false)=>(sprinting?1.4:1)*(airborne?1+.12*(s.levels.airControl||0):1);
 export function tryPlayerJump(s,player){
  if(!s.levels.jump)return false;
  const grounded=player.y<=.001&&player.vy<=0;
@@ -750,10 +749,19 @@ function approach(r,x,z,dt,speed){
  // Do not report success at an intermediate crosswalk waypoint.
  return Math.hypot(x-r.x,z-r.z)<.31;
 }
+export function robotPlatformFor(s,id){
+ const {floor,aisle,bay,tier}=decode(id);
+ if(tier!==3||!s.levels.robotLift)return null;
+ // The top shelf requires a physically present RAISED motorized player
+ // platform beside the same aisle and bay. Buying a robot lift alone is not enough.
+ return (s.platforms||[]).find(p=>p.floor===floor&&!p.mounted&&p.liftHeight>=8.7&&
+  Math.abs((p.x??aisleX(p.aisle))-aisleX(aisle))<=1.85&&
+  Math.abs(p.z-bayZ(bay))<=2.35)||null;
+}
 export function robotCanReach(s,r,id){
  const {floor,aisle,bay,tier}=decode(id);
  if(tier<2)return true;
- if(tier===3)return s.levels.robotLift===1; // No tall ladder, inventory or height bypasses the powered robot lift.
+ if(tier===3)return !!robotPlatformFor(s,id);
  if(s.levels.robotLift)return true;
  // Next-highest shelf requires a physically deployed EXTENDED tall ladder.
  return !!s.levels.ladderPlus&&s.ladders.some(l=>l.floor===floor&&l.aisle===aisle&&Math.abs(l.bay-bay)<=1);
@@ -859,17 +867,21 @@ export function botStep(s,r,dt){
    if(r.target<0){r.phase='supply';r.carry=0;r.liftY=0;return -1;}
  }
  const {aisle,bay,tier}=decode(r.target);
- if(approach(r,aisleX(aisle),bayZ(bay),dt,speed)){
-  // Vertical movement is animated, not a magic instantaneous upper-shelf placement.
-  const desired=tier<2?0:tier===2?5.0:9.4;
-  r.liftY=Math.min(desired,(r.liftY||0)+dt*4.5);
+ // Actual raised player platform carries the robot up to the top shelf.
+ const platform=tier===3?robotPlatformFor(s,r.target):null;
+ const goalX=platform?(platform.x??aisleX(platform.aisle)):aisleX(aisle);
+ const goalZ=platform?platform.z:bayZ(bay);
+ if(approach(r,goalX,goalZ,dt,speed)){
+  // Other tiers retain the robot lift motion; the platform supplies top height.
+  const desired=platform?0:tier<2?0:tier===2?5.0:9.4;
+  r.liftY=platform?0:Math.min(desired,(r.liftY||0)+dt*4.5);
   if(r.liftY+0.1<desired)return -1;
   r.acc+=dt*(.7+s.levels.robotSpeed*.16)*(1+(s.levels.robotEfficiency||0)*.1);
   if(r.acc>=1){
    r.acc-=1;
    // Last-moment rule guard: no top-shelf item can be placed unless the
    // robot actually owns the motorized lifting mechanism this instant.
-   if(!robotCanReach(s,r,r.target)||tier===3&&s.levels.robotLift!==1){r.target=-1;r.liftY=0;return -1;}
+   if(!robotCanReach(s,r,r.target)||tier===3&&!robotPlatformFor(s,r.target)){r.target=-1;r.liftY=0;return -1;}
    if(place(s,r.target,true)){
      const done=r.target;r.carry--;
      s.cursor[r.floor]=(done-r.floor*CELLS_PER_FLOOR+1)%CELLS_PER_FLOOR;
