@@ -148,9 +148,9 @@ const assert=require('node:assert/strict');
   assert.equal(devCrab.devOverride,'on');
   assert.equal(devCrab.visible,true,'dev crab can spawn before 7 floors are stocked');
   const crabLayout=await page.evaluate(()=>window.__martTest.worldLayoutStats());
-  assert.ok(Math.abs(crabLayout.crabWidthScale-.225)<1e-9,'organic crab remains compact and naturally proportioned');
-  assert.equal(crabLayout.crabHeightScale,.68,'the crab is shorter, not merely squeezed sideways');
-  assert.equal(crabLayout.crabDepthScale,.68,'pincers and legs are proportionally smaller');
+  assert.ok(Math.abs(crabLayout.crabWidthScale-.325)<1e-9,'organic crab is now wider and more menacing');
+  assert.equal(crabLayout.crabHeightScale,.72,'larger organic body retains natural height');
+  assert.equal(crabLayout.crabDepthScale,.72,'menacing pincer span is increased');
   const detail=await page.evaluate(()=>window.__martTest.crabDetailStats());
   assert.ok(detail,'crab mesh must exist in developer mode');
   assert.equal(detail.walkingLegs,8,'all eight walking legs remain animated');
@@ -162,7 +162,11 @@ const assert=require('node:assert/strict');
   assert.equal(detail.components.livingCrabClaw,2);
   assert.ok(detail.components.pincerTooth>=12);
   assert.equal(detail.components.livingEye,2);
+  assert.ok(detail.components.naturalCrabDorsalSpine>=20,'new shell has defensive spines');
+  assert.ok(detail.components.naturalCrabShellScar>=20,'new shell has rugged scars');
   console.log('PASS: organic crab anatomy, living eyes, shell freckles and jointed natural legs/claws');
+  const canopy=await page.evaluate(()=>window.__martTest.architectureStats());
+  assert.equal(canopy.windows,12,'new ceiling schedule must not impact integrated windows');
   // Pointer-locking WebGL can intercept Playwright's physical second click.
   // Dispatch an actual DOM button click without fighting the locked cursor.
   await page.evaluate(()=>document.querySelector('#devCrabRemove').click());
