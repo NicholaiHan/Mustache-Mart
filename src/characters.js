@@ -76,7 +76,7 @@ function makeMike(x,z){
 // jointed legs and oversized hydraulic pincers. Only one model on the
 // currently viewed floor is rendered; the rules track all floors independently.
 // Natural animal model lives in its own module, away from robot geometry.
-function makeMegaCrab(){return createNaturalCrab({getWorld});}
+function makeMegaCrab(){return createNaturalCrab({getWorld,tamed:!!s.levels.crabKing});}
 // Comedic, irreparable wreck: detached, cracked head on the floor, a tall
 // exposed coiled spring instead of a neck, and scattered screws and bolts.
 function wreckedBotAppearance(robot){
