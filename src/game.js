@@ -1489,7 +1489,7 @@ if(DEV_MODE){
    deployFreeClaw(id){s.clawInventory.push({paid:450});const c=deployFreeClaw(s,id);if(c)buildWorld();return c?.id||null;},
    turnFreeBelt(id){const angle=turnFreeBelt(s,id);if(angle>=0)buildWorld();return angle;},
    move(dx,dz){const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));V.x=next.x;V.z=next.z;return next;},
-   snapshot(){return {mapWidthMultiplier:MAP_WIDTH_MULTIPLIER,visualX:toWideX(V.x),beltItems:s.beltItems[s.floor].map(row=>row.slice()),selectedBeltAisle,feedCrates:feederCrates.length,devMode:DEV_MODE,checkoutCount:s.floor===0?4:0,x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,platformCount:s.platforms.length,activePlatformId:s.cart.id,levels:{...s.levels}};}
+   snapshot(){return {mapWidthMultiplier:MAP_WIDTH_MULTIPLIER,visualX:toWideX(V.x),beltItems:s.beltItems[s.floor].map(row=>row.slice()),selectedBeltAisle,feedCrates:feederCrates.length,devMode:DEV_MODE,checkoutCount:s.floor===0?4:0,x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,platformCount:s.platforms.length,activePlatformId:s.cart.id,cartMounted:s.cart.mounted,levels:{...s.levels}};}
  };
 }
 buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();showSaveOrigin();
