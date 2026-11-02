@@ -1299,7 +1299,7 @@ function showSaveOrigin(){
  const status=$('saveOriginStatus');
  const totalRanks=Object.values(s.levels).reduce((sum,n)=>sum+n,0);
  const locationLabel=location.protocol+'//'+location.host;
- status.textContent='THIS BROWSER SAVE · '+locationLabel+' · '+s.stocked.toLocaleString()+' products stocked · '+totalRanks+' total upgrade ranks · '+centsText(s.money)+' cash. '+(!ORIGINAL_SAVE_DATA?'No previous saved game found at THIS address. Try the other local host/port options below.':'Loaded '+ORIGINAL_SAVE_SOURCE+' on this browser address.');
+ status.textContent='THIS BROWSER SAVE · '+locationLabel+' · '+s.stocked.toLocaleString()+' products stocked · '+totalRanks+' total upgrade ranks · '+centsText(s.money)+' cash. '+(!ORIGINAL_SAVE_DATA?'No previous saved game found at THIS address. Check the original browser or port.':'Loaded '+ORIGINAL_SAVE_SOURCE+' on this browser address.')+(saveWarning?' WARNING: '+saveWarning:'');
  const btn=$('devEnable');
  btn.textContent=DEV_MODE?'Refill developer cash to $1,000,000':'Enable $1,000,000 Developer Mode';
  $('devStatus').textContent=DEV_MODE?'Developer Mode ON · Refill this account to at least $1,000,000 whenever needed.':'Developer Mode OFF · Enable without losing existing shelf or skill progress.';
@@ -1339,8 +1339,8 @@ function showRecoveryCandidates(){
    const candidate=loadState(entry.data);
    // Preserve complete original 15-floor stocking state and purchased skills.
    s=candidate;if(DEV_MODE)s.money=Math.max(s.money,DEV_CASH_CENTS);
-   localStorage.setItem(SAVE_KEY,serialize(s));
-   location.reload();
+   lastConfirmedRaw=localStorage.getItem(SAVE_KEY); // User chose this recovery point.
+   if(save())location.reload();
   });
   line.append(infoPanel,btn);list.append(line);
  }
@@ -1361,16 +1361,18 @@ $('devEnable').addEventListener('click',()=>{
  notify(s.money===previous?'Developer funds ready · '+centsText(s.money):'Developer account refilled to '+centsText(s.money));
 });
 $('play').addEventListener('click',resume);
-$('reset').addEventListener('click',e=>{e.stopPropagation();if(confirm('Reset the current game? This archives its previous save first. You can restore archived progress using Find saved backups.')){const old=localStorage.getItem(SAVE_KEY);if(validSave(old))archiveSave(old,'BEFORE USER RESET');localStorage.removeItem(SAVE_KEY);s=newState();if(DEV_MODE)s.money=DEV_CASH_CENTS;save();location.reload();}});
+$('saveNow').addEventListener('click',()=>{if(save()){showSaveOrigin();showRecoveryCandidates();notify('Current progress saved and verified.');}});
+$('reset').addEventListener('click',e=>{e.stopPropagation();if(confirm('Reset the current game? This archives its previous save first. You can restore archived progress using Find saved backups.')){const old=localStorage.getItem(SAVE_KEY);if(validSave(old))archiveSave(old,'BEFORE USER RESET');s=newState();if(DEV_MODE)s.money=DEV_CASH_CENTS;lastConfirmedRaw=localStorage.getItem(SAVE_KEY);if(save())location.reload();}});
 // Browser localStorage is isolated by host+port. Portable save files provide
 // deliberate, lossless transfer without clearing either browser origin.
 $('saveExport').addEventListener('click',()=>{
  try{
-  save();
-  const data=serialize(s);
+  if(!save())throw new Error('Save verification failed');
+  const data=localStorage.getItem(SAVE_KEY);
   const url=URL.createObjectURL(new Blob([data],{type:'application/json'}));
   const a=document.createElement('a');
-  a.href=url;a.download='mustache-mart-save-'+new Date().toISOString().slice(0,10)+'.json';
+  const stamp=new Date(lastSavedAt).toISOString().replace(/[:.]/g,'-');
+  a.href=url;a.download='mustache-mart-'+s.stocked+'-stocked-'+stamp+'.json';
   document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1500);
   $('saveTransferStatus').textContent='Backup downloaded. Keep this file somewhere safe.';
@@ -1392,8 +1394,9 @@ $('saveImportFile').addEventListener('change',async e=>{
   // Otherwise that handler could overwrite the imported backup with old data.
   s=restored;
   if(DEV_MODE)s.money=Math.max(s.money,DEV_CASH_CENTS);
-  save();
-  status.textContent='Save imported. Reloading your game…';
+  lastConfirmedRaw=localStorage.getItem(SAVE_KEY); // Explicitly confirmed import.
+  if(!save())throw new Error('Imported game could not be verified in browser storage');
+  status.textContent='Save imported and verified. Reloading your game…';
   location.reload();
  }catch(err){status.textContent='Import not completed: '+err.message;}
  finally{e.target.value='';}
