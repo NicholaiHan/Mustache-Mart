@@ -772,7 +772,7 @@ export function robotTarget(s,r){
 }
 export function robotSource(s,r){
  const candidates=[{type:'dock',x:DOCK.x,z:REAR_CROSSWALK,aisle:-1},
-  ...WAREHOUSE_CRATE_SOURCES.map(c=>({type:'crate',crateId:c.id,x:c.x,z:c.z,aisle:-1}))];
+  ...WAREHOUSE_CRATE_SOURCES.map(c=>({type:'crate',crateId:c.id,x:c.x,z:c.z-2.1,aisle:-1}))];
  for(let i=0;i<s.stockPiles.length;i++){const p=s.stockPiles[i];if(p.floor===r.floor&&p.count>0)candidates.push({type:'pile',x:p.x,z:p.z,index:i,aisle:p.aisle});}
  for(const belt of s.freeBelts){
   if(belt.floor===r.floor&&belt.items>0)candidates.push({type:'freeBelt',id:belt.id,x:belt.x,z:belt.z,aisle:Math.max(0,Math.min(AISLES-1,Math.round((belt.x-8)/10)))});
