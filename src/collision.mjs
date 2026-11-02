@@ -1,6 +1,6 @@
 // Pure, deterministic first-person collision model (world units are metres).
 // Player radius is shared by player movement and automated collision regression tests.
-import {AISLES,BAYS,aisleX,bayZ,WAREHOUSE_CRATE_SOURCES} from './rules.mjs';
+import {AISLES,BAYS,aisleX,bayZ,WAREHOUSE_CRATE_SOURCES,WAREHOUSE_STORAGE_LAYOUT} from './rules.mjs';
 export const PLAYER_RADIUS=.34;
 // One shared layout contract for the payroll window, its physical solid,
 // the renderer, and the E interaction. Back faces deliberately intersect the
@@ -28,9 +28,8 @@ const boxes=[
  // Receiving desk, terminal, racking and pallets are solid.
  {name:'Receiving loading counter',x:1.5,z:96,hx:2.35,hz:1.47},
  {name:'Receiving terminal',x:3.7,z:95.8,hx:.5,hz:.4},
- {name:'Receiving rotated warehouse divider',x:10.6,z:96.35,hx:.38,hz:2.55},
- {name:'Receiving shutter',x:17,z:100.2,hx:5.6,hz:.24},
- {name:'Receiving storage stand',x:10.7,z:96.4,hx:.25,hz:.27}
+ {name:'Receiving rotated warehouse divider',x:WAREHOUSE_STORAGE_LAYOUT.divider.x,z:WAREHOUSE_STORAGE_LAYOUT.divider.z,hx:.38,hz:2.55},
+ {name:'Receiving shutter',x:WAREHOUSE_STORAGE_LAYOUT.shutter.x,z:WAREHOUSE_STORAGE_LAYOUT.shutter.z,hx:5.6,hz:.24}
 ];
 // Real cashier lanes: grounded POS counter, belt housing and bagging areas.
 for(const x of [32,57,70,83]){
