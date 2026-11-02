@@ -1,8 +1,14 @@
 {
-  "version": "2026.11.01.12",
-  "name": "Integrated Supply Portal Crossbeam, Right-Corner Inventory and Refined Crab Wreck Spring",
+  "version": "2026.11.01.13",
+  "name": "Verified Visual Fixes: Crab, Shelves, Pallet Jack and Far-Right Warehouse",
   "build_date": "2026-11-01",
   "includes": [
+    "Visual correction: crab has NO spines or decorative spikes, one enlarged crusher claw, and eight bent multi-segment crab legs",
+    "Removed SAFETY FIRST wall sign entirely",
+    "Rebuilt thin pallet jack with wider forks and full-size chassis, wheels, cargo deck and handle",
+    "Stocked products sit in the CENTER of shelf board and physically meet shelf surface",
+    "Moved rear inventory into the far-right rear corner, with an actual connected Supply Portal crossbeam",
+    "Graphical browser checks now inspect rendered scene objects, including portal beam and joints, inventory pallets, jack and stocked product location",
     "Supply Portal has a continuous lower horizontal structural crossbeam and connector collars joining both uprights beneath the sign",
     "Right rear warehouse storage is organized into two spaced usable crate pallets plus one aligned row of three decoration pallets and a relocated dividing rack and shutter; shared functional supply/collision positions retained",
     "Crab-scrapped robot has a smaller 11-turn brushed steel spring, mounting collars, rims, fasteners and center guide",
