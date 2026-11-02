@@ -615,12 +615,17 @@ function buildCreativeReceiving(){
  // illuminated gold piping and an oversized mustache emblem. All new pieces
  // are high-mounted or lie directly within pre-existing counter footprint.
  const root=new THREE.Group();root.name='receivingSupplyPortal';add(root);
+ // Move the complete visible gantry toward the left FIRE EXIT wall, but keep
+ // the existing loading counter, scanner and gameplay pickup trigger in place.
+ const gantry=new THREE.Group();gantry.name='fireExitSidePortalGantry';
+ gantry.position.x=-3.20;root.add(gantry);
+ let portalParent=gantry;
  const steel=new THREE.MeshStandardMaterial({color:'#5b7776',metalness:.57,roughness:.34});
  const dark=new THREE.MeshStandardMaterial({color:'#193b3b',metalness:.26,roughness:.49});
  const brass=new THREE.MeshStandardMaterial({color:'#e5b947',metalness:.35,roughness:.28,emissive:'#69470b',emissiveIntensity:.16});
  const glow=new THREE.MeshBasicMaterial({color:'#f8eb9c'});
  const mint=new THREE.MeshBasicMaterial({color:'#a8ffdd'});
- const R=(w,h,d,material,x,y,z)=>{const mesh=round(w,h,d,material,root);mesh.position.set(x,y,z);return mesh;};
+ const R=(w,h,d,material,x,y,z)=>{const mesh=round(w,h,d,material,portalParent);mesh.position.set(x,y,z);return mesh;};
  // Arch is lifted above the walkable pickup point (existing stock counter).
  for(const xx of [-3.55,6.35]){
   // Load-bearing columns extend down to the actual tiled floor.
@@ -646,10 +651,11 @@ function buildCreativeReceiving(){
  const lowerBeamTrim=R(9.75,.085,.10,brass,1.40,5.75,94.32);
  lowerBeamTrim.name='supplyPortalBeamGoldInlay';
  // The marquee panel shares the crossbeam, so its lower edge is attached.
+ // Both vertical columns and sign are connected within ONE transform group.
  const portalSignBack=R(10.08,1.48,.34,dark,1.40,6.94,94.55);
  portalSignBack.name='attachedSupplyPortalSign';
  const marquee=textLabel('THE SUPPLY PORTAL',7.12,.56,'#163939','#ffe394',43,'entrance');
- marquee.position.set(1.4,7.13,94.30);root.add(marquee);
+ marquee.position.set(1.4,7.13,94.30);gantry.add(marquee);
 
  // Keep the portal clean: no redundant DOCK 01 / SUPPLY ACTIVE sign.
  // Oversized curled mustache emblem suspended below the marquee, not a
@@ -660,6 +666,9 @@ function buildCreativeReceiving(){
   const tip=R(.26,.16,.13,glow,1.4+sign*1.15,6.16,94.29);
   tip.rotation.z=-sign*.36;
  }
+ portalParent=root;
+ // These pickup/chute parts remain aligned with the physical dock counter;
+ // only the complete structural gantry shifts toward the fire exit wall.
  // Conveyor chute rails and sensor housings mounted on the pre-existing dock
  // counter. Color palette deliberately integrates with the industrial ceiling.
  for(const side of [-1,1]){
@@ -671,6 +680,7 @@ function buildCreativeReceiving(){
   const bar=R(2.64,.042,.074,i%2?steel:brass,1.5,.88,94.92+i*.28);
   bar.rotation.z=0;
  }
+ portalParent=gantry;
  // LED trim and dots are physically attached to the forward sign, not the rear wall.
  const portalLedRail=R(8.0,.12,.10,steel,1.4,6.40,94.30);
  portalLedRail.name='attachedPortalLedRail';
