@@ -13,6 +13,13 @@ export const toWideX=x=>MAP_WIDTH_CENTER+(x-MAP_WIDTH_CENTER)*MAP_WIDTH_MULTIPLI
 export const fromWideX=x=>MAP_WIDTH_CENTER+(x-MAP_WIDTH_CENTER)/MAP_WIDTH_MULTIPLIER;
 export const aisleX=a=>8+a*10, bayZ=b=>13+b*2.65;
 export const DOCK={x:1.5,z:96};
+// Visible, inexhaustible boxed-pallet inventory shared by every floor and supply mechanism.
+export const WAREHOUSE_CRATE_SOURCES=Object.freeze([{x:8.3,z:96.3},{x:13.4,z:94.5}].map((c,i)=>Object.freeze({...c,id:i+1})));
+export function nearestWarehouseCrate(x,z,range=2.75){
+ let closest=null,best=range;
+ for(const crate of WAREHOUSE_CRATE_SOURCES){const d=Math.hypot(x-crate.x,z-crate.z);if(d<best){closest=crate;best=d;}}
+ return closest;
+}
 export const floorLabel=f=>'F'+String(f+1).padStart(2,'0');
 export const centsText=c=>'$'+(Math.max(0,Math.floor(c))/100).toFixed(2);
 export const UPGRADES=[
@@ -433,7 +440,9 @@ export const itemsPerAisle=2*BAYS*TIERS*SLOTS;
 export const PALLET_FRACTIONS=[1/20,1/16,1/8,1/4,1/2,1];
 export const palletCapacity=s=>Math.min(itemsPerAisle,Math.ceil(itemsPerAisle*PALLET_FRACTIONS[Math.max(0,Math.min(5,s.levels.palletCapacity||0))])+4*(s.levels.warehouseLogistics||0));
 export function loadPallet(s){
- const p=s.pallet;if(Math.hypot(p.x-DOCK.x,p.z-DOCK.z)>9)return 0;
+ const p=s.pallet;
+ // The traditional pickup desk and both real crate pallets supply the jack.
+ if(Math.hypot(p.x-DOCK.x,p.z-DOCK.z)>9&&!nearestWarehouseCrate(p.x,p.z,4.8))return 0;
  const amount=palletCapacity(s)-p.load;if(amount<=0)return 0;
  p.load+=amount;return amount; // warehouse has an unlimited supply, not belts
 }
@@ -506,6 +515,10 @@ export function nearestClawSource(s,claw){
  const dockDistance=Math.hypot(claw.x-DOCK.x,claw.z-DOCK.z);
  if(claw.floor===s.floor&&dockDistance<=12)
   choices.push({type:'dock',distance:dockDistance});
+ for(const crate of WAREHOUSE_CRATE_SOURCES){
+  const distance=Math.hypot(claw.x-crate.x,claw.z-crate.z);
+  if(distance<=4.6)choices.push({type:'crate',crateId:crate.id,distance});
+ }
  for(let i=0;i<s.stockPiles.length;i++){
   const p=s.stockPiles[i];
   const d=Math.hypot(p.x-claw.x,p.z-claw.z);
@@ -758,7 +771,8 @@ export function robotTarget(s,r){
  return choice;
 }
 export function robotSource(s,r){
- const candidates=[{type:'dock',x:DOCK.x,z:REAR_CROSSWALK,aisle:-1}];
+ const candidates=[{type:'dock',x:DOCK.x,z:REAR_CROSSWALK,aisle:-1},
+  ...WAREHOUSE_CRATE_SOURCES.map(c=>({type:'crate',crateId:c.id,x:c.x,z:c.z,aisle:-1}))];
  for(let i=0;i<s.stockPiles.length;i++){const p=s.stockPiles[i];if(p.floor===r.floor&&p.count>0)candidates.push({type:'pile',x:p.x,z:p.z,index:i,aisle:p.aisle});}
  for(const belt of s.freeBelts){
   if(belt.floor===r.floor&&belt.items>0)candidates.push({type:'freeBelt',id:belt.id,x:belt.x,z:belt.z,aisle:Math.max(0,Math.min(AISLES-1,Math.round((belt.x-8)/10)))});
@@ -823,7 +837,7 @@ export function botStep(s,r,dt){
     if(source.type==='belt'&&!takeBelt(s,r.floor,source.aisle,source.segment))return -1;
     if(source.type==='freeBelt'&&!takeFreeBelt(s,source.id))return -1;
     if(source.type==='pile'&&!takePile(s,source.index,1))return -1;
-    r.carry=source.type==='dock'?8:1;r.phase='shelf';r.target=-1;r.source=null;
+    r.carry=source.type==='dock'||source.type==='crate'?8:1;r.phase='shelf';r.target=-1;r.source=null;
   }
   return -1;
  }
