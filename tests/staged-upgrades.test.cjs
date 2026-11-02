@@ -542,7 +542,7 @@ test('yes/no coin gamble: 30 safe threshold, invalid random input, legacy save a
 test('receiving A: 30 removed signs and grounded portal regression checks',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/textLabel\('DOCK 01/);
- assert.match(env,/R\(\.36,8\.03,\.43,steel,xx,4\.015,95\)/);
+ assert.match(env,/R\(\.36,8\.03,\.43,steel,xx,4\.015,94\.65\)/);
  assert.match(env,/receivingSupplyPortal/);
  simulate(i=>{
   const s=r.newState();s.floor=i%r.FLOORS;
