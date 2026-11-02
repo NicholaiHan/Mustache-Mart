@@ -52,7 +52,10 @@ test('player mobility: 30 two-press double-jump limits, purchasable tiers, and o
  });
 });
 
-test('midair control and sprint training: 30 skill unlock, speed scaling, and save cases',()=>{
+test('midair control and retired sprint training: 30 unlock, normal sprint, and save cases',()=>{
+ const game=source('game.js');
+ assert.doesNotMatch(game,/sprintTraining:\[0,1280\]/);
+ assert.equal(rules.UPGRADES.some(u=>u.id==='sprintTraining'),false);
  run30(i=>{
   const s=rules.newState();s.money=10000000+i;
   assert.equal(rules.purchase(s,'airControl'),false);
@@ -60,18 +63,11 @@ test('midair control and sprint training: 30 skill unlock, speed scaling, and sa
   assert.equal(rules.purchase(s,'jump'),true);
   assert.equal(rules.purchase(s,'doubleJump'),true);
   for(let k=0;k<(i%4)+1;k++)assert.equal(rules.purchase(s,'airControl'),true);
-  assert.equal(rules.purchase(s,'speed'),true);
-  assert.equal(rules.purchase(s,'speed'),true);
-  assert.equal(rules.purchase(s,'courierStride'),true);
-  assert.equal(rules.purchase(s,'courierStride'),true);
-  for(let k=0;k<(i%5)+1;k++)assert.equal(rules.purchase(s,'sprintTraining'),true);
-  const air=rules.playerMoveMultiplier(s,false,true),sprint=rules.playerMoveMultiplier(s,true,false);
-  assert.ok(Math.abs(air-(1+.12*s.levels.airControl))<1e-9);
-  assert.ok(Math.abs(sprint-(1.4+.12*s.levels.sprintTraining))<1e-9);
-  assert.ok(Math.abs(rules.playerMoveMultiplier(s,true,true)-air*sprint)<1e-9);
+  assert.equal(rules.playerMoveMultiplier(s,true,false),1.4,'normal Shift sprint remains');
+  assert.equal(rules.playerMoveMultiplier(s,true,true),1.4*(1+.12*s.levels.airControl));
   const saved=rules.loadState(rules.serialize(s));
   assert.equal(saved.levels.airControl,s.levels.airControl);
-  assert.equal(saved.levels.sprintTraining,s.levels.sprintTraining);
+  assert.equal(saved.levels.sprintTraining,undefined,'retired skill does not reappear');
  });
 });
 
