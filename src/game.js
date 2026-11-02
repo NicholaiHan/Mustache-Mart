@@ -1484,6 +1484,21 @@ if(DEV_MODE){
    width:113*world.scale.x,aisleSeparation:(toWideX(aisleX(1))-toWideX(aisleX(0))),
    totalStocked:s.stocked,savedAisleX:aisleX(9),
    crabWidthScale:crabModel?.scale.x??null,crabHeightScale:crabModel?.scale.y??null,crabDepthScale:crabModel?.scale.z??null,crabVisible:!!crabModel};},
+  visualChecklist(){
+   // Inspect actual active scene objects, not only source code.
+   const count=name=>{let n=0;world.traverse(o=>{if(o.name===name)n++;});return n;};
+   const item=world.getObjectByName('shelfStockedProductsType0');
+   let firstProduct=null;
+   if(item?.count>0){
+    const m=new THREE.Matrix4();item.getMatrixAt(0,m);
+    const p=new THREE.Vector3().setFromMatrixPosition(m);
+    firstProduct={x:p.x,y:p.y,z:p.z};
+   }
+   return {portalBeam:count('supplyPortalLowerCrossbeam'),portalJoints:count('supplyPortalCrossbeamJoint'),
+    inventoryPallets:count('collectibleWarehouseCratePallet'),decorPallets:count('decorativeWarehousePallet'),
+    palletJack:count('fullWidthPalletJack'),wideForks:count('widePalletJackFork'),
+    jackHousing:count('proportionalPalletJackRearHousing'),firstProduct};
+  },
   architectureStats(){
    let windows=0,cutWallSections=0,screws=0,vents=0,pipeBrackets=0,freeWindowOverlays=0;
    world.traverse(object=>{
