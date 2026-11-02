@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {polishedTileTexture,matteWallTexture,productTexture,cartonTexture} from './textures.js';
 import {addPackedCarton,addInventoryPallet,cartonMaterials} from './carton-model.js';
-import {AISLES,BAYS,TIERS,SLOTS,CELLS_PER_FLOOR,DOCK,WAREHOUSE_CRATE_SOURCES,aisleX,bayZ,decode,floorLabel} from './rules.mjs';
+import {AISLES,BAYS,TIERS,SLOTS,CELLS_PER_FLOOR,DOCK,WAREHOUSE_CRATE_SOURCES,WAREHOUSE_STORAGE_LAYOUT,aisleX,bayZ,decode,floorLabel} from './rules.mjs';
 import {PAYROLL_LAYOUT as PAY} from './collision.mjs';
 // Architecture, walls, supermarket service counters, shelves, products.
 // The factory owns shelf rendering buffers so other systems never modify them directly.
@@ -553,9 +553,9 @@ function buildShell(){
  const direction=textLabel('RECEIVING WAREHOUSE  →  BACK OF STORE',10.8,.7,'#d8e1d8','#32453e',35,'interior');
  direction.position.set(47,12.9,-12.32);add(direction);
  // Back room visual staging: pallets, cartons, rolling shutter and safety striping.
- const shutter=round(11,8,.18,'#98a4a5');shutter.position.set(17,5,100.24);
+ const shutter=round(11,8,.18,'#98a4a5');shutter.position.set(WAREHOUSE_STORAGE_LAYOUT.shutter.x,5,WAREHOUSE_STORAGE_LAYOUT.shutter.z);
  for(let y=1.2;y<8.2;y+=.7){
-  const seam=cube(10.5,.055,.1,'#657577');seam.position.set(17,y,100.07);
+  const seam=cube(10.5,.055,.1,'#657577');seam.position.set(WAREHOUSE_STORAGE_LAYOUT.shutter.x,y,WAREHOUSE_STORAGE_LAYOUT.shutter.z-.17);
  }
  // Backroom cartons are now all staged BEHIND the inventory receiving divider in buildService().
  for(let z=91;z<98;z+=2.2){
@@ -808,9 +808,12 @@ function buildService(){
   const button=new THREE.Mesh(new THREE.CylinderGeometry(.066,.066,.039,14),brushed);
   button.rotation.x=Math.PI/2;button.position.set(26.1,y,-10.942);add(button);
  }
- const receivingRack=round(.65,4.25,5.0,'#86918e');receivingRack.position.set(10.6,2.125,96.35);
+ const receivingRack=round(.65,4.25,5.0,'#86918e');
+ receivingRack.name='rightSideInventoryDivider';
+ receivingRack.position.set(WAREHOUSE_STORAGE_LAYOUT.divider.x,2.125,WAREHOUSE_STORAGE_LAYOUT.divider.z);
  // The former long rack wall is now perpendicular to the pickup counter:
- // an orderly stockroom is tucked behind it, on the right-hand warehouse side.
+ // an orderly stockroom is tucked into the far-right backroom away from the
+ // service counter, with wide clear approach corridors between live pallets.
  const storage=new THREE.Group();storage.name='receivingBackroomCartons';add(storage);
  const materials=cartonMaterials();
  // Collectible stock crates BESIDE the receiving desk use the original packed
@@ -826,11 +829,12 @@ function buildService(){
    box.name='collectibleWarehouseCarton';box.rotation.y=level%2?-.025:.025;
   }
  }
- // Decorative boxes occupy the hidden desk-side stockroom, *behind* the
- // pickup counter. They are deliberately not connected to the supply model.
+ // Decorative boxes form a tidy, evenly spaced back-wall row on the right,
+ // visually behind the two working pickup crates; these remain non-collectible.
  const decor=new THREE.Group();decor.name='decorativeCartonsBehindWarehouseDesk';storage.add(decor);
- for(const [column,x] of [-2.5,.7,4.3].entries()){
-  const pallet=addInventoryPallet({round,parent:decor,materials,x,z:98.9,width:1.55,depth:1.48});
+ for(const [column,spot] of WAREHOUSE_STORAGE_LAYOUT.decoration.entries()){
+  const {x,z}=spot;
+  const pallet=addInventoryPallet({round,parent:decor,materials,x,z,width:1.55,depth:1.48});
   pallet.name='decorativeWarehousePallet';
   for(let level=0;level<2;level++)for(let side=0;side<2;side++)
    addPackedCarton({round,parent:pallet,materials,x:side?.36:-.36,
