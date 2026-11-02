@@ -325,6 +325,9 @@ const assert=require('node:assert/strict');
   await page.keyboard.down('w');await page.waitForTimeout(850);await page.keyboard.up('w');
   assert.ok((await page.evaluate(()=>window.__martTest.snapshot().y))>.4,'player truly climbs upward');
   await page.keyboard.press('c');
+  // Return to the placed ladder before using the proximity-gated resale action.
+  // This isolates the resale check from any player drift after climbing.
+  await page.evaluate(()=>window.__martTest.teleport(8,61));
   await page.keyboard.press('x');
   await page.waitForFunction(()=>window.__martTest.snapshot().ladders===0);
   console.log('PASS: separate robot upgrades, E-to-grab real player ladder ascent and 50% ladder resale');
