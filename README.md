@@ -42,6 +42,16 @@ A first-person supermarket stocking and automation prototype with **15 huge floo
 
 **If you do not see these changes:** the running game is an earlier LOCAL folder or an older server instance. The only trustworthy check is the exact build chip in the opening screen or the live `/build.json` from the server. To launch the latest code, stop the running server with **Control+C**, download the latest `main` ZIP into a new folder, then run `PORT=8000 bash PLAY_LATEST_MAC.sh` from that fresh folder. Keep the exact same browser, host and port to preserve saved progress.
 
+## Latest: Build 2026.11.02.1 — More angular crab, unstacked stockers and closer, connected Supply Portal
+
+- **Crab:** flattened and faceted its previously round body, added nine hexagonal-looking dorsal scutes, six dark carapace segmentation seams and additional collar details to all eight leg joints. The crab keeps its asymmetrically sized claws and remains completely free of decorative spikes.
+- **Robot pileups:** up to 70 stocker robots can occupy one requested aisle with unique staggered spawning berths (three longitudinal lanes). Workers now softly separate while approaching shared crates, the dock and target racks; close contact no longer stalls or resets their interactions. The first robot continues to appear at the original aisle center for compatibility.
+- **Supply Portal moved toward fire exit:** the overhead sign, structural beams, pillars, LED lights and mustache emblem move together 3.2 logical metres toward the left fire-exit wall. The supply counter, pickup zone and working scanner remain correctly aligned for existing gameplay and saves.
+- **No floating sign parts:** its marquee cassette intersects both the top and bottom beams, its lower beam joins both columns, its mustache emblem has a real support plate, and the bulbs are fixed to an overlapping backing lip mounted on the sign.
+- **Inventory brought closer:** the two working stock pallets now sit at logical (6.8, 96.4) and (12.2, 96.4), with three neatly aligned decorative piles just behind them; their collision boxes, robotic sourcing and pallet loading follow the shared positions.
+- **Testing:** six additional 30-simulation sets (180 scenarios) cover dense robot crowding, full robot dispatch, portal geometry, close-by stock access, leg and shell details, and save/stock-count preservation.
+- **Important:** for this newest request the backroom was deliberately moved **back near the Supply Portal**, overriding the previous far-right-corner staging request. The browser-local save format stays version 4, and users should continue to use the same browser and exact URL to retain progress.
+
 ## Guaranteed latest-version setup (copy/paste for Mac)
 
 **Do not use an old downloaded `mustache-mart.zip`, old Electron app, or previously extracted folder.** The obsolete small ZIP has been removed from GitHub. The complete game is always in the live `main` branch archive.
