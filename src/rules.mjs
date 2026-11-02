@@ -14,7 +14,15 @@ export const fromWideX=x=>MAP_WIDTH_CENTER+(x-MAP_WIDTH_CENTER)/MAP_WIDTH_MULTIP
 export const aisleX=a=>8+a*10, bayZ=b=>13+b*2.65;
 export const DOCK={x:1.5,z:96};
 // Visible, inexhaustible boxed-pallet inventory shared by every floor and supply mechanism.
-export const WAREHOUSE_CRATE_SOURCES=Object.freeze([{x:8.3,z:96.3},{x:13.4,z:94.5}].map((c,i)=>Object.freeze({...c,id:i+1})));
+// Shared right-hand receiving layout. Leave the main pickup counter and its
+// approach lane free while moving the physical inventory into a tidy back-right
+// staging area. Renderer, collision, robot pickup and pallet loading use these.
+export const WAREHOUSE_STORAGE_LAYOUT=Object.freeze({
+ divider:Object.freeze({x:16.4,z:96.35}),
+ shutter:Object.freeze({x:36.4,z:100.24}),
+ decoration:Object.freeze([33,36.4,39.8].map(x=>Object.freeze({x,z:98.75})))
+});
+export const WAREHOUSE_CRATE_SOURCES=Object.freeze([{x:21.5,z:96.4},{x:26.5,z:96.4}].map((c,i)=>Object.freeze({...c,id:i+1})));
 export function nearestWarehouseCrate(x,z,range=2.75){
  let closest=null,best=range;
  for(const crate of WAREHOUSE_CRATE_SOURCES){const d=Math.hypot(x-crate.x,z-crate.z);if(d<best){closest=crate;best=d;}}
