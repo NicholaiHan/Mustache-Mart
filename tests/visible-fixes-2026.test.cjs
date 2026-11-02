@@ -25,9 +25,9 @@ for(let i=0;i<30;i++){
   const env=src('environment.js'),rules=src('rules.mjs');
   assert.match(env,/aisleX\(aisle\)\+sg\*3\.4,TIER_Y\[tier\]\+\.015/);
   assert.match(env,/shelfStockedProductsType/);
-  assert.match(rules,/divider:Object\.freeze\(\{x:72\.8,z:96\.35\}\)/);
-  assert.match(rules,/\{x:78\.0,z:96\.4\},\{x:83\.8,z:96\.4\}/);
-  assert.match(rules,/\[89\.0,92\.6,96\.2\]/);
+  assert.match(rules,/divider:Object\.freeze\(\{x:16\.1,z:96\.35\}\)/);
+  assert.match(rules,/\{x:6\.8,z:96\.4\},\{x:12\.2,z:96\.4\}/);
+  assert.match(rules,/\[18\.4,21\.6,24\.8\]/);
   assert.match(env,/supplyPortalLowerCrossbeam/);
  });
 }
