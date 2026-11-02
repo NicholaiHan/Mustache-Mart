@@ -765,7 +765,7 @@ test('wider store stage: 30 reversible X geometry and legacy aisle coordinates p
  assert.match(game,/world\.scale\.x=MAP_WIDTH_MULTIPLIER/);
  assert.match(game,/camera\.position\.set\(toWideX\(V\.x\)/);
  assert.match(game,/fromWideX\(point\.x\)/);
- assert.ok(game.includes('crabModel.scale.set(.36/MAP_WIDTH_MULTIPLIER,.68,.68)'));
+ assert.ok(game.includes('crabModel.scale.set(.52/MAP_WIDTH_MULTIPLIER,.72,.72)'));
 
  simulate(i=>{
   const x=r.aisleX(i%r.AISLES),left=r.aisleX(0),right=r.aisleX(9);
@@ -781,7 +781,7 @@ test('wider store stage: 30 reversible X geometry and legacy aisle coordinates p
 });
 test('crab lane stage: 30 large moving crab patrols remain inside broadened aisles',()=>{
  const game=source('game.js'),characters=source('characters.js');
- assert.ok(game.includes('crabModel.scale.set(.36/MAP_WIDTH_MULTIPLIER,.68,.68)'));
+ assert.ok(game.includes('crabModel.scale.set(.52/MAP_WIDTH_MULTIPLIER,.72,.72)'));
 
  assert.match(game,/crabModel\.position\.set\(\(p\.x\?\?aisleX\(p\.aisle\)\)/);
  assert.match(source('natural-crab.js'),/megaRobotCrab/);
@@ -801,7 +801,7 @@ test('crab lane stage: 30 large moving crab patrols remain inside broadened aisl
 });
 test('smaller crab: 30 cosmetic shrink checks preserve 15-floor raids and save state',()=>{
  const game=source('game.js');
- assert.ok(game.includes('crabModel.scale.set(.36/MAP_WIDTH_MULTIPLIER,.68,.68)'),'crab remains naturally proportioned');
+ assert.ok(game.includes('crabModel.scale.set(.52/MAP_WIDTH_MULTIPLIER,.72,.72)'),'crab remains naturally proportioned');
  simulate(i=>{
   const state=r.newState();state.money=7300+i;state.floor=i%r.FLOORS;
   const savedBefore=r.serialize(state);
@@ -1008,6 +1008,94 @@ test('offline server module safety: 30 approved local-module and no save mutatio
   assert.equal(restored.robots.length,s.robots.length);
  });
 });
+test('King of the Crab: 30 purchase/unlock/permanent global no-attack save scenarios',()=>{
+ const rules=source('rules.mjs'),game=source('game.js');
+ assert.match(rules,/id:'crabKing',name:'King of the Crab'/);
+ assert.match(rules,/if\(s\.levels\.crabKing\|\|!crabEnabled/);
+ assert.match(game,/SKILL_LAYOUT=\{/);
+ simulate(i=>{
+  const s=r.newState();s.money=4_000_000+i*19;
+  assert.equal(r.purchase(s,'crabKing'),false,'uncompleted floors cannot tame crab');
+  for(let f=0;f<7;f++)s.fill.fill(r.SLOTS,f*r.CELLS_PER_FLOOR,(f+1)*r.CELLS_PER_FLOOR);
+  s.stocked=s.fill.reduce((t,n)=>t+n,0);
+  assert.equal(r.purchase(s,'crabKing'),true,'after seven floors, expensive permanent tame unlocks');
+  assert.equal(s.levels.crabKing,1);
+  assert.equal(r.crabTamed(s),true);
+  const allElapsed=s.crab.elapsed.slice(),cash=s.money,allAttacks=s.crab.attacks.slice();
+  const beforeStock=s.stocked;
+  assert.deepEqual(r.advanceCrab(s,3600),[]);
+  assert.deepEqual(s.crab.attacks,allAttacks);
+  assert.deepEqual(s.crab.elapsed,allElapsed,'raid clocks freeze once crab is tamed');
+  assert.equal(s.stocked,beforeStock);
+  assert.equal(s.money,cash);
+  assert.equal(r.performCrabSwing(s,7,i%r.AISLES,12),null);
+  assert.equal(r.purchase(s,'crabKing'),false,'one-time upgrade cannot be repurchased');
+  const saved=r.loadState(r.serialize(s));
+  assert.equal(saved.levels.crabKing,1);
+  assert.deepEqual(r.advanceCrab(saved,3600),[]);
+  assert.equal(saved.money,cash);
+ });
+});
+test('King of the Crab: 30 ride/unride trajectories across conveyors and save compatibility',()=>{
+ const rules=source('rules.mjs'),game=source('game.js');
+ assert.match(game,/function toggleCrabRide\(\)/);
+ assert.match(game,/e\.code==='KeyG'/);
+ assert.match(game,/moveTamedCrab\(s,s\.floor,forward,side,dt,V\.yaw\)/);
+ simulate(i=>{
+  const s=r.newState();s.levels.crabKing=1;
+  const f=i%r.FLOORS;const p=s.crab.patrol[f];
+  const start={x:p.x,z:p.z};
+  s.freeBelts.push({id:1,floor:f,x:p.x,z:p.z,dir:0,items:2,paid:100});
+  const moved=r.moveTamedCrab(s,f,1,0,.1,i*.03);
+  assert.equal(moved,true,'ride control must move crab in logical world coordinates');
+  assert.ok(p.x!==start.x||p.z!==start.z);
+  assert.equal(s.freeBelts[0].items,2,'pass through conveyor with inventory preserved');
+  const snapshot=r.loadState(r.serialize(s));
+  assert.ok(Math.abs(snapshot.crab.patrol[f].x-p.x)<1e-8);
+  assert.ok(Math.abs(snapshot.crab.patrol[f].z-p.z)<1e-8);
+  assert.deepEqual(r.advanceCrab(s,10,false,f),[]);
+  assert.equal(s.crab.patrol[f].x,p.x,'AI cannot override mounted player steering');
+  assert.equal(s.crab.patrol[f].z,p.z);
+ });
+});
+test('Robot top shelf: 30 no-lift cases against tall ladders, stale targets and high lift positions',()=>{
+ const rules=source('rules.mjs');
+ assert.match(rules,/if\(tier===3\)return s\.levels\.robotLift===1/);
+ simulate(i=>{
+  const s=r.newState();s.money=1_000_000;
+  const aisle=i%r.AISLES,bay=3+i%18,top=r.cellId(0,aisle,0,bay,3);
+  s.levels.ladder=1;s.levels.ladderPlus=1;
+  s.ladders.push({id:1,floor:0,aisle,bay,x:r.aisleX(aisle),z:r.bayZ(bay)});
+  const bot=r.hireRobot(s,100,true);bot.floor=0;bot.aisle=aisle;bot.homeAisle=aisle;
+  bot.x=r.aisleX(aisle);bot.z=r.bayZ(bay);bot.phase='shelf';bot.carry=7;bot.target=top;bot.liftY=9.4;bot.acc=2;bot.breakAt=Infinity;
+  assert.equal(r.robotCanReach(s,bot,top),false);
+  for(let k=0;k<30;k++)assert.notEqual(r.botStep(s,bot,.25),top);
+  assert.equal(s.fill[top],0,'bots must never stock fourth shelf without motorized ladder');
+  assert.ok(bot.liftY<=5,'stale saved vertical position must be lowered');
+  const saved=r.loadState(r.serialize(s));
+  assert.equal(r.robotCanReach(saved,saved.robots[0],top),false);
+  saved.levels.robotLift=1;assert.equal(r.robotCanReach(saved,saved.robots[0],top),true);
+ });
+});
+test('Clear retail roof: 30 non-crossing light, vent and sprinkler arrays',()=>{
+ const env=source('environment.js'),game=source('game.js');
+ assert.match(env,/ROOF_LIGHT_X=\[8,20,32,44,56,68,80,92\]/);
+ assert.match(env,/ROOF_DUCT_X=\[2,50,98\]/);
+ assert.match(env,/ROOF_SPRINKLER_X=\[14,62,86\]/);
+ assert.match(env,/for\(const x of ROOF_LIGHT_X\)/);
+ assert.match(env,/for\(const x of ROOF_DUCT_X\)/);
+ assert.match(env,/for\(const x of ROOF_SPRINKLER_X\)/);
+ const lights=[8,20,32,44,56,68,80,92],ducts=[2,50,98],pipes=[14,62,86];
+ simulate(i=>{
+  const light=lights[i%lights.length],vent=ducts[i%ducts.length],pipe=pipes[i%pipes.length];
+  for(const x of ducts)assert.ok(Math.abs(light-x)>3,'no vent may cover 4.35m light');
+  for(const x of pipes)assert.ok(Math.abs(light-x)>3,'no sprinkler pipe may cross light');
+  for(const x of ducts)for(const p of pipes)assert.ok(Math.abs(x-p)>2,'ducts and pipes stay separated');
+  const s=r.newState();s.floor=i%r.FLOORS;
+  assert.equal(r.loadState(r.serialize(s)).floor,s.floor);
+ });
+});
+
 test('stage 8: 30 aisle-sign visibility simulations',()=>{
  const env=source('environment.js');
  assert.doesNotMatch(env,/const signShell=/);
