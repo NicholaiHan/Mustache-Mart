@@ -14,7 +14,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,MAP_WIDTH_MULTIPLIER,MAP_WIDTH_CENTER,toWideX,fromWideX,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,skillAvailable,purchase,autoPlaceRobot,moveRobotFromMike,chooseRobotSpawnAisle,refreshCoinOffers,coinFlipStake,markCoinOfferSeen,declineCoinFlip,acceptCoinFlip,COIN_FLIP_FIRST_STAKE,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,FREE_BELT_PITCH,FREE_BELT_VECTORS,snapFreeCoordinate,freeBeltAt,placeFreeBelt,turnFreeBelt,takeFreeBelt,sellFreeBelt,deployFreeClaw,freeBeltConnected,completedFloors,crabEnabled,setDeveloperCrab,advanceCrab,performCrabSwing,CRAB_UNLOCK_FLOORS,CRAB_ATTACK_SECONDS,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
+ floorStocked,itemsPerFloor,remaining,canOpenStore,FREE_BELT_PITCH,FREE_BELT_VECTORS,snapFreeCoordinate,freeBeltAt,placeFreeBelt,turnFreeBelt,takeFreeBelt,sellFreeBelt,deployFreeClaw,freeBeltConnected,completedFloors,crabEnabled,crabTamed,moveTamedCrab,setDeveloperCrab,advanceCrab,performCrabSwing,CRAB_UNLOCK_FLOORS,CRAB_ATTACK_SECONDS,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -76,7 +76,7 @@ let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),a
 let doorInteractionHeld=false,ignoreMouseUntil=0,placementRobotId=null,placementSpot=null,robotGhost=null,climbingLadderId=null;
 let repairingRobotId=null,repairKeyConsumed=false;
 let currentFloor=-1,world=null,robotModels=new Map(),crabModel=null,crabSwingEnds=0,beltCrates=[],feederCrates=[],clawVisual=null,cartMesh=null,cartMeshes=[],ladderMesh=null,palletMesh=null,placedClawMeshes=[],pileMeshes=[];
-let selectedBeltAisle=0,freeBeltDirection=0;
+let selectedBeltAisle=0,freeBeltDirection=0,crabRiding=false;
 let flyingCartons=[],incomingCartonCounts=new Map();
 let ending=false,endStarted=false,endingTimer=0,endComplete=false,toastTimer=0,savingAt=0;
 let activeCoinOffer=null;
@@ -163,14 +163,15 @@ function buildWorld(){
  for(let a=0;a<AISLES;a++)for(let segment=0;segment<s.belts[s.floor][a];segment++)makeBelt(s.floor,a,segment);
  for(const b of s.freeBelts)if(b.floor===s.floor)makeBelt(s.floor,Math.max(0,Math.min(AISLES-1,Math.round((b.x-8)/10))),0,b);
  for(const robot of s.robots)if(robot.placed&&robot.floor===s.floor)robotModels.set(robot.id,botAppearance(robot));
- if(crabEnabled(s,DEV_MODE)&&(s.crab.devOverride==='on'&&DEV_MODE||floorStocked(s,s.floor)<itemsPerFloor)){
+ if(crabEnabled(s,DEV_MODE)&&(crabTamed(s)||s.crab.devOverride==='on'&&DEV_MODE||floorStocked(s,s.floor)<itemsPerFloor)){
   crabModel=makeMegaCrab();
   // Make the complete crab about one-third smaller (body, legs and pincers),
   // while keeping the widened aisle clearance and normal patrol animation.
   // Only the model is scaled: raid timing, stock damage and saves are unchanged.
   // Keep the crab's previous compact physical silhouette even as the
   // aisles expand to 16m visually. Only cosmetic geometry changes.
-  crabModel.scale.set(.36/MAP_WIDTH_MULTIPLIER,.68,.68);
+  // A broader intimidating animal, with the rest of the store still proportional.
+  crabModel.scale.set(.52/MAP_WIDTH_MULTIPLIER,.72,.72);
  }
  for(const platform of platformsOnFloor(s)){
   const model=makeCart();if(model){cartMeshes.push({platform,model});if(platform===s.cart)cartMesh=model;}
@@ -356,6 +357,26 @@ function act(source='keyboard'){
 }
 function nearbyPallet(d=3){return s.pallet.floor===s.floor&&nearby(s.pallet.x,s.pallet.z,d);}
 function nearbyPlatform(d=3){return !!closestPlatform(s,V.x,V.z,s.floor,d);}
+// G mounts or dismounts the conquered crab. WASD steers without belt collisions.
+function toggleCrabRide(){
+ if(crabRiding){
+  crabRiding=false;
+  const p=s.crab.patrol[s.floor];
+  V.x=p.x;V.z=Math.max(9.5,Math.min(90,p.z+5));V.y=0;V.vy=0;
+  save();notify('Dismounted your crab · Press G near it to ride again.');return true;
+ }
+ if(!crabTamed(s)){notify('Buy King of the Crab from Mustache Mike after seven completed floors.');return false;}
+ if(!crabModel||s.pallet.driving||s.cart.mounted||climbingLadderId!==null){
+  notify('Stand on foot near your tamed crab to ride it.');return false;
+ }
+ const p=s.crab.patrol[s.floor];
+ if(Math.hypot(V.x-p.x,V.z-p.z)>6.5){
+  notify('Approach the crab before pressing G.');return false;
+ }
+ crabRiding=true;V.x=p.x;V.z=p.z;V.y=2.35;V.vy=0;
+ notify('KING OF THE CRAB · WASD steer · Mouse look · G dismount · Zero raids.');
+ return true;
+}
 function toggleVehicle(){
  if(s.pallet.driving){s.pallet.driving=false;notify('Parked pallet jack. U unloads inventory at an aisle.');save();return;}
  if(s.cart.mounted){s.cart.mounted=false;V.y=0;notify('Exited motorized platform.');save();return;}
@@ -663,7 +684,8 @@ function makeUpgradeCard(u,view='economy'){
    notify('STOCKER #'+bot.id+' spawned on '+floorLabel(bot.floor)+' · AISLE '+(bot.aisle+1)+' · Manage its placement in Mike’s robot pad.');
    return;
   }
-  if(['cart','ladderPlus','robotLift'].includes(u.id))buildWorld();
+  if(['cart','ladderPlus','robotLift','crabKing'].includes(u.id))buildWorld();
+  if(u.id==='crabKing')notify('KING OF THE CRAB UNLOCKED · Crab attacks disabled forever · Approach your crab and press G to ride!');
   if(u.id==='itemClaw')notify('Item claw purchased. Stand by a conveyor outlet and press K to install it.');
   else notify('UPGRADE INSTALLED · '+u.name+' · Level '+s.levels[u.id]);
   save();renderShop();uiUpdate();
@@ -833,7 +855,7 @@ function openElevator(){
  renderElevatorDirectory({
   panel:$('elevator'),state:s,floorCount:FLOORS,itemsPerFloor,totalItems:TOTAL_ITEMS,floorStocked,
   onChoose:f=>{
-   s.floor=f;V.x=23;V.z=-5;V.y=V.vy=0;V.carry=0;
+   crabRiding=false;s.floor=f;V.x=23;V.z=-5;V.y=V.vy=0;V.carry=0;
    buildWorld();save();
    notify('Lift arrived at '+floorLabel(f)+' · '+itemsPerFloor.toLocaleString()+' pieces per floor.');
    resume();
@@ -996,7 +1018,7 @@ function syncCrab(now){
 function tickCrabRaids(elapsed,now){
  if(!running||modal||ending)return;
  const justUnlocked=!s.crab.unlocked;
- const events=advanceCrab(s,Math.min(elapsed,.25),DEV_MODE);
+ const events=advanceCrab(s,Math.min(elapsed,.25),DEV_MODE,crabRiding?s.floor:-1);
  if(justUnlocked&&s.crab.unlocked){
   buildWorld();notify('Something enormous is moving through the store...');
   save();
@@ -1025,7 +1047,10 @@ function animate(now){
   const turn=(held.ArrowLeft?1:0)-(held.ArrowRight?1:0);
   V.yaw+=turn*dt*1.7;V.pitch=Math.max(-1.25,Math.min(1.25,V.pitch+((held.ArrowUp?1:0)-(held.ArrowDown?1:0))*dt));
   const forward=(held.KeyW?1:0)-(held.KeyS?1:0),side=(held.KeyD?1:0)-(held.KeyA?1:0);
-  if(s.pallet.driving){
+  if(crabRiding){
+   moveTamedCrab(s,s.floor,forward,side,dt,V.yaw);
+   const p=s.crab.patrol[s.floor];V.x=p.x;V.z=p.z;V.y=2.35;V.vy=0;
+  }else if(s.pallet.driving){
    const moved=drivePallet(s,forward,side,dt,(x,z)=>!isBlocked(x,z,s.floor));
    V.x=s.pallet.x;V.z=s.pallet.z;V.y=0;V.vy=0;
   }else if(s.cart.mounted){
@@ -1045,11 +1070,11 @@ function animate(now){
    const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));
    V.x=next.x;V.z=next.z;
   }
-  if(climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted){V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0)V.vy=0;}
+  if(!crabRiding&&climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted){V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0)V.vy=0;}
   if(climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted&&held.Space&&s.levels.jump&&V.y===0)V.vy=5.4;
   // Repair time tracks elapsed real seconds, not the capped movement timestep.
   const repairing=tickRobotRepair(Math.min(elapsed,.25));
-  if(!repairing&&!s.pallet.driving&&(held.KeyE||mouseDown)){actionClock+=dt;while(actionClock>=.32){actionClock-=.32;act(held.KeyE?'keyboard':'mouse');if(modal)break;}}else actionClock=0;
+  if(!repairing&&!crabRiding&&!s.pallet.driving&&(held.KeyE||mouseDown)){actionClock+=dt;while(actionClock>=.32){actionClock-=.32;act(held.KeyE?'keyboard':'mouse');if(modal)break;}}else actionClock=0;
  }
  if(!ending&&running){
   // Render the current floor; background robot simulation advances on every floor.
@@ -1170,6 +1195,8 @@ window.addEventListener('keydown',e=>{
  if(DEV_MODE&&e.shiftKey&&['KeyJ','KeyK','KeyN'].includes(e.code)){
   e.preventDefault();changeDevCrab(e.code==='KeyJ'?'on':e.code==='KeyK'?'off':'auto');return;
  }
+ if(e.code==='KeyG'){e.preventDefault();toggleCrabRide();return;}
+ if(crabRiding)return; // Equipment and stocking keys disabled on crab.
  // Mustache Mike is interacted with using E, not a click or Q shortcut.
  if(e.code==='KeyR'&&!s.pallet.driving&&!s.cart.mounted)openElevator();
  if(e.code==='KeyL')placeLadder();
@@ -1380,9 +1407,11 @@ if(DEV_MODE){
  window.__martTest={
   teleport(x,z){V.x=x;V.z=z;V.y=0;V.vy=0;},
   setLook(yaw,pitch){V.yaw=yaw;V.pitch=pitch;},
+  mountCrab(){return toggleCrabRide();},
+  crabRideStatus(){return {riding:crabRiding,owned:crabTamed(s),player:{x:V.x,z:V.z,y:V.y},patrol:{...s.crab.patrol[s.floor]}};},
   setFloor(floor){
    if(!Number.isInteger(floor)||floor<0||floor>=FLOORS)return false;
-   s.floor=floor;buildWorld();V.x=31;V.z=-7;V.y=0;V.vy=0;return true;
+   crabRiding=false;s.floor=floor;buildWorld();V.x=31;V.z=-7;V.y=0;V.vy=0;return true;
   },
   crabDetailStats(){
    if(!crabModel)return null;
@@ -1434,7 +1463,7 @@ if(DEV_MODE){
    scrap(id){const money=sellRobot(s,id);buildWorld();return money;}
   },
   setCarry(count){V.carry=Math.min(capacity(s),Math.max(0,count));},
-  setUpgrade(id,level){if(id in s.levels){s.levels[id]=level;if(id==='robotLift')buildWorld();}},
+  setUpgrade(id,level){if(id in s.levels){s.levels[id]=level;if(['robotLift','crabKing'].includes(id))buildWorld();}},
   giveClaw(){s.clawInventory.push({paid:450});return s.clawInventory.length;},
   logistics(){return {claws:s.claws.length,clawInventory:s.clawInventory.length,palletLoad:s.pallet.load,palletCapacity:palletCapacity(s),palletDriving:s.pallet.driving,cartMounted:s.cart.mounted,cartHeight:s.cart.liftHeight,platforms:s.platforms.map(p=>({id:p.id,floor:p.floor,aisle:p.aisle,x:p.x??aisleX(p.aisle),z:p.z,liftHeight:p.liftHeight,mounted:p.mounted})),stockPiles:s.stockPiles.map(x=>({...x})),beltDirections:s.beltDirection[s.floor].map(x=>x.slice())};},
 
