@@ -57,6 +57,9 @@ const assert=require('node:assert/strict');
   // Inspect the live scene graph: static tests alone did not catch the
   // previously invisible or unrendered geometry updates.
   const visual=await page.evaluate(()=>window.__martTest.visualChecklist());
+  assert.equal(visual.portalGantryX,-3.20,'entire portal gantry is actually moved toward fire exit');
+  assert.equal(visual.portalLedBacking,1,'LED rail and bulbs are mounted to sign');
+  assert.equal(visual.emblemMount,1,'mustache emblem is fixed to supporting beam');
   assert.equal(visual.portalBeam,1,'portal horizontal connector is physically present in the 3D scene');
   assert.equal(visual.portalJoints,2,'both portal uprights connect to the lower beam');
   assert.equal(visual.inventoryPallets,2,'usable rear stock crates render');
@@ -188,6 +191,8 @@ const assert=require('node:assert/strict');
   assert.equal(detail.components.naturalCrabPincerSpike||0,0,'claws must have NO sharp decorative spikes');
   assert.equal(detail.components.naturalCrabMandibleTusk||0,0,'no decorative facial tusks');
   assert.equal(detail.components.legPropodus,8,'eight crab legs have extra articulated segments');
+  assert.ok(detail.components.crabAngularCarapaceScute>=9,'angular crab shell has visible articulated plates');
+  assert.ok(detail.components.crabCarapaceSegmentationSeam>=6,'crab shell is segmented rather than round');
   assert.equal(detail.clawScales.length,2);
   assert.ok(detail.clawScales[1].x>detail.clawScales[0].x*1.3,'crusher claw must be visibly bigger than the cutter');
   assert.ok(detail.components.naturalCrabShellScar>=20,'new shell has rugged scars');
