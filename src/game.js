@@ -1475,7 +1475,7 @@ if(DEV_MODE){
   crabDetailStats(){
    if(!crabModel)return null;
    const components={},names=['naturalCrabShell','naturalCrabUnderside','naturalCrabWalkingLeg','livingCrabClaw','crabKingRidingSaddle',
-    'carapaceRidgeBump','livingEye','crabEyeStalk','pincerTooth','legDactylus','legPropodus','naturalCrabRoundedShellRidge','naturalCrabEdgeSpine','naturalCrabPincerSpike','naturalCrabMandibleTusk','naturalShellFreckle','naturalCrabDorsalSpine','naturalCrabShellScar'];
+    'carapaceRidgeBump','livingEye','crabEyeStalk','pincerTooth','legDactylus','legPropodus','crabAngularCarapaceScute','crabCarapaceSegmentationSeam','crabLegElbowJointCollar','naturalCrabRoundedShellRidge','naturalCrabEdgeSpine','naturalCrabPincerSpike','naturalCrabMandibleTusk','naturalShellFreckle','naturalCrabDorsalSpine','naturalCrabShellScar'];
    crabModel.traverse(node=>{if(names.includes(node.name))components[node.name]=(components[node.name]||0)+1;});
    return {components,...crabModel.userData.detailStats,walkingLegs:crabModel.userData.legs?.length||0,
     animatedClaws:crabModel.userData.jaws?.length||0,
@@ -1495,7 +1495,9 @@ if(DEV_MODE){
     const p=new THREE.Vector3().setFromMatrixPosition(m);
     firstProduct={x:p.x,y:p.y,z:p.z};
    }
-   return {portalBeam:count('supplyPortalLowerCrossbeam'),portalJoints:count('supplyPortalCrossbeamJoint'),
+   return {portalGantryX:world.getObjectByName('fireExitSidePortalGantry')?.position.x,
+    portalLedBacking:count('supplyPortalLedBackingAttached'),emblemMount:count('attachedSupplyPortalEmblemMount'),
+    portalBeam:count('supplyPortalLowerCrossbeam'),portalJoints:count('supplyPortalCrossbeamJoint'),
     inventoryPallets:count('collectibleWarehouseCratePallet'),decorPallets:count('decorativeWarehousePallet'),
     palletJack:count('fullWidthPalletJack'),wideForks:count('widePalletJackFork'),
     jackHousing:count('proportionalPalletJackRearHousing'),firstProduct};
