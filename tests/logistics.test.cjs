@@ -66,7 +66,10 @@ test('robots select closest reachable empty bay; fixed ladders or a moving lift 
  assert.equal(r.robotCanReach(s,bot,r.cellId(0,0,0,18,2)),true,'deployed tall ladder reaches upper racks');
  assert.equal(r.robotCanReach(s,bot,top),false,'topmost shelf must use the automatic robot ladder');
  assert.equal(r.purchase(s,'robotLift'),true);
- assert.equal(r.robotCanReach(s,bot,r.cellId(0,0,0,28,3)),true);
+ assert.equal(r.robotCanReach(s,bot,r.cellId(0,0,0,28,3)),false,'robot lift alone cannot reach top shelf');
+ assert.equal(r.purchase(s,'cart'),true);
+ const p=s.platforms[0];p.x=r.aisleX(0);p.z=r.bayZ(28);p.liftHeight=9.3;p.mounted=false;
+ assert.equal(r.robotCanReach(s,bot,r.cellId(0,0,0,28,3)),true,'raised physical motorized platform allows robot to stock top shelf');
 });
 test('placed ladders, extra ladders, conveyors and their receipts survive saved progress',()=>{
  const s=r.newState();s.money=10000;
