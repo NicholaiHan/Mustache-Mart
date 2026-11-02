@@ -352,7 +352,8 @@ function buildShell(){
  }
  for(const z of [12,44,77]){
   const notice=textLabel(z===12?'SAFETY FIRST':z===44?'AISLE EQUIPMENT':'RECEIVING AHEAD',3.3,.55,'#e7e8df','#44554f',34,'interior');
-  notice.position.set(101.9,3.8,z);notice.rotation.y=-Math.PI/2;add(notice);
+  // Flush-mount safety notices to the right wall rather than floating in the aisle.
+  notice.position.set(102.46,3.8,z);notice.rotation.y=-Math.PI/2;add(notice);
  }
  // Repeated perimeter-wall detailing echoes the overhead ducts and lighting.
  // Thin, high-mounted pieces remain inside the wall boundary, so they never
@@ -366,7 +367,7 @@ function buildShell(){
   // Steel service rails and horizontal wall-lighting spine, interrupted at the
   // emergency egress on Floor 1. All rails are mounted above head height.
   for(let z=4;z<=93;z+=7.8){
-   if(side==='LEFT'&&s.floor===0&&z>80&&z<90)continue;
+   if(side==='LEFT'&&s.floor===0&&Math.abs(z-85)<4.4)continue;
    // Rail above y=11.45 would cross the recessed blue clerestory panes.
    for(const y of [5.65,8.35]){
     const rail=round(.08,.085,7.85,wallSteel);
@@ -384,7 +385,7 @@ function buildShell(){
   // Recessed electrical/service panels, vents and exposed ceiling-to-wall
   // conduit drops. Their dimensions are decorative, not collision obstacles.
   for(const z of [19,39,59,92]){
-   if(side==='LEFT'&&s.floor===0&&z>80&&z<90)continue;
+   if(side==='LEFT'&&s.floor===0&&Math.abs(z-85)<4.4)continue;
    const spine=round(.07,3.30,.085,conduitDark);
    spine.position.set(x,7.60,z);
    for(const y of [6.6,7.8,8.85]){
@@ -439,11 +440,18 @@ function buildShell(){
    const mount=cube(4.35,.1,.64,'#aab1ac');mount.position.set(x,CEILING_Y-.68,z+1.7);
   }
  }
+ // Wall-mounted, slim supports replace pillars that intersect the outermost racks.
+ const PERIMETER_COLUMN_X=[-9.44,102.48];
  for(let z=6;z<98;z+=20){
-  for(const x of [-7,101]){
-   const column=new THREE.Mesh(new THREE.CylinderGeometry(.3,.34,CEILING_Y-.4,16),toon('#a5aeab'));
+  for(const x of PERIMETER_COLUMN_X){
+   const column=new THREE.Mesh(new THREE.CylinderGeometry(.26,.29,CEILING_Y-.4,16),toon('#a5aeab'));
+   column.name='wallIntegratedShelfColumn';
    column.position.set(x,(CEILING_Y-.4)/2,z);add(column);
-   const base=round(.83,.66,.83,'#687872');base.position.set(x,.33,z);
+   const base=round(.58,.50,.58,'#687872');base.position.set(x,.25,z);
+   if(x>100)for(const shelfY of TIER_Y){
+    const tie=round(.62,.11,.44,'#8b9c99');tie.name='perimeterShelfTie';
+    tie.position.set(102.12,shelfY-.07,z);
+   }
   }
  }
  // Visible ceiling ducts and sprinkler runs reinforce the industrial scale.
@@ -521,7 +529,7 @@ function buildShell(){
  }
  // Steel columns carry base plate rivets and elbowed utility junctions;
  // all are high/flush so the collision box remains exactly the same.
- for(let z=6;z<98;z+=20)for(const x of [-7,101]){
+ for(let z=6;z<98;z+=20)for(const x of PERIMETER_COLUMN_X){
   for(const sx of [-.29,.29])for(const sz of [-.29,.29])
    installScrew(x+sx,.67,z+sz,'ceiling');
   const junction=round(.50,.37,.36,chrome,hardwareGroup);
@@ -609,17 +617,19 @@ function buildCreativeReceiving(){
  // Arch is lifted above the walkable pickup point (existing stock counter).
  for(const xx of [-3.55,6.35]){
   // Load-bearing columns extend down to the actual tiled floor.
-  R(.36,8.03,.43,steel,xx,4.015,95);
-  R(.72,.16,.78,dark,xx,.085,95);
-  R(.50,.13,.54,brass,xx,.21,95);
-  R(.42,.16,.5,brass,xx,7.95,95);
+  R(.36,8.03,.43,steel,xx,4.015,94.65);
+  R(.72,.16,.78,dark,xx,.085,94.65);
+  R(.50,.13,.54,brass,xx,.21,94.65);
+  R(.42,.16,.5,brass,xx,7.95,94.65);
  }
- R(10.35,.62,.63,steel,1.40,7.99,95);
- R(10.12,.11,.69,glow,1.40,8.37,95);
- R(10.12,.12,.68,brass,1.40,7.64,95);
- R(7.42,.83,.28,dark,1.35,7.05,94.6);
+ R(10.35,.62,.63,steel,1.40,7.99,94.65);
+ R(10.12,.11,.69,glow,1.40,8.37,94.65);
+ R(10.12,.12,.68,brass,1.40,7.64,94.65);
+ // One continuous dark cassette physically joins the overhead beam and both pillars.
+ const portalSignBack=R(10.08,1.48,.34,dark,1.40,6.94,94.55);
+ portalSignBack.name='attachedSupplyPortalSign';
  const marquee=textLabel('THE SUPPLY PORTAL',7.12,.56,'#163939','#ffe394',43,'entrance');
- marquee.position.set(1.4,7.05,94.30);root.add(marquee);
+ marquee.position.set(1.4,7.13,94.30);root.add(marquee);
 
  // Keep the portal clean: no redundant DOCK 01 / SUPPLY ACTIVE sign.
  // Oversized curled mustache emblem suspended below the marquee, not a
@@ -641,11 +651,13 @@ function buildCreativeReceiving(){
   const bar=R(2.64,.042,.074,i%2?steel:brass,1.5,.88,94.92+i*.28);
   bar.rotation.z=0;
  }
- // Parcel-sorter pipeline visible high on the wall; colored LEDs and meter.
- R(8.0,.37,.28,steel,1.45,9.70,99.91);
- R(7.7,.05,.33,brass,1.45,9.93,99.82);
+ // LED trim and dots are physically attached to the forward sign, not the rear wall.
+ const portalLedRail=R(8.0,.12,.10,steel,1.4,6.40,94.30);
+ portalLedRail.name='attachedPortalLedRail';
+ R(7.7,.045,.08,brass,1.4,6.33,94.23);
  for(let i=0;i<9;i++){
-  R(.35,.24,.09,i%2===0?mint:glow,-2.3+i*.94,9.67,99.68);
+  const dot=R(.28,.12,.07,i%2===0?mint:glow,-2.35+i*.94,6.42,94.20);
+  dot.name='portalSignLightDot';
  }
 
  // A floor-level receiving destination marker painted on the tiles.
