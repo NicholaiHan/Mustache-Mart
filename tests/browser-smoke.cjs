@@ -46,13 +46,13 @@ const assert=require('node:assert/strict');
   assert.match(await page.locator('#saveOriginStatus').textContent(),/THIS BROWSER SAVE/);
   assert.equal(await page.locator('#saveExport').count(),1,'save backup export is accessible from the introduction');
   assert.equal(await page.locator('#saveImportFile').count(),1,'save file import is accessible from the introduction');
-  await page.waitForFunction(()=>document.querySelector('#buildChip')?.textContent.includes('2026.11.01.8'));
-  assert.match(await page.locator('#buildIntro').innerText(),/UPDATED EDITION.*2026\.11\.01\.8/);
+  await page.waitForFunction(()=>document.querySelector('#buildChip')?.textContent.includes('2026.11.01.9'));
+  assert.match(await page.locator('#buildIntro').innerText(),/UPDATED EDITION.*2026\.11\.01\.9/);
   assert.match(await page.locator('#devBanner').innerText(),/DEVELOPMENT MODE/);
   assert.equal(await page.locator('#devBanner').isVisible(),true);
   const build=await page.evaluate(async()=>await (await fetch('./build.json')).json());
-  assert.equal(build.version,'2026.11.01.8');
-  console.log('PASS: game displays correct edition and $100,000 developer mode banner');
+  assert.equal(build.version,'2026.11.01.9');
+  console.log('PASS: game displays correct edition and $1,000,000 developer mode banner');
 
   // Each floor must have exactly one actual framed painting with its own
   // distinct working portrait texture, not a copied floor-number label.
@@ -95,9 +95,9 @@ const assert=require('node:assert/strict');
   console.log('PASS: all 15 floors show one unique framed Mustache Mike employee painting');
 
 
-  assert.equal(await page.evaluate(()=>window.__martTest.snapshot().money),10000000,'developer mode starts with precisely $100,000');
+  assert.equal(await page.evaluate(()=>window.__martTest.snapshot().money),100000000,'developer mode starts with precisely $1,000,000');
   assert.equal(await page.evaluate(()=>window.__martTest.snapshot().checkoutCount),4,'four real checkout stations on floor 1');
-  console.log('PASS: game renders fifteen-floor store with $100,000 developer account and four checkout lanes');
+  console.log('PASS: game renders fifteen-floor store with $1,000,000 developer account and four checkout lanes');
 
   // Exercise real portable save download and import on the game's local origin.
   const downloadStarted=page.waitForEvent('download',{timeout:20000});
@@ -106,15 +106,15 @@ const assert=require('node:assert/strict');
   const saved=JSON.parse(fs.readFileSync(await saveDownload.path(),'utf8'));
   assert.equal(saved.version,4,'exported save has compatible format');
   assert.ok(Array.isArray(saved.fill)&&saved.fill.length>10000,'export includes entire fifteen-floor progress');
-  saved.money=10000123;
+  saved.money=100000123;
   page.once('dialog',dialog=>dialog.accept());
   const importedReload=page.waitForEvent('load',{timeout:45000});
   await page.locator('#saveImportFile').setInputFiles({name:'mustache-mart-test.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(saved))});
   await importedReload;
-  await page.waitForFunction(()=>window.__martTest?.snapshot().money===10000123&&document.querySelector('#loading')?.hidden,undefined,{timeout:45000});
-  assert.equal(await page.evaluate(()=>window.__martTest.snapshot().money),10000123,'imported money persists across beforeunload and reload');
+  await page.waitForFunction(()=>window.__martTest?.snapshot().money===100000123&&document.querySelector('#loading')?.hidden,undefined,{timeout:45000});
+  assert.equal(await page.evaluate(()=>window.__martTest.snapshot().money),100000123,'imported money persists across beforeunload and reload');
   await page.locator('#devEnable').click();
-  assert.ok((await page.evaluate(()=>window.__martTest.snapshot().money))>=10000000,'developer refill keeps at least $5,000');
+  assert.ok((await page.evaluate(()=>window.__martTest.snapshot().money))>=100000000,'developer refill keeps at least $1,000,000');
   assert.equal(await page.locator('#intro').isVisible(),true);
   await page.locator('#scanSaveBackups').click();
   assert.ok((await page.locator('#saveRecoveryList .saveRecoveryEntry').count())>=1,
@@ -147,6 +147,12 @@ const assert=require('node:assert/strict');
   let devCrab=await page.evaluate(()=>window.__martTest.crabTest.status());
   assert.equal(devCrab.devOverride,'on');
   assert.equal(devCrab.visible,true,'dev crab can spawn before 7 floors are stocked');
+  assert.equal(await page.locator('#devCrabSmack').count(),1,'developer HUD exposes instant crab attack');
+  await page.evaluate(()=>document.querySelector('#devCrabSmack').click());
+  devCrab=await page.evaluate(()=>window.__martTest.crabTest.status());
+  assert.equal(devCrab.attacks[0],1,'instant demo triggers one authentic raid on current unfinished floor');
+  assert.equal(devCrab.attacks.slice(1).every(x=>x===0),true,'demo does not raid other floors');
+  assert.equal(devCrab.visible,true,'demo shows an attacking crab model');
   const crabLayout=await page.evaluate(()=>window.__martTest.worldLayoutStats());
   assert.ok(Math.abs(crabLayout.crabWidthScale-.325)<1e-9,'organic crab is now wider and more menacing');
   assert.equal(crabLayout.crabHeightScale,.72,'larger organic body retains natural height');
