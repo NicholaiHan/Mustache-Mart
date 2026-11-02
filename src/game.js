@@ -1475,10 +1475,11 @@ if(DEV_MODE){
   crabDetailStats(){
    if(!crabModel)return null;
    const components={},names=['naturalCrabShell','naturalCrabUnderside','naturalCrabWalkingLeg','livingCrabClaw','crabKingRidingSaddle',
-    'carapaceRidgeBump','livingEye','crabEyeStalk','pincerTooth','legDactylus','naturalShellFreckle','naturalCrabDorsalSpine','naturalCrabShellScar'];
+    'carapaceRidgeBump','livingEye','crabEyeStalk','pincerTooth','legDactylus','legPropodus','naturalCrabRoundedShellRidge','naturalCrabEdgeSpine','naturalCrabPincerSpike','naturalCrabMandibleTusk','naturalShellFreckle','naturalCrabDorsalSpine','naturalCrabShellScar'];
    crabModel.traverse(node=>{if(names.includes(node.name))components[node.name]=(components[node.name]||0)+1;});
    return {components,...crabModel.userData.detailStats,walkingLegs:crabModel.userData.legs?.length||0,
-    animatedClaws:crabModel.userData.jaws?.length||0};
+    animatedClaws:crabModel.userData.jaws?.length||0,
+    clawScales:(crabModel.userData.jaws||[]).map(j=>({x:j.scale.x,y:j.scale.y,z:j.scale.z,crusher:!!j.userData.crusherClaw}))};
   },
   worldLayoutStats(){return {scaleX:world.scale.x,originX:world.position.x,proportions:world.userData.proportionStats,
    width:113*world.scale.x,aisleSeparation:(toWideX(aisleX(1))-toWideX(aisleX(0))),
