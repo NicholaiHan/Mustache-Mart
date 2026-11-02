@@ -1419,7 +1419,7 @@ if(DEV_MODE){
   crabDetailStats(){
    if(!crabModel)return null;
    const components={},names=['naturalCrabShell','naturalCrabUnderside','naturalCrabWalkingLeg','livingCrabClaw','crabKingRidingSaddle',
-    'carapaceRidgeBump','livingEye','crabEyeStalk','pincerTooth','legDactylus','naturalShellFreckle'];
+    'carapaceRidgeBump','livingEye','crabEyeStalk','pincerTooth','legDactylus','naturalShellFreckle','naturalCrabDorsalSpine','naturalCrabShellScar'];
    crabModel.traverse(node=>{if(names.includes(node.name))components[node.name]=(components[node.name]||0)+1;});
    return {components,...crabModel.userData.detailStats,walkingLegs:crabModel.userData.legs?.length||0,
     animatedClaws:crabModel.userData.jaws?.length||0};
