@@ -10,6 +10,7 @@ import {renderElevatorDirectory} from './elevator-ui.js';
 import {ladderHeight,canStockFromHeight} from './ladder.mjs';
 import {moveWithCollisions,isBlocked,blockedEquipment,PAYROLL_LAYOUT as PAY} from './collision.mjs';
 import {cartonTexture} from './textures.js';
+import {MIRROR_SAVE_KEY,bestStartupSave,stampSave,guardedSave} from './save-rescue.mjs';
 import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,nearestWarehouseCrate,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,MAP_WIDTH_MULTIPLIER,MAP_WIDTH_CENTER,toWideX,fromWideX,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
@@ -48,14 +49,12 @@ function archiveSave(raw,reason='AUTOMATIC'){
  try{localStorage.setItem(SAVE_ARCHIVE_KEY,JSON.stringify(backups.slice(0,3)));return true;}
  catch{return false;} // Quota errors must never prevent writing the actual save.
 }
-let ORIGINAL_SAVE_DATA=localStorage.getItem(SAVE_KEY)||localStorage.getItem('mustacheMartV3');
-let ORIGINAL_SAVE_SOURCE=localStorage.getItem(SAVE_KEY)?SAVE_KEY:'mustacheMartV3';
-const savedCandidates=[...readRecoveryArchives().map((entry,i)=>({raw:entry.data,origin:'archive '+(i+1)})),
-  {raw:localStorage.getItem('mustacheMartV3'),origin:'mustacheMartV3'}].filter(x=>validSave(x.raw));
-if(!validSave(ORIGINAL_SAVE_DATA)){
- const restored=savedCandidates.sort((a,b)=>progressScore(progressSummary(b.raw))-progressScore(progressSummary(a.raw)))[0];
- if(restored){ORIGINAL_SAVE_DATA=restored.raw;ORIGINAL_SAVE_SOURCE=restored.origin;}
-}
+const startup=bestStartupSave(localStorage.getItem(SAVE_KEY),localStorage.getItem(MIRROR_SAVE_KEY),readRecoveryArchives(),localStorage.getItem('mustacheMartV3'));
+let ORIGINAL_SAVE_DATA=startup.raw;
+let ORIGINAL_SAVE_SOURCE=startup.origin;
+let lastConfirmedRaw=localStorage.getItem(SAVE_KEY);
+let saveWarning='';
+let lastSavedAt=0;
 if(validSave(ORIGINAL_SAVE_DATA))archiveSave(ORIGINAL_SAVE_DATA,'PRE-UPDATE SAVED PROGRESS');
 let s=loadState(ORIGINAL_SAVE_DATA);
 // Explicit opt-in dev mode: restore at least $1,000,000 in test cash while preserving larger balances.
@@ -95,19 +94,29 @@ function showPayReceipt(amount){
 let lastSaveArchiveAt=0;
 function save(){
  try{
-  const fresh=serialize(s);
-  // Snapshot occasionally, not every 5-second autosave, and never replace a
-  // more advanced archive with an empty run after switching host/port.
+  const fresh=stampSave(serialize(s));
+  const result=guardedSave(localStorage,SAVE_KEY,MIRROR_SAVE_KEY,fresh,lastConfirmedRaw);
+  if(!result.ok){
+   if(saveWarning!==result.message)notify('SAVE WARNING · '+result.message);
+   saveWarning=result.message;
+   const label=$('liveSaveStatus');if(label)label.textContent='SAVE NOT UPDATED · '+result.message;
+   return false;
+  }
+  const old=lastConfirmedRaw;
+  lastConfirmedRaw=fresh;lastSavedAt=result.stamp;
+  saveWarning=result.mirrorOk?'':'Backup mirror unavailable; main save verified';
   if(!lastSaveArchiveAt||Date.now()-lastSaveArchiveAt>180000){
-   const current=localStorage.getItem(SAVE_KEY);
-   if(validSave(current))archiveSave(current,'PREVIOUS GAME STATE');
-   if(validSave(fresh)&&progressScore(progressSummary(fresh))>0)archiveSave(fresh,'PERIODIC BACKUP');
+   if(validSave(old))archiveSave(old,'PREVIOUS GAME STATE');
    lastSaveArchiveAt=Date.now();
   }
-  localStorage.setItem(SAVE_KEY,fresh);
- }catch(err){notify('Could not save: browser storage might be full or unavailable.');}
+  const label=$('liveSaveStatus');
+  if(label)label.textContent='SAVED IN THIS BROWSER · '+new Date(result.stamp).toLocaleTimeString()+(result.mirrorOk?' · TWO VERIFIED COPIES':' · MAIN COPY ONLY');
+  return true;
+ }catch(err){saveWarning='Browser storage unavailable';notify('Could not save: browser storage might be full or unavailable.');return false;}
 }
-setInterval(save,5000);addEventListener('beforeunload',save);
+setInterval(save,5000);
+addEventListener('beforeunload',save);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
 function uiUpdate(){
  $('floorStat').textContent=floorLabel(s.floor)+' / F15';
  $('money').textContent=centsText(s.money);
