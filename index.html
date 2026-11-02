@@ -471,11 +471,12 @@ button:active:not(:disabled){transform:translateY(1px)}
     <button id="play">Start your shift</button> <button id="reset">Reset this game's saved progress</button>
     <div id="saveTransfer"><strong>Save backup &amp; recovery</strong>
       <p class="hint">Missing skills after switching ports? Check <a href="http://127.0.0.1:8000/#dev" target="_blank" rel="noopener">port 8000</a> or <a href="http://127.0.0.1:8011/#dev" target="_blank" rel="noopener">port 8011</a> in the SAME browser; whichever one holds your original save is the correct one. If needed, export there, then import here. Your old save is not deleted.</p>
-      <div class="saveActions"><button type="button" id="saveExport">Download save backup</button>
+      <div class="saveActions"><button type="button" id="saveNow">Save progress now</button><button type="button" id="saveExport">Download save backup</button>
         <label for="saveImportFile" class="saveFileLabel">Import save backup
           <input id="saveImportFile" type="file" accept=".json,application/json">
         </label>
       </div>
+      <small id="liveSaveStatus" aria-live="polite">Saving to this browser automatically every five seconds.</small>
       <small id="saveTransferStatus" aria-live="polite"></small>
       <div id="saveRecoveryArea">
         <strong>Find your previous progress</strong>
