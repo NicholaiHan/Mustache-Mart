@@ -1,6 +1,6 @@
 {
-  "version": "2026.11.01.7",
-  "name": "Proportional World, Organic Crab, Clean Receiving and Lift, $100k Dev Mode",
+  "version": "2026.11.01.8",
+  "name": "King of the Crab Riding, Menacing Crab, Robot Top-Shelf Lock and Roof Clearance",
   "build_date": "2026-11-01",
   "includes": [
     "Robot Mike with white eyes and mustache",
@@ -23,6 +23,10 @@
     "World geometry normalized to keep people, machines, stock and individual shelves physically proportioned despite wide aisle separation",
     "All fifteen floors feature the same twelve recessed blue windows; removed gray front faux windows",
     "Natural living crab with shell markings, eye stalks, organic eight-leg walk and natural pincers; free cross-aisle movement and no conveyor collisions",
+    "King of the Crab one-time $25,000 upgrade unlocked after seven completed floors, allowing G to mount and WASD to steer; no further crab raids, fallen inventory or robot casualties",
+    "Wider more intimidating natural crab, chitin spines, heavy brow plates, scars, organic claw teeth and leather saddle when tamed",
+    "Stocker robots strictly prohibited from reaching or filling fourth shelf without Motorized Robot Ladder, including stale saved heights or targets",
+    "Ceiling lighting, ventilation ducts and sprinkler pipes use independent spaced service corridors, with vents no longer crossing light fixtures",
     "Removed two basket/square decorations obscuring Employee of the Month portrait",
     "Pickup stock piles and receiving decoration use one reusable labeled shipping-box and wooden-pallet model",
     "Consolidated Supply Portal to essential signs and moved backroom carton display behind receiving divider",
