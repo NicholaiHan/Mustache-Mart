@@ -13,7 +13,7 @@ import {cartonTexture} from './textures.js';
 import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,nearestWarehouseCrate,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,MAP_WIDTH_MULTIPLIER,MAP_WIDTH_CENTER,toWideX,fromWideX,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
- capacity,walkSpeed,price,skillAvailable,purchase,autoPlaceRobot,moveRobotFromMike,chooseRobotSpawnAisle,refreshCoinOffers,coinFlipStake,markCoinOfferSeen,declineCoinFlip,acceptCoinFlip,COIN_FLIP_FIRST_STAKE,payOut,place,earnings,buildBelt,beltCost,incomplete,
+ capacity,walkSpeed,playerMoveMultiplier,tryPlayerJump,price,skillAvailable,purchase,autoPlaceRobot,moveRobotFromMike,chooseRobotSpawnAisle,refreshCoinOffers,coinFlipStake,markCoinOfferSeen,declineCoinFlip,acceptCoinFlip,COIN_FLIP_FIRST_STAKE,payOut,place,earnings,buildBelt,beltCost,incomplete,
  floorStocked,itemsPerFloor,remaining,canOpenStore,FREE_BELT_PITCH,FREE_BELT_VECTORS,snapFreeCoordinate,freeBeltAt,placeFreeBelt,turnFreeBelt,takeFreeBelt,sellFreeBelt,deployFreeClaw,freeBeltConnected,completedFloors,crabEnabled,crabTamed,moveTamedCrab,setDeveloperCrab,advanceCrab,performCrabSwing,CRAB_UNLOCK_FLOORS,CRAB_ATTACK_SECONDS,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
@@ -71,7 +71,7 @@ fetch('./build.json',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(ne
  if(intro)intro.firstChild.textContent='UPDATED EDITION · BUILD '+build.version+' ';
 }).catch(()=>{const chip=document.getElementById('buildChip');if(chip)chip.textContent='BUILD MANIFEST NOT FOUND';});
 const TEST_ENDING=location.hash==='#ending-test', PREVIEW_ENDING=location.hash==='#ending'||TEST_ENDING;
-const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0};
+const V={x:33,z:-3,y:0,vy:0,yaw:Math.PI,pitch:0,carry:0,walked:0,jumpCount:0};
 let running=false,modal='intro',mouseDown=false,held={},last=performance.now(),actionClock=0,shopCategory='tools';
 let doorInteractionHeld=false,ignoreMouseUntil=0,placementRobotId=null,placementSpot=null,robotGhost=null,climbingLadderId=null;
 let repairingRobotId=null,repairKeyConsumed=false;
@@ -628,12 +628,13 @@ function openShop(){
 // from UPGRADES and the production purchase() function; save data is unchanged.
 const SKILL_LAYOUT={
  carryHarness:[0,205],courierStride:[0,424],warehouseLogistics:[0,643],
+ doubleJump:[0,915],airControl:[0,1100],sprintTraining:[0,1280],
  warehouseFocus:[1,205],robotEfficiency:[1,350],clawCycle:[1,630],beltMotor:[1,790],
  repairTraining:[2,205],robotReliability:[2,350],crabKing:[2,550],
  retailMargin:[3,205],robotCommission:[3,350],cashback:[3,500]
 };
 const FOUNDATION_LAYOUT={
- capacity:[0,105],speed:[0,324],palletCapacity:[0,543],
+ capacity:[0,105],speed:[0,324],palletCapacity:[0,543],jump:[0,805],
  robotSpeed:[1,105],itemClaw:[1,525],
  robot:[2,105],shelfBonus:[3,105]
 };
@@ -724,8 +725,8 @@ function renderSkillGraph(list){
   lane.append(title,sub);board.append(lane);
  }
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
- svg.setAttribute('class','skillWires');svg.setAttribute('width','1200');svg.setAttribute('height','980');
- svg.setAttribute('viewBox','0 0 1200 980');svg.setAttribute('aria-hidden','true');
+ svg.setAttribute('class','skillWires');svg.setAttribute('width','1200');svg.setAttribute('height','1490');
+ svg.setAttribute('viewBox','0 0 1200 1490');svg.setAttribute('aria-hidden','true');
  board.append(svg);
  const targets=new Map();
  for(const [id,[col,y]] of Object.entries(FOUNDATION_LAYOUT)){
@@ -1070,14 +1071,13 @@ function animate(now){
     V.x=l.x;V.z=l.z;V.vy=0;V.y=ladderHeight(V.y,forward,elapsed,!!s.levels.ladderPlus);
    }
   }else if(forward||side){
-   const speed=walkSpeed(s)*(held.ShiftLeft?1.4:1)*dt/Math.hypot(forward,side);
+   const speed=walkSpeed(s)*playerMoveMultiplier(s,!!held.ShiftLeft,V.y>0)*dt/Math.hypot(forward,side);
    const dx=(-Math.sin(V.yaw)*forward+Math.cos(V.yaw)*side)*speed/MAP_WIDTH_MULTIPLIER;
    const dz=(-Math.cos(V.yaw)*forward-Math.sin(V.yaw)*side)*speed;
    const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));
    V.x=next.x;V.z=next.z;
   }
-  if(!crabRiding&&climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted){V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0)V.vy=0;}
-  if(climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted&&held.Space&&s.levels.jump&&V.y===0)V.vy=5.4;
+  if(!crabRiding&&climbingLadderId===null&&!s.pallet.driving&&!s.cart.mounted){V.vy-=13*dt;V.y=Math.max(0,V.y+V.vy*dt);if(V.y===0&&V.vy<0){V.vy=0;V.jumpCount=0;}}
   // Repair time tracks elapsed real seconds, not the capped movement timestep.
   const repairing=tickRobotRepair(Math.min(elapsed,.25));
   if(!repairing&&!crabRiding&&!s.pallet.driving&&(held.KeyE||mouseDown)){actionClock+=dt;while(actionClock>=.32){actionClock-=.32;act(held.KeyE?'keyboard':'mouse');if(modal)break;}}else actionClock=0;
@@ -1203,6 +1203,12 @@ window.addEventListener('keydown',e=>{
  }
  if(e.code==='KeyG'){e.preventDefault();if(!e.repeat)toggleCrabRide();return;}
  if(crabRiding)return; // Equipment and stocking keys disabled on crab.
+ // Space keydown is edge-triggered; a second press activates Double Jump.
+ if(e.code==='Space'){
+  if(!s.pallet.driving&&!s.cart.mounted&&climbingLadderId===null&&tryPlayerJump(s,V)&&V.jumpCount===2)
+   notify('DOUBLE JUMP · Airborne jump activated!');
+  return;
+ }
  // Mustache Mike is interacted with using E, not a click or Q shortcut.
  if(e.code==='KeyR'&&!s.pallet.driving&&!s.cart.mounted)openElevator();
  if(e.code==='KeyL')placeLadder();
@@ -1525,7 +1531,7 @@ if(DEV_MODE){
    deployFreeClaw(id){s.clawInventory.push({paid:450});const c=deployFreeClaw(s,id);if(c)buildWorld();return c?.id||null;},
    turnFreeBelt(id){const angle=turnFreeBelt(s,id);if(angle>=0)buildWorld();return angle;},
    move(dx,dz){const next=moveWithCollisions(V.x,V.z,dx,dz,s.floor,(x,z)=>blockedEquipment(s,x,z));V.x=next.x;V.z=next.z;return next;},
-   snapshot(){return {mapWidthMultiplier:MAP_WIDTH_MULTIPLIER,visualX:toWideX(V.x),beltItems:s.beltItems[s.floor].map(row=>row.slice()),selectedBeltAisle,feedCrates:feederCrates.length,devMode:DEV_MODE,checkoutCount:s.floor===0?4:0,x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,platformCount:s.platforms.length,activePlatformId:s.cart.id,cartMounted:s.cart.mounted,levels:{...s.levels}};}
+   snapshot(){return {jumpCount:V.jumpCount,mapWidthMultiplier:MAP_WIDTH_MULTIPLIER,visualX:toWideX(V.x),beltItems:s.beltItems[s.floor].map(row=>row.slice()),selectedBeltAisle,feedCrates:feederCrates.length,devMode:DEV_MODE,checkoutCount:s.floor===0?4:0,x:V.x,y:V.y,z:V.z,climbing:climbingLadderId,placementRobotId,beltStock:s.beltStock[s.floor].slice(),ladders:s.ladders.filter(l=>l.floor===s.floor).length,floor:s.floor,money:s.money,pending:s.pending,stocked:s.stocked,carry:V.carry,belts:s.belts[s.floor].slice(),robotCount:s.robots.length,platformCount:s.platforms.length,activePlatformId:s.cart.id,cartMounted:s.cart.mounted,levels:{...s.levels}};}
  };
 }
 buildWorld();$('loading').hidden=true;$('hud').hidden=false;uiUpdate();showSaveOrigin();
