@@ -10,6 +10,13 @@ A first-person supermarket stocking and automation prototype with **15 huge floo
 - Dev crab controls now include **Test crab smack (20m)**. Clicking it demonstrates one real immediate attack **on the current unfinished floor only**. The camera moves near the swing. Stocked shelves spill into collectable crates and nearby robots may be destroyed; existing empty shelves do not magically create products. The permanent King of the Crab upgrade blocks all real damage as before.
 - Four new batches of 30 deterministic tests cover warehouse collision, player/jack/bot/claw stock sourcing, decorative location and dev raid logic. The normal save format remains unchanged.
 
+## Latest: Build 2026.11.01.10 — Portal alignment, personal upgrades and cleaner walls
+- **Supply Portal rebuilt as one assembly.** The LED line and its nine dots now sit in front of the back wall on the same plane as the lettering. A full-width cassette meets both columns and attaches directly to the overhead beam.
+- **Three personal upgrades** in Mustache Mike's connected skill tree: **Double Jump** (purchase Spring-Loaded Shoes first, press Space again in midair), **Midair Control** (four ranks, +12% aerial steering per rank), and **Sprint Training** (five ranks, +12 percentage points of Shift-sprint speed per rank; requires Warehouse Footwork Lv 2). These are player-only upgrades; they do not grant robots additional shelf access or affect vehicles.
+- **Wall decoration corrected:** right-side signage is flush with its wall; nearby decorative rails stop before the emergency exit. The existing Floor 1 fire exit stays on the left wall.
+- **Pillars integrated with shelves:** external supports have been pushed against the perimeter wall and tied into outer shelf backing, with collision positions updated. A former support overlapping the fire-exit doorway has been omitted.
+- Existing browser saves remain version 4; new skill ranks default to zero for old saves. Four batches of 30 automated scenarios cover sign alignment, jump progression, aerial/sprint scaling, and structural collision clearance.
+
 ## Guaranteed latest-version setup (copy/paste for Mac)
 
 **Do not use an old downloaded `mustache-mart.zip`, old Electron app, or previously extracted folder.** The obsolete small ZIP has been removed from GitHub. The complete game is always in the live `main` branch archive.
@@ -28,11 +35,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.9** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.10** and the introduction must list the new cash registers, Mike, ladders and fire exit.
 3. **Development mode** (the `#dev` suffix) gives **at least $1,000,000** for testing. The title screen also has a **Refill developer cash to $1,000,000** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
 4. **Recovery:** Your skills and stocked shelves are saved by browser + exact host + port. The launcher now defaults to **8000**, where older saves are most likely. If you instead played on **8011**, run `PORT=8011 bash PLAY_LATEST_MAC.sh` and open `http://127.0.0.1:8011/#dev` in your original browser. Do not click Reset. Use **Download save backup** on the origin holding progress, then **Import save backup** on the origin you want to play from. The original save remains intact.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.9** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.10** is shown.
 
 ## Play on your MacBook
 
