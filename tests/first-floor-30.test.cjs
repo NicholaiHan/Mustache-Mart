@@ -38,6 +38,11 @@ test('30 accelerated first-floor sessions: interaction systems, upgrades, payout
   const rung=r.deployLadder(s,0,targetA,22);
   const spare=r.deployLadder(s,0,targetB,15);
   assert.ok(rung&&spare);
+  // Robot can use the top tier only when a real motorized platform is
+  // raised and physically aligned to this aisle and shelf bay.
+  const platform=s.platforms[0];
+  platform.x=r.aisleX(targetA);platform.z=r.bayZ(22);
+  platform.floor=0;platform.mounted=false;platform.liftHeight=9.3;
   let height=0;
   for(let i=0;i<80;i++)height=l.ladderHeight(height,1,.07,true);
   assert.ok(height>8.2);
