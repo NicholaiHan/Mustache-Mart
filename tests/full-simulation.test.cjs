@@ -12,7 +12,8 @@ test('solid stations, high-bay racks, wall boundaries and pallets never permit w
  for(const [label,x,z] of [
   ['Mike counter',1.5,-9],['Mike robot behind front desk',1.5,-10.48],
   ['Wall-attached payroll counter',10,-11.48],['Receiving desk',1.5,96],
-  ['Rotated warehouse inventory partition',10.6,96.35],['Visible inventory pallet',8.3,96.3],
+  ['Rotated warehouse inventory partition',rules.WAREHOUSE_STORAGE_LAYOUT.divider.x,rules.WAREHOUSE_STORAGE_LAYOUT.divider.z],
+  ['Visible inventory pallet',rules.WAREHOUSE_CRATE_SOURCES[0].x,rules.WAREHOUSE_CRATE_SOURCES[0].z],
   ['Structural pillar',101,26],['Shelf rack 1',4.6,31],
   ['Shelf rack 2',11.4,31],['Exterior wall',-10,22],['Outside entrance',46.5,-14]
  ])assert.equal(c.isBlocked(x,z),true,label);
