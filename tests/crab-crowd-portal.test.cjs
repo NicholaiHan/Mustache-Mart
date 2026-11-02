@@ -55,7 +55,7 @@ test('Crossing pileups: 30 source queues resolve coincident robots without NaN o
   const s=r.newState(),a=i%r.AISLES;
   const bots=Array.from({length:8},()=>r.hireRobot(s,300,true));
   for(const bot of bots){bot.floor=0;bot.aisle=a;bot.x=r.aisleX(a);bot.z=r.REAR_CROSSWALK;bot.phase='supply';}
-  for(let tick=0;tick<45;tick++)for(const bot of bots)r.botStep(s,bot,.10);
+  for(let tick=0;tick<450;tick++)for(const bot of bots)r.botStep(s,bot,.10);
   assert.ok(bots.every(b=>Number.isFinite(b.x)&&Number.isFinite(b.z)),'dense arrivals stay numerically valid');
   assert.ok(new Set(bots.map(b=>b.x.toFixed(2)+','+b.z.toFixed(2))).size>=3);
   assert.ok(bots.some(b=>b.carry>0||b.phase==='shelf'),'shared dock/box source must still supply workers');
