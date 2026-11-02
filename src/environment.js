@@ -658,8 +658,10 @@ function buildCreativeReceiving(){
  marquee.position.set(1.4,7.13,94.30);gantry.add(marquee);
 
  // Keep the portal clean: no redundant DOCK 01 / SUPPLY ACTIVE sign.
- // Oversized curled mustache emblem suspended below the marquee, not a
- // freestanding obstruction in the collection path.
+ // The emblem uses a mounting plate anchored into the load-bearing beam,
+ // so the decoration is never a pair of floating mustache wings.
+ const emblemMount=R(3.15,.34,.28,dark,1.4,6.025,94.405);
+ emblemMount.name='attachedSupplyPortalEmblemMount';
  for(const sign of [-1,1]){
   const wing=R(1.04,.19,.13,brass,1.4+sign*.60,6.01,94.29);
   wing.rotation.z=sign*.22;
@@ -681,6 +683,10 @@ function buildCreativeReceiving(){
   bar.rotation.z=0;
  }
  portalParent=gantry;
+ // One shallow backing lip intersects the sign cassette AND the LED bulbs.
+ // No air gap between lettering, illuminated rail, fasteners or crossbeam.
+ const lightMount=R(8.30,.27,.34,dark,1.40,6.39,94.33);
+ lightMount.name='supplyPortalLedBackingAttached';
  // LED trim and dots are physically attached to the forward sign, not the rear wall.
  const portalLedRail=R(8.0,.12,.10,steel,1.4,6.40,94.30);
  portalLedRail.name='attachedPortalLedRail';
