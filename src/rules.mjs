@@ -390,9 +390,13 @@ export function moveRobotFromMike(s,id,floor,aisle){
  // Separate workers inside a heavily occupied aisle so they don't materialize
  // in exactly the same spot and block each other.
  const residents=s.robots.filter(r=>r.id!==id&&r.placed&&!r.wrecked&&r.floor===floor&&(r.homeAisle??r.aisle)===aisle);
- const bay=Math.max(8,29-Math.min(16,residents.length*2));
+ // A three-lane stagger continues along successive bays, instead of
+ // placing the ninth and every later stocker at the same location.
+ const berth=residents.length;
+ const bay=Math.max(2,Math.min(BAYS-1,29-Math.floor(berth/3)));
+ const offset=((berth%3)-1)*.62;
  bot.floor=floor;bot.homeAisle=aisle;bot.aisle=aisle;
- bot.x=aisleX(aisle);bot.z=bayZ(bay);bot.placed=true;
+ bot.x=aisleX(aisle)+offset;bot.z=bayZ(bay);bot.placed=true;
  bot.target=-1;bot.acc=0;bot.liftY=0;bot.source=null;
  bot.phase=bot.carry>0?'shelf':'supply';
  return true;
@@ -741,21 +745,49 @@ export const itemsPerFloor=CELLS_PER_FLOOR*SLOTS;
 // Robot lane routing. Transitions between aisles happen only in the open
 // rear crosswalk, away from high-bay shelves and rear warehouse pallets.
 export const REAR_CROSSWALK=92.35;
-function approach(r,x,z,dt,speed){
+// Soft crowd avoidance: no robot should be trapped by a stationary
+// neighbor, and an exact-position overlap is given a stable escape direction.
+export function separateStocker(s,r,dt){
+ if(!r.placed||r.wrecked||r.broken||dt<=0)return 0;
+ let pushX=0,pushZ=0,contacts=0;
+ for(const other of s.robots){
+  if(other===r||!other.placed||other.wrecked||other.floor!==r.floor)continue;
+  let dx=r.x-other.x,dz=r.z-other.z;
+  const distance=Math.hypot(dx,dz);
+  if(distance>=.92)continue;
+  if(distance<.00001){
+   const angle=((r.id*13+other.id*7)%29)*Math.PI*2/29;
+   dx=Math.cos(angle);dz=Math.sin(angle);
+  }else{dx/=distance;dz/=distance;}
+  const weight=Math.max(.08,.92-distance);
+  pushX+=dx*weight;pushZ+=dz*weight;contacts++;
+ }
+ if(!contacts)return 0;
+ const mag=Math.hypot(pushX,pushZ);
+ if(mag<.00001)return 0;
+ // Keep perturbations gentle: stockers can still reach shared dock spots.
+ const shift=Math.min(.28,Math.max(.015,dt*2.6),mag);
+ r.x=Math.max(-8.6,Math.min(101.4,r.x+pushX/mag*shift));
+ r.z=Math.max(9.3,Math.min(99.0,r.z+pushZ/mag*shift));
+ return contacts;
+}
+function approach(s,r,x,z,dt,speed){
  let gx=x,gz=z;
  const crossing=Math.abs(r.x-x)>2.2;
  if(crossing&&r.z<REAR_CROSSWALK-.35){
-  gx=r.x;gz=REAR_CROSSWALK; // move along current aisle first
+  gx=r.x;gz=REAR_CROSSWALK;
  }else if(crossing){
-  gx=x;gz=REAR_CROSSWALK; // cross only behind the racks
+  gx=x;gz=REAR_CROSSWALK;
  }
  const dx=gx-r.x,dz=gz-r.z,dist=Math.hypot(dx,dz);
  if(dist>=.27){
-  const n=Math.min(dist,dt*speed);
-  r.x+=dx/dist*n;r.z+=dz/dist*n;
+  const step=Math.min(dist,dt*speed);
+  r.x+=dx/dist*step;r.z+=dz/dist*step;
  }
- // Do not report success at an intermediate crosswalk waypoint.
- return Math.hypot(x-r.x,z-r.z)<.31;
+ // Evaluate the delivery/stocking destination before yielding to a neighbor.
+ const arrived=Math.hypot(x-r.x,z-r.z)<.31;
+ separateStocker(s,r,dt);
+ return arrived;
 }
 export function robotPlatformFor(s,id){
  const {floor,aisle,bay,tier}=decode(id);
@@ -862,7 +894,7 @@ export function botStep(s,r,dt){
  if(r.phase==='supply'){
   // A new source is chosen on every supply run (belt vs dock).
   const source=robotSource(s,r);r.source=source;
-  if(approach(r,source.x,source.z,dt,speed)){
+  if(approach(s,r,source.x,source.z,dt,speed)){
     if(source.type==='belt'&&!takeBelt(s,r.floor,source.aisle,source.segment))return -1;
     if(source.type==='freeBelt'&&!takeFreeBelt(s,source.id))return -1;
     if(source.type==='pile'&&!takePile(s,source.index,1))return -1;
@@ -879,7 +911,7 @@ export function botStep(s,r,dt){
  const platform=tier===3?robotPlatformFor(s,r.target):null;
  const goalX=platform?(platform.x??aisleX(platform.aisle)):aisleX(aisle);
  const goalZ=platform?platform.z:bayZ(bay);
- if(approach(r,goalX,goalZ,dt,speed)){
+ if(approach(s,r,goalX,goalZ,dt,speed)){
   // Other tiers retain the robot lift motion; the platform supplies top height.
   const desired=platform?0:tier<2?0:tier===2?5.0:9.4;
   r.liftY=platform?0:Math.min(desired,(r.liftY||0)+dt*4.5);
