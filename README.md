@@ -26,6 +26,12 @@ A first-person supermarket stocking and automation prototype with **15 huge floo
 - A **Save progress now** button and live save confirmation are on the title screen. Every exported backup contains its stocked-item count and unique timestamp in the filename, so an old file will be much harder to confuse with the newest export. The previous version-4 save format remains compatible.
 - **Important limitation:** saves are still local to each Chrome profile + exact host and port. An older save on `localhost:8011` cannot automatically be retrieved from `127.0.0.1:8000`. Use the same address and browser as before, or download/import a backup from the older origin. Do not click Reset to look for missing progress.
 
+## Latest: Build 2026.11.01.12 — Connected Supply Portal, cleaner warehouse, detailed robot wrecks
+- **Supply Portal joined into a single structure:** a substantial horizontal steel beam spans **both columns underneath the sign**, overlapping the sign cassette and attaching to the posts with dark collars and gold mounting plates. The LED line and dots remain aligned with the sign on the near face.
+- **Rear warehouse organized farther right:** the *two actual, collectible* crate pallets now stand in a spacious row at logical X **21.5** and **26.5**, both Z **96.4**. Decorative boxes are lined up neatly against the right-side back wall at X **33**, **36.4**, **39.8** and Z **98.75**. The stockroom divider and roller shutter have also moved right. The original Supply Portal and pickup counter stay available, the center walkway is clearer, and collision, hand pickup, robot, claw, and pallet-jack source logic all use the shared moved crate positions. No inventory counts or browser save formats change.
+- **Crab-destroyed robot spring refined:** the exposed metal spring is shorter and narrower, with eleven finely modeled coils, upper/lower mounting collars, bright rims, retaining pins, and a slender guide inside. Its permanent scrapping rules, salvage value, and saved robot state remain unchanged.
+- **Regression coverage:** added three batches of thirty deterministic simulation checks for the beam connection, crate/collision/pickup organization, and robot-wreck visuals and economy. Keep using the same browser and local URL for existing saves.
+
 ## Guaranteed latest-version setup (copy/paste for Mac)
 
 **Do not use an old downloaded `mustache-mart.zip`, old Electron app, or previously extracted folder.** The obsolete small ZIP has been removed from GitHub. The complete game is always in the live `main` branch archive.
@@ -44,11 +50,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.11** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.12** and the introduction must list the new cash registers, Mike, ladders and fire exit.
 3. **Development mode** (the `#dev` suffix) gives **at least $1,000,000** for testing. The title screen also has a **Refill developer cash to $1,000,000** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
 4. **Recovery:** Your skills and stocked shelves are saved by browser + exact host + port. The launcher now defaults to **8000**, where older saves are most likely. If you instead played on **8011**, run `PORT=8011 bash PLAY_LATEST_MAC.sh` and open `http://127.0.0.1:8011/#dev` in your original browser. Do not click Reset. Use **Download save backup** on the origin holding progress, then **Import save backup** on the origin you want to play from. The original save remains intact.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.11** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.12** is shown.
 
 ## Play on your MacBook
 
