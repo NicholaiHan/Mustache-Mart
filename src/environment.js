@@ -444,6 +444,7 @@ function buildShell(){
  const PERIMETER_COLUMN_X=[-9.44,102.48];
  for(let z=6;z<98;z+=20){
   for(const x of PERIMETER_COLUMN_X){
+   if(x<0&&z===86)continue; // The red FIRE EXIT needs a clear opening.
    const column=new THREE.Mesh(new THREE.CylinderGeometry(.26,.29,CEILING_Y-.4,16),toon('#a5aeab'));
    column.name='wallIntegratedShelfColumn';
    column.position.set(x,(CEILING_Y-.4)/2,z);add(column);
@@ -530,6 +531,7 @@ function buildShell(){
  // Steel columns carry base plate rivets and elbowed utility junctions;
  // all are high/flush so the collision box remains exactly the same.
  for(let z=6;z<98;z+=20)for(const x of PERIMETER_COLUMN_X){
+  if(x<0&&z===86)continue;
   for(const sx of [-.29,.29])for(const sz of [-.29,.29])
    installScrew(x+sx,.67,z+sz,'ceiling');
   const junction=round(.50,.37,.36,chrome,hardwareGroup);
