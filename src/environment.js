@@ -354,8 +354,9 @@ function buildShell(){
   const ribHeight=nearWindow?9.25:CEILING_Y-1;
   const rib=cube(.18,ribHeight,.15,'#bdc6c0');rib.position.set(102.57,ribHeight/2,z);
  }
- for(const z of [12,44,77]){
-  const notice=textLabel(z===12?'SAFETY FIRST':z===44?'AISLE EQUIPMENT':'RECEIVING AHEAD',3.3,.55,'#e7e8df','#44554f',34,'interior');
+ // Remove the unwanted SAFETY FIRST sign, keeping only useful aisle and receiving directions.
+ for(const z of [44,77]){
+  const notice=textLabel(z===44?'AISLE EQUIPMENT':'RECEIVING AHEAD',3.3,.55,'#e7e8df','#44554f',34,'interior');
   // Flush-mount safety notices to the right wall rather than floating in the aisle.
   notice.position.set(102.46,3.8,z);notice.rotation.y=-Math.PI/2;add(notice);
  }
@@ -944,7 +945,9 @@ function drawProduct(id,slot){
  const {floor,aisle,side,bay,tier}=decode(id);if(floor!==s.floor||!meshes.length)return;
  const m=meshes[aisle%5],idx=m.count++;if(idx>=m.instanceMatrix.count)return;
  const sg=side===0?-1:1;
- dummy.position.set(aisleX(aisle)+sg*2.93,TIER_Y[tier]+.07,bayZ(bay)+(slot-1.5)*.53);
+ // Each product's center now matches the shelf board center (x +/- 3.4).
+ // Lower the base to just above the shelf top instead of hovering at its edge.
+ dummy.position.set(aisleX(aisle)+sg*3.4,TIER_Y[tier]+.015,bayZ(bay)+(slot-1.5)*.53);
  dummy.rotation.set(0,(slot+id)*1.14%6.28,0);dummy.scale.set(1,1,1);dummy.updateMatrix();
  m.setMatrixAt(idx,dummy.matrix);
  const palettes=[['#9f5948','#b56b51','#b47d54'],['#72909c','#91a5aa','#b6c8c8'],['#805654','#5e745d','#68617a'],['#bd9f6d','#b59e75','#9d866b'],['#8b9c86','#a26d60','#79919b']];
