@@ -11,7 +11,7 @@ import {ladderHeight,canStockFromHeight} from './ladder.mjs';
 import {moveWithCollisions,isBlocked,blockedEquipment,PAYROLL_LAYOUT as PAY} from './collision.mjs';
 import {cartonTexture} from './textures.js';
 import {
- FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,MAP_WIDTH_MULTIPLIER,MAP_WIDTH_CENTER,toWideX,fromWideX,
+ FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,nearestWarehouseCrate,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,MAP_WIDTH_MULTIPLIER,MAP_WIDTH_CENTER,toWideX,fromWideX,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,price,skillAvailable,purchase,autoPlaceRobot,moveRobotFromMike,chooseRobotSpawnAisle,refreshCoinOffers,coinFlipStake,markCoinOfferSeen,declineCoinFlip,acceptCoinFlip,COIN_FLIP_FIRST_STAKE,payOut,place,earnings,buildBelt,beltCost,incomplete,
  floorStocked,itemsPerFloor,remaining,canOpenStore,FREE_BELT_PITCH,FREE_BELT_VECTORS,snapFreeCoordinate,freeBeltAt,placeFreeBelt,turnFreeBelt,takeFreeBelt,sellFreeBelt,deployFreeClaw,freeBeltConnected,completedFloors,crabEnabled,crabTamed,moveTamedCrab,setDeveloperCrab,advanceCrab,performCrabSwing,CRAB_UNLOCK_FLOORS,CRAB_ATTACK_SECONDS,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
@@ -58,9 +58,9 @@ if(!validSave(ORIGINAL_SAVE_DATA)){
 }
 if(validSave(ORIGINAL_SAVE_DATA))archiveSave(ORIGINAL_SAVE_DATA,'PRE-UPDATE SAVED PROGRESS');
 let s=loadState(ORIGINAL_SAVE_DATA);
-// Explicit opt-in dev mode: restore at least $100,000 in test cash without touching normal saves.
+// Explicit opt-in dev mode: restore at least $1,000,000 in test cash while preserving larger balances.
 const DEV_MODE=location.hash==='#rich'||location.hash==='#dev';
-const DEV_CASH_CENTS=10_000_000; // $100,000, never replace larger existing balances
+const DEV_CASH_CENTS=100_000_000; // $1,000,000 in cents, never reduce larger saves
 if(DEV_MODE)s.money=Math.max(s.money,DEV_CASH_CENTS);
 if(DEV_MODE){const banner=document.getElementById('devBanner');if(banner)banner.style.display='block';}
 fetch('./build.json',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(new Error('build manifest missing')))
@@ -342,6 +342,9 @@ function act(source='keyboard'){
  }
  if(nearby(PAY.x,PAY.customerZ,PAY.interactionRadius)){const paid=payOut(s);if(paid)showPayReceipt(paid);else notify('Your payroll balance is currently $0.00. Stock more products to earn wages.');save();return;}
  if(nearby(23,-9,4.4)){openElevator();return;}
+ if(V.carry<capacity(s)&&nearestWarehouseCrate(V.x,V.z,2.75)){
+  V.carry++;notify('Picked up boxed inventory from the warehouse supply crates.');return;
+ }
  if(nearby(DOCK.x,DOCK.z,4.4)&&V.carry<capacity(s)){V.carry++;return;}
  if(collectNearbyPile()){notify('Collected product from your pallet drop-off.');return;}
  if(V.carry<capacity(s)){
@@ -927,6 +930,7 @@ function updatePrompt(){
  else if(doors.nearEntrance(V.x,V.z))
    msg=canOpenStore(s)?'E · Unlock the grand opening and slide open the doors':'E · You have to stock the building before opening';
  else if(checkout.nearest(V.x,V.z)>=0)msg='E · Check cashier terminal · Checkout belts active · Customer payments begin on opening';
+ else if(nearestWarehouseCrate(V.x,V.z,3))msg='BOXED WAREHOUSE STOCK · E collect inventory · U load nearby pallet jack';
  else if(nearby(DOCK.x,DOCK.z,5.0))msg='RECEIVING · E COLLECT · B BUILD · Z ROTATE FREE BELT DIRECTION · K CONNECT CLAW';
  else if(nearby(1.5,-7,4.0))msg='E · Speak with Mustache Mike · E or Close returns to mouse look';
  else if(nearby(PAY.x,PAY.customerZ,PAY.interactionRadius))msg='E · Collect '+centsText(s.pending)+' at the WALL-MOUNTED payroll window';
@@ -1279,8 +1283,8 @@ function showSaveOrigin(){
  const locationLabel=location.protocol+'//'+location.host;
  status.textContent='THIS BROWSER SAVE · '+locationLabel+' · '+s.stocked.toLocaleString()+' products stocked · '+totalRanks+' total upgrade ranks · '+centsText(s.money)+' cash. '+(!ORIGINAL_SAVE_DATA?'No previous saved game found at THIS address. Try the other local host/port options below.':'Loaded '+ORIGINAL_SAVE_SOURCE+' on this browser address.');
  const btn=$('devEnable');
- btn.textContent=DEV_MODE?'Refill developer cash to $100,000':'Enable $100,000 Developer Mode';
- $('devStatus').textContent=DEV_MODE?'Developer Mode ON · Refill this account to at least $100,000 whenever needed.':'Developer Mode OFF · Enable without losing existing shelf or skill progress.';
+ btn.textContent=DEV_MODE?'Refill developer cash to $1,000,000':'Enable $1,000,000 Developer Mode';
+ $('devStatus').textContent=DEV_MODE?'Developer Mode ON · Refill this account to at least $1,000,000 whenever needed.':'Developer Mode OFF · Enable without losing existing shelf or skill progress.';
 }
 // Only user-selected archived backups may replace an existing valid save.
 // This panel cannot access another browser or host+port, so it explicitly
@@ -1339,7 +1343,7 @@ $('devEnable').addEventListener('click',()=>{
  notify(s.money===previous?'Developer funds ready · '+centsText(s.money):'Developer account refilled to '+centsText(s.money));
 });
 $('play').addEventListener('click',resume);
-$('reset').addEventListener('click',e=>{e.stopPropagation();if(confirm('Reset the current game? This archives its previous save first. You can restore archived progress using Find saved backups.')){const old=localStorage.getItem(SAVE_KEY);if(validSave(old))archiveSave(old,'BEFORE USER RESET');localStorage.removeItem(SAVE_KEY);s=newState();if(DEV_MODE)s.money=500000;save();location.reload();}});
+$('reset').addEventListener('click',e=>{e.stopPropagation();if(confirm('Reset the current game? This archives its previous save first. You can restore archived progress using Find saved backups.')){const old=localStorage.getItem(SAVE_KEY);if(validSave(old))archiveSave(old,'BEFORE USER RESET');localStorage.removeItem(SAVE_KEY);s=newState();if(DEV_MODE)s.money=DEV_CASH_CENTS;save();location.reload();}});
 // Browser localStorage is isolated by host+port. Portable save files provide
 // deliberate, lossless transfer without clearing either browser origin.
 $('saveExport').addEventListener('click',()=>{
@@ -1396,11 +1400,42 @@ function changeDevCrab(mode){
  notify(mode==='on'?'DEV: GIANT CRAB SUMMONED':mode==='off'?'DEV: GIANT CRAB REMOVED · ATTACK CLOCKS PAUSED':'DEV: CRAB RETURNED TO NORMAL UNLOCK');
  return true;
 }
+// Trigger one authentic raid on the CURRENT floor, never all 15 floors.
+function previewDevCrabSmack(){
+ if(!DEV_MODE||ending)return null;
+ if(crabTamed(s)){notify('King of the Crab permanently prevents attacks.');return null;}
+ if(floorStocked(s,s.floor)===itemsPerFloor){notify('This floor is fully stocked. Raids affect unfinished floors only.');return null;}
+ setDeveloperCrab(s,'on');updateDevCrabControls();
+ let a=Math.max(0,Math.min(AISLES-1,Math.round((V.x-8)/10)));
+ let b=Math.max(2,Math.min(BAYS-3,Math.round((V.z-13)/2.65)));
+ // Aim at existing stocked shelves, never invent cargo for the demo.
+ let best=Infinity;
+ for(let aisle=0;aisle<AISLES;aisle++)for(let bay=2;bay<BAYS-2;bay++){
+  let occupied=false;
+  for(let side=0;side<2;side++)for(let tier=0;tier<TIERS;tier++)
+   if(s.fill[cellId(s.floor,aisle,side,bay,tier)]>0)occupied=true;
+  if(!occupied)continue;
+  const d=Math.hypot((aisle-a)*10,(bay-b)*2.65);
+  if(d<best){best=d;a=aisle;b=bay;}
+ }
+ const event=performCrabSwing(s,s.floor,a,b,true);
+ if(!event){notify('The crab cannot strike this floor right now.');return null;}
+ const patrol=s.crab.patrol[s.floor];
+ patrol.x=aisleX(a);patrol.z=bayZ(b);patrol.aisle=a;
+ patrol.targetAisle=a;patrol.targetZ=bayZ(b);patrol.roamTimer=4;
+ crabRiding=false;V.x=aisleX(a);V.z=Math.max(12,bayZ(b)-8);
+ V.y=0;V.vy=0;V.yaw=Math.PI;V.pitch=.06;
+ crabSwingEnds=performance.now()+3200;
+ buildWorld();save();uiUpdate();
+ notify('DEV CRAB SMACK · Aisle '+(a+1)+' · '+event.fallen+' items knocked down · '+event.robots.length+' robots wrecked'+(event.fallen===0?' · Stock shelves first to see falling inventory.':''));
+ return event;
+}
 if(DEV_MODE){
  $('devCrabPanel').hidden=false;
  $('devCrabAdd').addEventListener('click',()=>changeDevCrab('on'));
  $('devCrabRemove').addEventListener('click',()=>changeDevCrab('off'));
  $('devCrabAuto').addEventListener('click',()=>changeDevCrab('auto'));
+ $('devCrabSmack').addEventListener('click',previewDevCrabSmack);
  updateDevCrabControls();
 }
 
@@ -1455,6 +1490,7 @@ if(DEV_MODE){
   crabTest:{
    completeFloors(n=7){for(let f=0;f<Math.min(FLOORS,n);f++)for(let i=f*CELLS_PER_FLOOR;i<(f+1)*CELLS_PER_FLOOR;i++)s.fill[i]=SLOTS;s.stocked=s.fill.reduce((sum,n)=>sum+n,0);crabEnabled(s);buildWorld();return s.crab.unlocked;},
    advance(seconds){const events=advanceCrab(s,seconds,DEV_MODE);if(events.some(e=>e.floor===s.floor))buildWorld();return events;},
+   demoSmack(){return previewDevCrabSmack();},
    swing(f,a,b){const event=performCrabSwing(s,f,a,b,DEV_MODE);if(event?.floor===s.floor)buildWorld();return event;},
    spawn(){return changeDevCrab('on');},
    remove(){return changeDevCrab('off');},
