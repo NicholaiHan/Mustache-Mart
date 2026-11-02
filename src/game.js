@@ -1197,7 +1197,7 @@ window.addEventListener('keydown',e=>{
  if(DEV_MODE&&e.shiftKey&&['KeyJ','KeyK','KeyN'].includes(e.code)){
   e.preventDefault();changeDevCrab(e.code==='KeyJ'?'on':e.code==='KeyK'?'off':'auto');return;
  }
- if(e.code==='KeyG'){e.preventDefault();toggleCrabRide();return;}
+ if(e.code==='KeyG'){e.preventDefault();if(!e.repeat)toggleCrabRide();return;}
  if(crabRiding)return; // Equipment and stocking keys disabled on crab.
  // Mustache Mike is interacted with using E, not a click or Q shortcut.
  if(e.code==='KeyR'&&!s.pallet.driving&&!s.cart.mounted)openElevator();
