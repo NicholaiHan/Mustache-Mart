@@ -53,7 +53,10 @@ export const UPGRADES=[
 {id:'retailMargin',name:'Merchandise Markup',detail:'Earn +1¢ per 2 levels on every stocked item. Requires shelf premium.',base:1400,factor:2.25,max:8,category:'skills',branch:'Retail',requires:{shelfBonus:1}},
 {id:'robotCommission',name:'Robot Commission',detail:'Earn +1¢ for every robotic package stocked per rank. Requires Retail Markup Lv 1.',base:1800,factor:2.4,max:5,category:'skills',branch:'Retail',requires:{retailMargin:1}},
 {id:'cashback',name:'Supplier Rebates',detail:'Receive 2% of the purchase price back on equipment purchases per rank. Requires Retail Markup Lv 2.',base:2600,factor:2.0,max:5,category:'skills',branch:'Retail',requires:{retailMargin:2}},
-{id:'warehouseLogistics',name:'Supply Chain Planning',detail:'Raise pallet capacity by 4 pieces per rank. Requires pallet capacity upgrade.',base:3200,factor:2.1,max:6,category:'skills',branch:'Handling',requires:{palletCapacity:1}}
+{id:'warehouseLogistics',name:'Supply Chain Planning',detail:'Raise pallet capacity by 4 pieces per rank. Requires pallet capacity upgrade.',base:3200,factor:2.1,max:6,category:'skills',branch:'Handling',requires:{palletCapacity:1}},
+{id:'doubleJump',name:'Double Jump',detail:'Press Space again while airborne for a second jump. Requires Spring-Loaded Shoes.',base:600,factor:1,max:1,category:'skills',branch:'Handling',requires:{jump:1}},
+{id:'airControl',name:'Midair Control',detail:'Steer 12% faster in the air per rank; combine it with Double Jump for precision landings.',base:350,factor:1.65,max:4,category:'skills',branch:'Handling',requires:{doubleJump:1}},
+{id:'sprintTraining',name:'Sprint Training',detail:'Improve Shift-sprint speed by 12 percentage points per rank. Requires Warehouse Footwork Lv 2.',base:700,factor:1.8,max:5,category:'skills',branch:'Handling',requires:{courierStride:2}}
 ];
 export function cellId(f,a,side,bay,tier){return ((((f*AISLES+a)*2+side)*BAYS+bay)*TIERS+tier);}
 export function decode(id){const tier=id%TIERS;id=Math.floor(id/TIERS);const bay=id%BAYS;id=Math.floor(id/BAYS);const side=id%2;id=Math.floor(id/2);return {floor:Math.floor(id/AISLES),aisle:id%AISLES,side,bay,tier};}
@@ -230,6 +233,16 @@ export function acceptCoinFlip(s,event,randomValue=Math.random()){
  return {...entry.result,event};
 }
 export const capacity=s=>1+s.levels.capacity+2*(s.levels.carryHarness||0),walkSpeed=s=>3.3+s.levels.speed*.45+(s.levels.courierStride||0)*.22;
+// Pure player locomotion helpers keep input edge detection and platform rules in the game.
+export const playerMoveMultiplier=(s,sprinting=false,airborne=false)=>(sprinting?1.4+.12*(s.levels.sprintTraining||0):1)*(airborne?1+.12*(s.levels.airControl||0):1);
+export function tryPlayerJump(s,player){
+ if(!s.levels.jump)return false;
+ const grounded=player.y<=.001&&player.vy<=0;
+ if(grounded)player.jumpCount=0;
+ if(!grounded&&(!s.levels.doubleJump||(player.jumpCount||0)>=2))return false;
+ player.vy=5.4;player.jumpCount=(player.jumpCount||0)+1;
+ return true;
+}
 export const price=(u,l)=>Math.ceil(u.base*u.factor**l);
 export const skillAvailable=(s,u)=>!u.requires||Object.entries(u.requires).every(([id,level])=>(s.levels[id]||0)>=level);
 export function purchase(s,id){
