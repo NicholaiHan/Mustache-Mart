@@ -394,7 +394,7 @@ export function moveRobotFromMike(s,id,floor,aisle){
  // placing the ninth and every later stocker at the same location.
  const berth=residents.length;
  const bay=Math.max(2,Math.min(BAYS-1,29-Math.floor(berth/3)));
- const offset=((berth%3)-1)*.62;
+ const offset=[0,-.62,.62][berth%3]; // first worker stays on historic aisle center
  bot.floor=floor;bot.homeAisle=aisle;bot.aisle=aisle;
  bot.x=aisleX(aisle)+offset;bot.z=bayZ(bay);bot.placed=true;
  bot.target=-1;bot.acc=0;bot.liftY=0;bot.source=null;
