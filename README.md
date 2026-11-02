@@ -17,6 +17,15 @@ A first-person supermarket stocking and automation prototype with **15 huge floo
 - **Pillars integrated with shelves:** external supports have been pushed against the perimeter wall and tied into outer shelf backing, with collision positions updated. A former support overlapping the fire-exit doorway has been omitted.
 - Existing browser saves remain version 4; new skill ranks default to zero for old saves. Four batches of 30 automated scenarios cover sign alignment, jump progression, aerial/sprint scaling, and structural collision clearance.
 
+## Latest: Build 2026.11.01.11 — Physical robot platforms and reliable saves
+- Robots can **never stock the top shelf from a free-floating lift or tall manual ladder**. Buying Motorized Robot Ladder alone is not enough: place a Motorized Platform Ladder in the same aisle beside the target shelf bay, raise its deck near the top with Space, and dismount with F. A robot must move onto that physically present raised platform to stock the top shelf. A lowered, occupied, misplaced, or absent platform does not count.
+- **Double Jump now costs $300**, requires Spring-Loaded Shoes, and works by pressing Space a second time while airborne.
+- Removed the **Sprint Training** skill tree upgrade. Regular Shift sprint and Warehouse Footwork remain.
+- Employee of the Month's gold frame now uses continuous connected rectangular borders with joined corners on all 15 floors.
+- Saves now write **two verified local-browser copies** and store a timestamp. On startup the most recent valid main, mirrored or recovery copy is selected. Stale browser tabs cannot overwrite newer progress; a warning appears instead.
+- A **Save progress now** button and live save confirmation are on the title screen. Every exported backup contains its stocked-item count and unique timestamp in the filename, so an old file will be much harder to confuse with the newest export. The previous version-4 save format remains compatible.
+- **Important limitation:** saves are still local to each Chrome profile + exact host and port. An older save on `localhost:8011` cannot automatically be retrieved from `127.0.0.1:8000`. Use the same address and browser as before, or download/import a backup from the older origin. Do not click Reset to look for missing progress.
+
 ## Guaranteed latest-version setup (copy/paste for Mac)
 
 **Do not use an old downloaded `mustache-mart.zip`, old Electron app, or previously extracted folder.** The obsolete small ZIP has been removed from GitHub. The complete game is always in the live `main` branch archive.
@@ -35,11 +44,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.10** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.11** and the introduction must list the new cash registers, Mike, ladders and fire exit.
 3. **Development mode** (the `#dev` suffix) gives **at least $1,000,000** for testing. The title screen also has a **Refill developer cash to $1,000,000** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
 4. **Recovery:** Your skills and stocked shelves are saved by browser + exact host + port. The launcher now defaults to **8000**, where older saves are most likely. If you instead played on **8011**, run `PORT=8011 bash PLAY_LATEST_MAC.sh` and open `http://127.0.0.1:8011/#dev` in your original browser. Do not click Reset. Use **Download save backup** on the origin holding progress, then **Import save backup** on the origin you want to play from. The original save remains intact.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.10** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.11** is shown.
 
 ## Play on your MacBook
 
