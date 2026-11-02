@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {polishedTileTexture,matteWallTexture,productTexture,cartonTexture} from './textures.js';
 import {addPackedCarton,addInventoryPallet,cartonMaterials} from './carton-model.js';
-import {AISLES,BAYS,TIERS,SLOTS,CELLS_PER_FLOOR,DOCK,aisleX,bayZ,decode,floorLabel} from './rules.mjs';
+import {AISLES,BAYS,TIERS,SLOTS,CELLS_PER_FLOOR,DOCK,WAREHOUSE_CRATE_SOURCES,aisleX,bayZ,decode,floorLabel} from './rules.mjs';
 import {PAYROLL_LAYOUT as PAY} from './collision.mjs';
 // Architecture, walls, supermarket service counters, shelves, products.
 // The factory owns shelf rendering buffers so other systems never modify them directly.
@@ -782,16 +782,28 @@ function buildService(){
  // an orderly stockroom is tucked behind it, on the right-hand warehouse side.
  const storage=new THREE.Group();storage.name='receivingBackroomCartons';add(storage);
  const materials=cartonMaterials();
- // All decorative pallets are now assembled behind the receiving divider,
- // leaving the pickup pad and crosswalk unobstructed.
- for(const [column,x] of [12.4,15.2,18.0].entries())for(const [row,z] of [94.4,97.3].entries()){
-  const pallet=addInventoryPallet({round,parent:storage,materials,x,z,width:2.25,depth:2.1});
-  for(let level=0;level<3;level++)for(let side=0;side<2;side++){
+ // Collectible stock crates BESIDE the receiving desk use the original packed
+ // carton visual style; all supply systems share these exact physical locations.
+ for(const crate of WAREHOUSE_CRATE_SOURCES){
+  const pallet=addInventoryPallet({round,parent:storage,materials,
+   x:crate.x,z:crate.z,width:2.2,depth:2.07});
+  pallet.name='collectibleWarehouseCratePallet';pallet.userData.sourceId=crate.id;
+  for(let level=0;level<4;level++)for(let side=0;side<2;side++){
    const box=addPackedCarton({round,parent:pallet,materials,
-    x:(side? .55:-.55),y:.66+level*.69,z:(level%2?-.17:.17),
-    variant:column+row+level+side,scale:1});
-   box.rotation.y=(level%2?-.035:.035);
+    x:side?.54:-.54,y:.64+level*.67,z:level%2?-.12:.12,
+    variant:crate.id*4+level+side,scale:.98});
+   box.name='collectibleWarehouseCarton';box.rotation.y=level%2?-.025:.025;
   }
+ }
+ // Decorative boxes occupy the hidden desk-side stockroom, *behind* the
+ // pickup counter. They are deliberately not connected to the supply model.
+ const decor=new THREE.Group();decor.name='decorativeCartonsBehindWarehouseDesk';storage.add(decor);
+ for(const [column,x] of [-2.5,.7,4.3].entries()){
+  const pallet=addInventoryPallet({round,parent:decor,materials,x,z:98.9,width:1.55,depth:1.48});
+  pallet.name='decorativeWarehousePallet';
+  for(let level=0;level<2;level++)for(let side=0;side<2;side++)
+   addPackedCarton({round,parent:pallet,materials,x:side?.36:-.36,
+    y:.61+level*.65,z:0,variant:column+side+level,scale:.69});
  }
  const dockTerminal=round(.85,1.1,.52,'#7a8b8c');dockTerminal.position.set(3.7,.59,95.8);
  const dockScreen=round(.64,.43,.08,new THREE.MeshBasicMaterial({color:'#accfbd'}));dockScreen.position.set(3.7,.95,95.49);
