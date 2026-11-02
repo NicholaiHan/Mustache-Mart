@@ -411,7 +411,7 @@ test('new stage: 30 automatic robot dispatch, least-crowded fallback and Mike mo
  assert.match(env,/color:'#ade9ff'/,'glazing has clear sky-blue illumination');
  assert.match(env,/integratedDaylightWall/,'blue panes are now cut into structural wall segments');
  assert.match(game,/Move to chosen floor \/ aisle/,'Mike can relocate without manual placement');
- assert.match(game,/const DEV_CASH_CENTS=10_000_000/,'developer mode now grants $100,000');
+ assert.match(game,/const DEV_CASH_CENTS=100_000_000/,'developer mode now grants $1,000,000');
  simulate(i=>{
   const s=r.newState();s.floor=i%r.FLOORS;s.money=100000000;
   const ids=[];
@@ -976,9 +976,9 @@ test('elevator interface: 30 independent floor selectors preserve progress',()=>
   assert.equal(r.loadState(r.serialize(s)).stocked,1);
  });
 });
-test('developer budget and code separation: 30 $100k-credit and stable legacy-save checks',()=>{
+test('developer budget and code separation: 30 $1M-credit and stable legacy-save checks',()=>{
  const game=source('game.js');
- assert.match(game,/DEV_CASH_CENTS=10_000_000/);
+ assert.match(game,/DEV_CASH_CENTS=100_000_000/);
  assert.match(game,/Math\.max\(s\.money,DEV_CASH_CENTS\)/);
  assert.match(source('characters.js'),/createNaturalCrab/);
  assert.match(source('visual-proportions.js'),/export function restoreObjectProportions/);
@@ -987,8 +987,8 @@ test('developer budget and code separation: 30 $100k-credit and stable legacy-sa
   const s=r.newState();s.money=i*30000;
   const before=r.serialize(s),restored=r.loadState(before);
   assert.equal(restored.money,s.money,'developer refill must not rewrite save serialization');
-  const budget=Math.max(restored.money,10000000);
-  assert.equal(budget,10000000);
+  const budget=Math.max(restored.money,100000000);
+  assert.equal(budget,100000000);
   assert.equal(restored.levels.robot,0);
  });
 });
