@@ -497,6 +497,28 @@ const assert=require('node:assert/strict');
   const refund=await crabPage.evaluate(id=>window.__martTest.crabTest.scrap(id),scene.botId);
   assert.equal(refund,100,'destroyed $4 robot must return 25% scrap credit');
   assert.equal(await crabPage.evaluate(()=>window.__martTest.crabTest.status().wrecked.length),0);
+  const king=await crabPage.evaluate(()=>{
+   const t=window.__martTest;
+   t.setUpgrade('crabKing',1);
+   const p=t.crabRideStatus().patrol;
+   t.teleport(p.x,p.z);
+   const mounted=t.mountCrab();
+   const saddle=t.crabDetailStats();
+   const before=t.crabRideStatus();
+   const moved=t.steerCrab(1,0,.1);
+   const after=t.crabRideStatus();
+   const noRaid=t.crabTest.swing(7,3,12)===null;
+   const dismounted=t.mountCrab();
+   return {mounted,moved,noRaid,dismounted,before,after,saddle};
+  });
+  assert.equal(king.mounted,true,'G/crab rider action mounts when near');
+  assert.equal(king.moved,true,'crab rides under player steering');
+  assert.ok(king.after.patrol.z!==king.before.patrol.z||king.after.patrol.x!==king.before.patrol.x);
+  assert.equal(king.noRaid,true,'tamed crab never knocks products or robots');
+  assert.equal(king.dismounted,true,'rider dismount works');
+  assert.ok(king.saddle.components.naturalCrabShell>=1,'organic crab retains natural carapace');
+  console.log('PASS: King of Crab saddle, mount/steer/dismount and globally disabled destructive raids');
+
   console.log('PASS: seven-floor crab boss appears, knocks stock to floor, permanently wrecks robot, and enforces 25% scrap');
   await crabContext.close();
 
