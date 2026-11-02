@@ -3,7 +3,7 @@ import * as THREE from 'three';
 // Organic crab model. Render-only: combat, stocking, damage and saves are owned
 // by rules.mjs. Natural shell, articulated chitin legs and muscular claws use
 // shared materials, so refining the creature never changes game state.
-export function createNaturalCrab({getWorld}){
+export function createNaturalCrab({getWorld,tamed=false}){
  const root=new THREE.Group();
  root.name='megaRobotCrab'; // Retained historic scene identifier for dev QA.
  getWorld().add(root);
@@ -116,6 +116,87 @@ export function createNaturalCrab({getWorld}){
   }
   jaws.push(arm);
  }
+ // Menacing but biological: a tough asymmetrical cuticle, raised central
+ // ridge, rows of hooked spines, dark scar seams and breathing-gill folds.
+ // None of these pieces are metal, electrical, or motor-driven.
+ const bone=new THREE.MeshStandardMaterial({color:'#ecbf90',roughness:.9,metalness:0});
+ const blackShell=new THREE.MeshStandardMaterial({color:'#53231e',roughness:.94,metalness:0});
+ const teeth=new THREE.MeshStandardMaterial({color:'#f6d3aa',roughness:.8,metalness:0});
+ const amber=new THREE.MeshStandardMaterial({color:'#a26331',roughness:.71,metalness:0});
+ const spikeGeo=new THREE.ConeGeometry(1,1,9);
+ function spike(parent,name,x,y,z,length,radius,lean=0,mat=bone){
+  const piece=new THREE.Mesh(spikeGeo,mat);
+  piece.name=name;piece.position.set(x,y,z);
+  piece.scale.set(radius,length,radius);
+  piece.rotation.z=lean;parent.add(piece);return piece;
+ }
+ // Twin jagged ridgelines lift off the central shell with tactile contours.
+ for(const side of [-1,1])for(let i=0;i<12;i++){
+  const t=i/11,z=-1.74+t*3.36;
+  const x=side*(.78+Math.sin(t*Math.PI)*.71);
+  const height=.11+.18*Math.sin(t*Math.PI);
+  spike(root,'naturalCrabDorsalSpine',x,4.29+height*.46,z,
+   .24+height,.13+height*.12,side*.30,i%3===0?teeth:bone);
+  const scar=ellipsoid(root,'naturalCrabShellScar',blackShell,
+   x+side*.19,4.24-.12*Math.abs(z),z,.15,.032,.058);
+  scar.rotation.y=side*.33;
+ }
+ // Guard spikes and heavily toothed shell rim, like a large wild shore crab.
+ for(const side of [-1,1])for(let i=0;i<9;i++){
+  const z=-1.67+i*.42;
+  const rim=ellipsoid(root,'naturalCrabEdgeThorn',i%3===0?bone:rusty,
+   side*(2.68-.10*Math.abs(i-4)),3.74,z,.23,.13,.19);
+  rim.rotation.z=side*.35;
+  spike(root,'naturalCrabEdgeSpine',side*(2.76-.10*Math.abs(i-4)),3.9,z,
+   .37,.13,-side*.88,teeth);
+ }
+ // Segmented abdominal membrane, weathered under-shell and curved gill slits.
+ for(let i=0;i<8;i++){
+  const z=-1.49+i*.42;
+  ellipsoid(root,'naturalCrabAbdominalSegment',i%2?underside:pale,0,2.85,z,
+   1.76,.09,.17);
+  for(const side of [-1,1]){
+   const slit=ellipsoid(root,'naturalCrabGillSlit',blackShell,
+    side*1.95,3.10,z,.10,.042,.15);
+   slit.rotation.y=side*.25;
+  }
+ }
+ // Claw serrations, natural armor nodules, and large dark inner shears.
+ for(const arm of jaws){
+  const side=arm.position.x<0?-1:1;
+  for(let k=0;k<10;k++){
+   const z=-.25-k*.18;
+   ellipsoid(arm,'naturalCrabPincerNodule',k%3===0?bone:rusty,
+    side*(.81+.11*(k%3)),.10+((k%4)*.08),z,.14,.10,.18);
+  }
+  for(let k=0;k<5;k++){
+   const tine=spike(arm,'naturalCrabPincerSpike',side*(1.2+k*.19),.49,-.79+k*.10,
+    .25,.11,-side*.25,bone);
+  }
+ }
+ // Enlarged frontal mandibles and pointed guarding tusks flank the eyes.
+ for(const side of [-1,1]){
+  spike(root,'naturalCrabMandibleTusk',side*.76,3.04,-2.04,.64,.24,-side*.42,teeth);
+  const brow=ellipsoid(root,'naturalCrabHeavyBrow',blackShell,
+   side*1.45,4.28,-1.80,.47,.25,.21);
+  brow.rotation.z=-side*.19;
+ }
+ // A tamed crab gets a simple leather riding pad and rope grip, never
+ // robotic armor or an engine. Saddle is cosmetic; purchasing controls AI.
+ if(tamed){
+  const leather=new THREE.MeshStandardMaterial({color:'#514037',roughness:.93,metalness:0});
+  const rope=new THREE.MeshStandardMaterial({color:'#ad956d',roughness:.97,metalness:0});
+  const pad=ellipsoid(root,'crabKingRidingSaddle',leather,0,4.47,.40,1.24,.23,1.13);
+  pad.rotation.x=.05;
+  for(const side of [-1,1]){
+   const strap=ellipsoid(root,'crabKingRopeStrap',rope,side*1.11,4.32,.43,.075,.18,1.05);
+   strap.rotation.z=side*.09;
+  }
+  const handle=new THREE.Mesh(new THREE.TorusGeometry(.38,.057,8,22,Math.PI),rope);
+  handle.name='crabKingSaddleHandle';handle.rotation.x=Math.PI/2;
+  handle.position.set(0,4.80,-.23);root.add(handle);
+ }
+ root.userData.tamed=tamed;
  root.userData.legs=legs;root.userData.jaws=jaws;
  root.userData.warningLights=[]; // Living crab has no robotic warning LEDs.
  root.userData.organicCrab=true;
