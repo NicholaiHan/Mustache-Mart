@@ -72,28 +72,33 @@ export function createNaturalCrab({getWorld,tamed=false}){
   const z=-1.25+i*.86,hip=new THREE.Group();
   hip.name='naturalCrabWalkingLeg';hip.position.set(side*2.22,3.22,z);root.add(hip);
   ellipsoid(hip,'legCoxa',rusty,side*.13,0,0,.38,.27,.34);
-  const middle=[side*1.26,.13,(i-1.5)*.19];
-  const knee=[side*2.24,-.68,(i-1.5)*.22];
-  const toe=[side*2.53,-2.71,(i-1.5)*.24];
-  branch(hip,'legMerus',warm,[side*.12,0,0],middle,.31,.25);
-  ellipsoid(hip,'legJoint',joints,...middle,.28,.24,.25);
-  branch(hip,'legCarpus',shell,middle,knee,.25,.19);
-  ellipsoid(hip,'legKnee',rusty,...knee,.26,.24,.24);
-  branch(hip,'legDactylus',warm,knee,toe,.17,.075);
-  branch(hip,'livingCrabFoot',pale,toe,[side*2.60,-3.04,(i-1.5)*.24],.075,.018);
-  // Exoskeletal ridges follow the flexible upper leg instead of steel rods.
-  for(let r=0;r<3;r++){
-   const t=(r+1)/4;
-   const a=side*(.12+(1.26-.12)*t),y=.13*t,zr=(i-1.5)*.19*t;
-   const rib=ellipsoid(hip,'legCuticleRidge',rusty,a,y+.04,zr,.15,.1,.17);
-   rib.rotation.z=side*.12;
+  // True bent crab legs, with raised shoulder, wide elbow and thin walking tip.
+  const merusEnd=[side*1.11,.56,(i-1.5)*.19];
+  const elbow=[side*2.13,.23,(i-1.5)*.36];
+  const ankle=[side*2.60,-1.76,(i-1.5)*.43];
+  const foot=[side*2.69,-3.04,(i-1.5)*.45];
+  branch(hip,'legMerus',warm,[side*.12,0,0],merusEnd,.34,.28);
+  ellipsoid(hip,'legJoint',joints,...merusEnd,.30,.26,.29);
+  branch(hip,'legCarpus',shell,merusEnd,elbow,.27,.20);
+  ellipsoid(hip,'legKnee',rusty,...elbow,.26,.23,.23);
+  branch(hip,'legPropodus',warm,elbow,ankle,.17,.095);
+  ellipsoid(hip,'legAnkle',joints,...ankle,.125,.16,.14);
+  branch(hip,'legDactylus',pale,ankle,foot,.087,.017);
+  for(let rib=0;rib<3;rib++){
+   const t=(rib+1)/4;
+   const plate=ellipsoid(hip,'legCuticlePlate',rusty,
+    side*(.12+(1.11-.12)*t),.56*t,(i-1.5)*.19*t,.18,.075,.20);
+   plate.rotation.z=side*.22;
   }
-  legs.push({joint:hip,index:i,side});
+   legs.push({joint:hip,index:i,side});
  }
  const jaws=[];
  for(const side of [-1,1]){
   const arm=new THREE.Group();arm.name='livingCrabClaw';root.add(arm);
   arm.position.set(side*1.94,3.05,-1.39);
+  // A large crusher on the right, a narrow cutter on the left.
+  if(side===1){arm.scale.set(1.30,1.18,1.26);arm.userData.crusherClaw=true;}
+  else{arm.scale.set(.91,.92,.94);arm.userData.cutterClaw=true;}
   ellipsoid(arm,'clawShoulder',rusty,side*.13,0,0,.46,.42,.45);
   branch(arm,'clawArm',warm,[side*.11,0,0],[side*1.24,-.15,-.72],.41,.32);
   ellipsoid(arm,'clawPalm',shell,side*1.45,-.15,-.95,.91,.52,.71);
@@ -117,38 +122,24 @@ export function createNaturalCrab({getWorld,tamed=false}){
   jaws.push(arm);
  }
  // Menacing but biological: a tough asymmetrical cuticle, raised central
- // ridge, rows of hooked spines, dark scar seams and breathing-gill folds.
- // None of these pieces are metal, electrical, or motor-driven.
+ // Smooth, rounded carapace ridges replace ALL sharp dorsal/edge spikes.
  const bone=new THREE.MeshStandardMaterial({color:'#ecbf90',roughness:.9,metalness:0});
  const blackShell=new THREE.MeshStandardMaterial({color:'#53231e',roughness:.94,metalness:0});
- const teeth=new THREE.MeshStandardMaterial({color:'#f6d3aa',roughness:.8,metalness:0});
  const amber=new THREE.MeshStandardMaterial({color:'#a26331',roughness:.71,metalness:0});
- const spikeGeo=new THREE.ConeGeometry(1,1,9);
- function spike(parent,name,x,y,z,length,radius,lean=0,mat=bone){
-  const piece=new THREE.Mesh(spikeGeo,mat);
-  piece.name=name;piece.position.set(x,y,z);
-  piece.scale.set(radius,length,radius);
-  piece.rotation.z=lean;parent.add(piece);return piece;
- }
- // Twin jagged ridgelines lift off the central shell with tactile contours.
- for(const side of [-1,1])for(let i=0;i<12;i++){
-  const t=i/11,z=-1.74+t*3.36;
-  const x=side*(.78+Math.sin(t*Math.PI)*.71);
-  const height=.11+.18*Math.sin(t*Math.PI);
-  spike(root,'naturalCrabDorsalSpine',x,4.29+height*.46,z,
-   .24+height,.13+height*.12,side*.30,i%3===0?teeth:bone);
+ for(const side of [-1,1])for(let i=0;i<10;i++){
+  const t=i/9,z=-1.68+t*3.32,x=side*(.8+Math.sin(t*Math.PI)*.7);
+  const ridge=ellipsoid(root,'naturalCrabRoundedShellRidge',i%3===0?amber:rusty,
+   x,4.28-.07*Math.abs(z),z,.17,.047,.26);
+  ridge.rotation.y=side*.23;
   const scar=ellipsoid(root,'naturalCrabShellScar',blackShell,
-   x+side*.19,4.24-.12*Math.abs(z),z,.15,.032,.058);
-  scar.rotation.y=side*.33;
+   x+side*.18,4.22-.13*Math.abs(z),z,.13,.025,.06);
+  scar.rotation.y=side*.30;
  }
- // Guard spikes and heavily toothed shell rim, like a large wild shore crab.
  for(const side of [-1,1])for(let i=0;i<9;i++){
   const z=-1.67+i*.42;
-  const rim=ellipsoid(root,'naturalCrabEdgeThorn',i%3===0?bone:rusty,
-   side*(2.68-.10*Math.abs(i-4)),3.74,z,.23,.13,.19);
-  rim.rotation.z=side*.35;
-  spike(root,'naturalCrabEdgeSpine',side*(2.76-.10*Math.abs(i-4)),3.9,z,
-   .37,.13,-side*.88,teeth);
+  const rim=ellipsoid(root,'naturalCrabRoundedEdge',i%3===0?bone:rusty,
+   side*(2.68-.10*Math.abs(i-4)),3.72,z,.24,.095,.23);
+  rim.rotation.z=side*.12;
  }
  // Segmented abdominal membrane, weathered under-shell and curved gill slits.
  for(let i=0;i<8;i++){
@@ -161,7 +152,7 @@ export function createNaturalCrab({getWorld,tamed=false}){
    slit.rotation.y=side*.25;
   }
  }
- // Claw serrations, natural armor nodules, and large dark inner shears.
+ // Rounded pincer grips and low knuckles replace claw spikes and tusks.
  for(const arm of jaws){
   const side=arm.position.x<0?-1:1;
   for(let k=0;k<10;k++){
@@ -170,13 +161,12 @@ export function createNaturalCrab({getWorld,tamed=false}){
     side*(.81+.11*(k%3)),.10+((k%4)*.08),z,.14,.10,.18);
   }
   for(let k=0;k<5;k++){
-   const tine=spike(arm,'naturalCrabPincerSpike',side*(1.2+k*.19),.49,-.79+k*.10,
-    .25,.11,-side*.25,bone);
+   ellipsoid(arm,'naturalCrabPincerGrippingPad',bone,
+    side*(1.2+k*.19),.48,-.79+k*.10,.13,.055,.15);
   }
  }
- // Enlarged frontal mandibles and pointed guarding tusks flank the eyes.
  for(const side of [-1,1]){
-  spike(root,'naturalCrabMandibleTusk',side*.76,3.04,-2.04,.64,.24,-side*.42,teeth);
+  ellipsoid(root,'naturalCrabMandiblePlate',bone,side*.76,3.04,-2.04,.23,.32,.12);
   const brow=ellipsoid(root,'naturalCrabHeavyBrow',blackShell,
    side*1.45,4.28,-1.80,.47,.25,.21);
   brow.rotation.z=-side*.19;
