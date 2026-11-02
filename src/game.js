@@ -14,7 +14,7 @@ import {
  FLOORS,AISLES,BAYS,TIERS,SLOTS,CENTS,DOCK,nearestWarehouseCrate,CELLS_PER_FLOOR,TOTAL_ITEMS,SAVE_KEY,MAP_WIDTH_MULTIPLIER,MAP_WIDTH_CENTER,toWideX,fromWideX,
  aisleX,bayZ,floorLabel,centsText,UPGRADES,cellId,decode,loadState,serialize,
  capacity,walkSpeed,playerMoveMultiplier,tryPlayerJump,price,skillAvailable,purchase,autoPlaceRobot,moveRobotFromMike,chooseRobotSpawnAisle,refreshCoinOffers,coinFlipStake,markCoinOfferSeen,declineCoinFlip,acceptCoinFlip,COIN_FLIP_FIRST_STAKE,payOut,place,earnings,buildBelt,beltCost,incomplete,
- floorStocked,itemsPerFloor,remaining,canOpenStore,FREE_BELT_PITCH,FREE_BELT_VECTORS,snapFreeCoordinate,freeBeltAt,placeFreeBelt,turnFreeBelt,takeFreeBelt,sellFreeBelt,deployFreeClaw,freeBeltConnected,completedFloors,crabEnabled,crabTamed,moveTamedCrab,setDeveloperCrab,advanceCrab,performCrabSwing,CRAB_UNLOCK_FLOORS,CRAB_ATTACK_SECONDS,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
+ floorStocked,itemsPerFloor,remaining,canOpenStore,FREE_BELT_PITCH,FREE_BELT_VECTORS,snapFreeCoordinate,freeBeltAt,placeFreeBelt,turnFreeBelt,takeFreeBelt,sellFreeBelt,deployFreeClaw,freeBeltConnected,completedFloors,crabEnabled,crabTamed,moveTamedCrab,setDeveloperCrab,advanceCrab,performCrabSwing,CRAB_UNLOCK_FLOORS,CRAB_ATTACK_SECONDS,botStep,cartStep,drivePlatform,liftPlatform,platformsOnFloor,closestPlatform,selectPlatform,loadPallet,unloadPallet,drivePallet,palletCapacity,assignRobot,setRobotAisle,repairRobot,resetRobotRepair,repairRange,ROBOT_REPAIR_SECONDS,robotPlatformFor,sellRobot,deployLadder,sellLadder,sellBelt,sellClaw,advanceBelts,takeBelt,beltInput,clawReceivingSegment,beltPickupSegment,BELT_CAPACITY,BELT_MOVE_SECONDS,deployClaw,rotateBelt,nearestClawSource,takePile
 } from './rules.mjs';
 
 const $=id=>document.getElementById(id);
@@ -628,7 +628,7 @@ function openShop(){
 // from UPGRADES and the production purchase() function; save data is unchanged.
 const SKILL_LAYOUT={
  carryHarness:[0,205],courierStride:[0,424],warehouseLogistics:[0,643],
- doubleJump:[0,915],airControl:[0,1100],sprintTraining:[0,1280],
+ doubleJump:[0,915],airControl:[0,1100],
  warehouseFocus:[1,205],robotEfficiency:[1,350],clawCycle:[1,630],beltMotor:[1,790],
  repairTraining:[2,205],robotReliability:[2,350],crabKing:[2,550],
  retailMargin:[3,205],robotCommission:[3,350],cashback:[3,500]
@@ -990,11 +990,14 @@ function syncRobots(){
    if(!robotModels.has(r.id))robotModels.set(r.id,botAppearance(r));
    const obj=robotModels.get(r.id);obj.visible=true;
    if(r.wrecked){obj.position.set(r.x,0,r.z);continue;}
-   obj.position.set(r.x,(s.levels.robotLift===1?0:Math.min(5,r.liftY||0))+.04*Math.sin(performance.now()/230+r.id),r.z);
+   const cell=r.phase==='shelf'&&r.target>=0?decode(r.target):null;
+   const platform=cell?.tier===3?robotPlatformFor(s,r.target):null;
+   const aboard=platform&&Math.hypot(r.x-(platform.x??aisleX(platform.aisle)),r.z-platform.z)<.38;
+   obj.position.set(r.x,(aboard?platform.liftHeight+1.3:s.levels.robotLift===1?0:Math.min(5,r.liftY||0))+.04*Math.sin(performance.now()/230+r.id),r.z);
    const body=obj.getObjectByName('liftBody');
-   if(body)body.position.y=s.levels.robotLift===1?r.liftY||0:0;
+   if(body)body.position.y=aboard?0:s.levels.robotLift===1?r.liftY||0:0;
    const jack=obj.getObjectByName('liftingJack');
-   if(jack){const height=s.levels.robotLift===1?r.liftY||0:0;jack.scale.y=1+height;jack.position.y=.98+height*.5;}
+   if(jack){const height=aboard?0:s.levels.robotLift===1?r.liftY||0:0;jack.scale.y=1+height;jack.position.y=.98+height*.5;}
    const crate=obj.getObjectByName('crate');if(crate)crate.visible=r.carry>0;
    const beacon=obj.getObjectByName('repairBeacon');
    if(beacon)beacon.visible=!!r.broken;
