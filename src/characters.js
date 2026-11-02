@@ -93,13 +93,34 @@ function wreckedBotAppearance(robot){
   const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.17,12),dark);
   wheel.rotation.z=Math.PI/2;wheel.position.set(side*.48,.24,.3);root.add(wheel);
  }
+ // Smaller, finer exposed recoil spring: 11 visible brushed-steel turns,
+ // slight organic lean, precise caps and retaining bolts instead of a huge tube.
+ const springWire=equipmentMaterial('#c8d4d6',.88,.19);
+ const springCollar=equipmentMaterial('#737f84',.82,.25);
  const springPoints=[];
- for(let i=0;i<=100;i++){
-  const t=i/100,angle=t*13*Math.PI*2;
-  springPoints.push(new THREE.Vector3(Math.cos(angle)*.23,1.2+t*1.62,Math.sin(angle)*.23));
+ for(let i=0;i<=176;i++){
+  const t=i/176,angle=t*11*Math.PI*2,radius=.17+.013*Math.sin(t*Math.PI);
+  springPoints.push(new THREE.Vector3(
+   Math.cos(angle)*radius+t*.07,1.21+t*1.34,Math.sin(angle)*radius-t*.045
+  ));
  }
- const spring=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(springPoints),240,.078,7,false),steel);
- spring.name='comedicBodySpring';root.add(spring);
+ const spring=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(springPoints),330,.049,10,false),springWire);
+ spring.name='comedicBodySpring';spring.userData={turns:11,wireRadius:.049,coilRadius:.17,height:1.34};
+ root.add(spring);
+ for(const [y,x,z] of [[1.19,0,0],[2.58,.07,-.045]]){
+  const socket=new THREE.Mesh(new THREE.CylinderGeometry(.245,.245,.11,18),springCollar);
+  socket.name='damagedSpringMountingCollar';socket.position.set(x,y,z);root.add(socket);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(.218,.019,7,22),steel);
+  rim.name='springCollarRim';rim.rotation.x=Math.PI/2;rim.position.set(x,y+.065,z);root.add(rim);
+  for(const dx of [-.14,.14]){
+   const pin=new THREE.Mesh(new THREE.CylinderGeometry(.023,.023,.075,8),rust);
+   pin.name='springMountRetainingPin';pin.position.set(x+dx,y+.073,z);root.add(pin);
+  }
+ }
+ // Thin internal guide spindle makes the scrapped coil look engineered rather
+ // than a thick unanchored cartoon spring.
+ const guide=round(.062,1.38,.062,springCollar,root);
+ guide.name='damagedRobotSpringGuide';guide.position.set(.035,1.89,-.022);
  const head=new THREE.Group();head.name='detachedRobotHead';head.position.set(.82,.40,-.83);head.rotation.set(.15,.33,-.62);root.add(head);
  const casing=round(.76,.55,.68,shell,head);
  const visor=round(.65,.29,.08,dark,head);visor.position.set(0,.07,-.37);
