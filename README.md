@@ -2,6 +2,14 @@
 
 A first-person supermarket stocking and automation prototype with **15 huge floors, 144,000 products, industrial-style metal racks, and a more realistic, muted supermarket interior**. Built in Three.js. Mac users can play it safely through a local browser rather than the previously blocked Electron runtime.
 
+## Latest: Build 2026.11.01.9 — Stockroom access and interactive crab raid testing
+- Removed the eight leftover collision-only stock pallets at the back of the store; only visible warehouse furniture remains solid.
+- Created two real boxed inventory pallets beside Warehouse Pickup using the original wooden pallet, cardboard, tape, label and barcode models. Collect products from them by hand (**E**), load a nearby pallet jack (**U**), or let stocker robots and item claws acquire cartons automatically. Bots approach the front of the pallets instead of walking inside them.
+- Placed separate matching decorative carton stacks **behind** the warehouse pickup desk. These are visual props, not hidden inventory sources.
+- Opt-in **#dev** mode now starts/refills at **$1,000,000** without overwriting any larger saved wallet or previously earned shelf/skill progress.
+- Dev crab controls now include **Test crab smack (20m)**. Clicking it demonstrates one real immediate attack **on the current unfinished floor only**. The camera moves near the swing. Stocked shelves spill into collectable crates and nearby robots may be destroyed; existing empty shelves do not magically create products. The permanent King of the Crab upgrade blocks all real damage as before.
+- Four new batches of 30 deterministic tests cover warehouse collision, player/jack/bot/claw stock sourcing, decorative location and dev raid logic. The normal save format remains unchanged.
+
 ## Guaranteed latest-version setup (copy/paste for Mac)
 
 **Do not use an old downloaded `mustache-mart.zip`, old Electron app, or previously extracted folder.** The obsolete small ZIP has been removed from GitHub. The complete game is always in the live `main` branch archive.
@@ -20,11 +28,11 @@ cd Mustache-Mart-main || exit
 bash PLAY_LATEST_MAC.sh
 ```
 
-2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.8** and the introduction must list the new cash registers, Mike, ladders and fire exit.
-3. **Development mode** (the `#dev` suffix) gives **at least $5,000** for testing. The title screen also has a **Refill developer cash to $5,000** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
+2. Open **http://127.0.0.1:8000/#dev** in the SAME browser used previously. The title screen and the upper-right HUD must show **UPDATED BUILD · 2026.11.01.9** and the introduction must list the new cash registers, Mike, ladders and fire exit.
+3. **Development mode** (the `#dev` suffix) gives **at least $1,000,000** for testing. The title screen also has a **Refill developer cash to $1,000,000** button, and a save-status panel showing how many stocked products and skill ranks were actually loaded on that browser address. Stop the server with **Control+C**.
 4. **Recovery:** Your skills and stocked shelves are saved by browser + exact host + port. The launcher now defaults to **8000**, where older saves are most likely. If you instead played on **8011**, run `PORT=8011 bash PLAY_LATEST_MAC.sh` and open `http://127.0.0.1:8011/#dev` in your original browser. Do not click Reset. Use **Download save backup** on the origin holding progress, then **Import save backup** on the origin you want to play from. The original save remains intact.
 
-If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.8** is shown.
+If the Terminal version line or the title-screen badge is absent, you launched a different/older copy. Do not proceed until **UPDATED BUILD · 2026.11.01.9** is shown.
 
 ## Play on your MacBook
 
@@ -122,7 +130,7 @@ This is still a procedural browser game rather than a fully modeled commercial s
 - **The sole red FIRE EXIT remains interactive with E on the Floor 1 back-left wall, around x=-9.5, z=85.** Opening it reveals brickwork, not a route outdoors.
 - **Ladders are physically climbable:** stand near a placed ladder, press **E or C** to grab it, hold W/S to climb or descend (extension unlocks the 3¢ upper band), and press C to release. L still deploys an owned ladder, X sells a deployed ladder for half its purchase cost.
 - **Actual inventory conveyors** continue to transport and accumulate stock; pick delivered items up with E or let robots choose a nearby supplied belt.
-- **Explicit development mode gives at least $5,000 in your account** at startup: open `http://127.0.0.1:8000/#dev` (or the older `#rich` alias). This means **500,000 cents**, applies only when you deliberately use a development URL, and never reduces an already higher saved balance. It does not affect normal mode.
+- **Explicit development mode gives at least $1,000,000 in your account** at startup: open `http://127.0.0.1:8000/#dev` (or the older `#rich` alias). This means **100,000,000 cents**, applies only when you deliberately use a development URL, and never reduces an already higher saved balance. It does not affect normal mode.
 - **Four cashier lane colliders are on Floor 1 only**; they do not obstruct higher levels.
 
 ### Verification
@@ -186,14 +194,14 @@ The core logistic regression includes **30 randomized congestion simulations** w
 - **Skill tree**: Twelve skill nodes arranged in four navigable branches with visible prerequisite connections. Foundation prerequisites link to the original Equipment or Economy tab. Locked, ready, insufficient-funds and completed states use distinct styling. Purchase rules, levels and money are unchanged.
 - **Equipment & automation**: Modernized product cards with upgrade progress, prices, readiness and purchase feedback. Robot and claw management remain accessible. **Economy contracts keep their existing simple layout.**
 - **Transfer your progress between local ports**: The introduction has Download save backup and Import save backup. To recover an old save on port 8000, start this same updated folder with `PORT=8000 bash PLAY_LATEST_MAC.sh` (stop any existing server on 8000 first), open `http://127.0.0.1:8000/#dev` in your original browser and choose **Download save backup**. Then restart normally with `bash PLAY_LATEST_MAC.sh`, open `http://127.0.0.1:8011/#dev`, and use **Import save backup**. This replaces only the destination port's save after confirmation. The original port's save and downloaded backup are retained.
-- The `#dev` suffix gives at least $5,000 for testing. No in-game money or progress is reset by the visual upgrade.
+- The `#dev` suffix gives at least $1,000,000 for testing. No in-game money or progress is reset by the visual upgrade.
 
 
 ## Build 2026.11.01.4 — Fire exit detail and save safety
 
 - **FIRE EXIT**: Rebuilt the inward-swinging back-left red steel door with structural framing, painted recessed panels, push-to-open panic bar, raised metal hardware, smoke seal, kick plate, illuminated emergency lamp and deeper brick alcove. The masonry's brick faces now sit in front of the opaque mortar backing, fixing a layering issue that hid brick detail. The brick obstruction still blocks any escape and the entrance completion rules are unchanged.
 - **Save origin**: The launcher defaults to **port 8000** instead of 8011, matching the original local save URL. Existing saves on 8011 are not deleted; use the explicit PORT override to view them. The opening screen displays your loaded stocked items and upgrade ranks, so an empty save on the wrong address is immediately apparent.
-- **Developer mode**: The title screen has an **Enable $500 Developer Mode** button even when the URL lacks #dev; inside developer mode the button becomes **Refill developer cash to $500**, which tops up the balance without modifying skill levels, shelf progress or other save fields.
+- **Developer mode**: The title screen has an **Enable $1,000,000 Developer Mode** button even when the URL lacks #dev; inside developer mode the button becomes **Refill developer cash to $1,000,000**, which tops up the balance without modifying skill levels, shelf progress or other save fields.
 
 
 ## Build 2026.11.01.4 — Clear aisle signage, multiple mobile ladders and hold-to-repair
