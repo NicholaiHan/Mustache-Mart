@@ -40,8 +40,10 @@ for(const x of [32,57,70,83]){
 for(const crate of WAREHOUSE_CRATE_SOURCES){
  boxes.push({name:'Warehouse inventory pallet '+crate.id,x:crate.x,z:crate.z,hx:1.11,hz:1.05});
 }
-for(let z=6;z<98;z+=20)for(const x of [-7,101]){
- boxes.push({name:'Structural column',x,z,hx:.5,hz:.5});
+for(let z=6;z<98;z+=20)for(const x of [-9.44,102.48]){
+ // The fire exit at z=85 must never be obstructed by a phantom upright.
+ if(x<0&&z===86)continue;
+ boxes.push({name:'Structural wall column',x,z,hx:.29,hz:.29});
 }
 export function getSolidObstacles(){return boxes.map(b=>({...b}));}
 const overlaps=(x,z,b,r)=>Math.abs(x-b.x)<b.hx+r&&Math.abs(z-b.z)<b.hz+r;
