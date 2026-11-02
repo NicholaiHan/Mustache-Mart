@@ -517,6 +517,7 @@ const assert=require('node:assert/strict');
   assert.equal(king.noRaid,true,'tamed crab never knocks products or robots');
   assert.equal(king.dismounted,true,'rider dismount works');
   assert.ok(king.saddle.components.naturalCrabShell>=1,'organic crab retains natural carapace');
+  assert.equal(king.saddle.components.crabKingRidingSaddle,1,'buying King adds a leather riding saddle');
   console.log('PASS: King of Crab saddle, mount/steer/dismount and globally disabled destructive raids');
 
   console.log('PASS: seven-floor crab boss appears, knocks stock to floor, permanently wrecks robot, and enforces 25% scrap');
