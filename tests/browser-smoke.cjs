@@ -230,7 +230,7 @@ const assert=require('node:assert/strict');
   assert.equal(snap.pending,1);
   const centering=await page.evaluate(()=>window.__martTest.visualChecklist().firstProduct);
   assert.ok(centering,'stocked inventory should be present in the 3D scene');
-  assert.ok(Math.abs(centering.x-4.6)<.01,'stocked product must be centered on its first shelf, not at the edge');
+  assert.ok(Math.abs(centering.x-11.4)<.01,'stocked product must be centered on the right-facing shelf at x=11.4, not offset toward its lip');
   assert.equal(snap.carry,0);
   console.log('PASS: rear warehouse pickup and reachable lower-rack 1-cent payout');
 
