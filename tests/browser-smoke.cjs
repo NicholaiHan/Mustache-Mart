@@ -54,6 +54,17 @@ const assert=require('node:assert/strict');
   assert.equal(await page.locator('#devBanner').isVisible(),true);
   const build=await page.evaluate(async()=>await (await fetch('./build.json')).json());
   assert.equal(build.version,'2026.11.01.12');
+  // Inspect the live scene graph: static tests alone did not catch the
+  // previously invisible or unrendered geometry updates.
+  const visual=await page.evaluate(()=>window.__martTest.visualChecklist());
+  assert.equal(visual.portalBeam,1,'portal horizontal connector is physically present in the 3D scene');
+  assert.equal(visual.portalJoints,2,'both portal uprights connect to the lower beam');
+  assert.equal(visual.inventoryPallets,2,'usable rear stock crates render');
+  assert.equal(visual.decorPallets,3,'far-right decorative pallets render');
+  assert.equal(visual.palletJack,1,'updated pallet jack renders');
+  assert.equal(visual.wideForks,2,'wider pallet jack forks are visible');
+  assert.equal(visual.jackHousing,1,'full-width pallet jack housing is rendered');
+  console.log('PASS: live Supply Portal, warehouse pallets and proportional jack are present in the 3D scene');
   console.log('PASS: game displays correct edition and $1,000,000 developer mode banner');
 
   // Each floor must have exactly one actual framed painting with its own
@@ -177,6 +188,8 @@ const assert=require('node:assert/strict');
   assert.equal(detail.components.naturalCrabPincerSpike||0,0,'claws must have NO sharp decorative spikes');
   assert.equal(detail.components.naturalCrabMandibleTusk||0,0,'no decorative facial tusks');
   assert.equal(detail.components.legPropodus,8,'eight crab legs have extra articulated segments');
+  assert.equal(detail.clawScales.length,2);
+  assert.ok(detail.clawScales[1].x>detail.clawScales[0].x*1.3,'crusher claw must be visibly bigger than the cutter');
   assert.ok(detail.components.naturalCrabShellScar>=20,'new shell has rugged scars');
   console.log('PASS: organic crab anatomy, living eyes, shell freckles and jointed natural legs/claws');
   const canopy=await page.evaluate(()=>window.__martTest.architectureStats());
@@ -215,6 +228,9 @@ const assert=require('node:assert/strict');
   snap=await page.evaluate(()=>window.__martTest.snapshot());
   assert.equal(snap.stocked,1);
   assert.equal(snap.pending,1);
+  const centering=await page.evaluate(()=>window.__martTest.visualChecklist().firstProduct);
+  assert.ok(centering,'stocked inventory should be present in the 3D scene');
+  assert.ok(Math.abs(centering.x-4.6)<.01,'stocked product must be centered on its first shelf, not at the edge');
   assert.equal(snap.carry,0);
   console.log('PASS: rear warehouse pickup and reachable lower-rack 1-cent payout');
 
