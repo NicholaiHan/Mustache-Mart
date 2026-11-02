@@ -848,7 +848,7 @@ test('detailed crab upgrade: 30 organic motion, one-time raids and existing save
   assert.ok(code.includes(name),'missing natural anatomy '+name);
  }
  assert.doesNotMatch(code,/crabHydraulicCylinder|crabArmorRivets|crabAnimatedWarningBeacon/);
- assert.match(game,/crabModel\.scale\.set\(\.36\/MAP_WIDTH_MULTIPLIER,\.68,\.68\)/);
+ assert.ok(game.includes('crabModel.scale.set(.52/MAP_WIDTH_MULTIPLIER,.72,.72)'));
  simulate(i=>{
   const state=r.newState();state.money=10000+i*7;
   const floor=i%r.FLOORS;state.floor=floor;
