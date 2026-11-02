@@ -32,6 +32,16 @@ A first-person supermarket stocking and automation prototype with **15 huge floo
 - **Crab-destroyed robot spring refined:** the exposed metal spring is shorter and narrower, with eleven finely modeled coils, upper/lower mounting collars, bright rims, retaining pins, and a slender guide inside. Its permanent scrapping rules, salvage value, and saved robot state remain unchanged.
 - **Regression coverage:** added three batches of thirty deterministic simulation checks for the beam connection, crate/collision/pickup organization, and robot-wreck visuals and economy. Keep using the same browser and local URL for existing saves.
 
+## Build 2026.11.01.13 — Actual visual corrections and launch verification
+- **Crab:** removed all decorative shell, claw and facial spikes; made the right crusher claw meaningfully larger than the left cutter claw; replaced straight tube-like legs with eight bent, segmented limbs and narrow feet.
+- **Wall:** removed the unwanted **SAFETY FIRST** sign.
+- **Pallet jack:** wider forks, stronger chassis, proportional wheels, cargo tray and handle, while keeping the old inventory and driving rules.
+- **Shelf goods:** center every placed product on the actual shelf board and lower its base to rest on the shelf surface, instead of centering it near the rack lip.
+- **Supply Portal and rear inventory:** connected bottom beam and two upright joints render in the scene, and inventory pallets are arranged in the actual back-right corner at X 78 and 83.8, with three neat decorative pallets near X 89–96.
+- **Tests:** static tests cover removed spikes, claw asymmetry, crab leg segmentation, signs, jack proportions, shelf placement and warehouse locations. Browser checks now inspect actual scene objects and a real placed product, rather than assuming a commit guarantees correct visuals.
+
+**If you do not see these changes:** the running game is an earlier LOCAL folder or an older server instance. The only trustworthy check is the exact build chip in the opening screen or the live `/build.json` from the server. To launch the latest code, stop the running server with **Control+C**, download the latest `main` ZIP into a new folder, then run `PORT=8000 bash PLAY_LATEST_MAC.sh` from that fresh folder. Keep the exact same browser, host and port to preserve saved progress.
+
 ## Guaranteed latest-version setup (copy/paste for Mac)
 
 **Do not use an old downloaded `mustache-mart.zip`, old Electron app, or previously extracted folder.** The obsolete small ZIP has been removed from GitHub. The complete game is always in the live `main` branch archive.
