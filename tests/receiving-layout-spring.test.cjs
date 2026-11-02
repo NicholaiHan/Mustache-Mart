@@ -28,7 +28,7 @@ test('Supply Portal: 30 joined pillar, lower crossbeam and complete sign alignme
  });
 });
 
-test('Right-rear organized inventory: 30 crate accessibility, decoration, collisions and robot sourcing',()=>{
+test('Compact portal-side organized inventory: 30 crate accessibility, decoration, collisions and robot sourcing',()=>{
  const env=source('environment.js');
  const layout=r.WAREHOUSE_STORAGE_LAYOUT,crates=r.WAREHOUSE_CRATE_SOURCES;
  assert.equal(crates.length,2);
@@ -38,7 +38,7 @@ test('Right-rear organized inventory: 30 crate accessibility, decoration, collis
  assert.match(env,/WAREHOUSE_STORAGE_LAYOUT\.decoration\.entries\(\)/);
  assert.match(env,/collectibleWarehouseCratePallet/);
  assert.match(env,/decorativeWarehousePallet/);
- assert.ok(crates.every(c=>c.x>18),'usable crates are shifted right of the main portal');
+ assert.ok(crates.every(c=>c.x>4&&c.x<15),'usable crates are brought close to the fire-exit-side Supply Portal');
  assert.ok(crates[1].x-crates[0].x>4,'stock crates have a full walking gap');
  assert.ok(layout.decoration.every(p=>p.x>crates.at(-1).x),'decoration is in the farthest right-hand row');
  assert.ok(layout.decoration.every(p=>p.z>crates[0].z),'decoration is behind the active stock');
