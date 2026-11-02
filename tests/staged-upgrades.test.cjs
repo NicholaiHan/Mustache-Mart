@@ -196,7 +196,7 @@ test('visual stage C: 30 detailed wall and doorway clearance simulations',()=>{
  assert.match(env,/const vent=round\(\.105,1\.36,2\.9/);
  assert.match(env,/const spine=round\(\.07,3\.30/);
  assert.match(env,/const diffuse=round\(\.055,\.10,3\.35/);
- assert.match(env,/if\(side==='LEFT'&&s\.floor===0&&z>80&&z<90\)continue/);
+ assert.match(env,/if\(side==='LEFT'&&s\.floor===0&&Math\.abs\(z-85\)<4\.4\)continue/);
  assert.doesNotMatch(env,/panel\.position\.set\(x,6\.62,-12\.31\)/,'gray front-wall faux windows removed');
  simulate(i=>{
   const s=r.newState();s.floor=i%r.FLOORS;s.money=250;
