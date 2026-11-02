@@ -167,19 +167,34 @@ function makeCart(){
 }
 function makePalletJack(){
  const root=new THREE.Group();getWorld().add(root);root.userData.keepProportion=true;
+ root.name='fullWidthPalletJack';
  const frame=equipmentMaterial('#e0a64d',.4,.44),steel=equipmentMaterial('#829193',.72,.32);
  const dark=equipmentMaterial('#273638',.11,.72),card=equipmentMaterial('#bca27a',.05,.85);
+ // The older 0.16m forks / 1.24m body looked like a thin hand trolley.
+ // Wider forks, rear power housing and handrail now scale as a real pallet jack.
  for(const side of [-1,1]){
-  const fork=round(.16,.12,2.0,frame,root);fork.position.set(side*.42,.23,-.27);
-  industrialWheel(root,side*.45,.18,-1.12,.17);
+  const fork=round(.33,.18,2.16,frame,root);
+  fork.name='widePalletJackFork';fork.position.set(side*.67,.23,-.31);
+  const forkTip=round(.38,.11,.28,steel,root);forkTip.position.set(side*.67,.16,-1.42);
+  industrialWheel(root,side*.69,.17,-1.32,.19);
  }
- const housing=round(1.24,.33,.86,frame,root);housing.position.set(0,.45,.54);
- for(const side of [-1,1])industrialWheel(root,side*.58,.25,.56,.23);
- const column=round(.13,1.3,.16,steel,root);column.position.set(0,1.19,.81);
- const steering=round(.85,.12,.12,dark,root);steering.position.set(0,1.85,.81);
- const crate=round(.95,.62,1.18,card,root);crate.position.set(0,.63,-.36);crate.name='palletCargo';
- const stripe=round(.72,.04,.035,dark,crate);stripe.position.set(0,.28,-.6);
- const status=round(.24,.15,.045,new THREE.MeshBasicMaterial({color:'#b5e4bd'}),root);status.position.set(0,1.35,.92);
+ const crossBrace=round(1.77,.19,.31,steel,root);crossBrace.position.set(0,.30,.55);
+ const housing=round(1.95,.43,1.05,frame,root);housing.position.set(0,.47,.65);
+ housing.name='proportionalPalletJackRearHousing';
+ for(const side of [-1,1]){
+  industrialWheel(root,side*.84,.28,.63,.27);
+  const hub=round(.28,.32,.32,dark,root);hub.position.set(side*.85,.45,.64);
+ }
+ const column=round(.20,1.43,.22,steel,root);column.position.set(0,1.29,1.03);
+ const handle=round(1.22,.15,.16,dark,root);handle.position.set(0,2.02,1.03);
+ handle.name='widePalletJackHandle';
+ for(const side of [-1,1]){
+  const handleUpright=round(.10,.42,.10,dark,root);handleUpright.position.set(side*.56,1.80,1.03);
+ }
+ const crate=round(1.46,.73,1.35,card,root);crate.position.set(0,.68,-.35);crate.name='palletCargo';
+ const stripe=round(1.20,.05,.045,dark,crate);stripe.position.set(0,.33,-.68);
+ const status=round(.32,.18,.06,new THREE.MeshBasicMaterial({color:'#b5e4bd'}),root);
+ status.position.set(0,1.49,1.17);
  return root;
 }
 function makeClaws(){
