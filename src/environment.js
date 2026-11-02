@@ -631,7 +631,20 @@ function buildCreativeReceiving(){
  R(10.35,.62,.63,steel,1.40,7.99,94.65);
  R(10.12,.11,.69,glow,1.40,8.37,94.65);
  R(10.12,.12,.68,brass,1.40,7.64,94.65);
- // One continuous dark cassette physically joins the overhead beam and both pillars.
+ // One structural crossbeam joins BOTH upright pillars beneath the sign.
+ // Beam top 6.24 overlaps the sign's 6.20 lower edge and the two collars,
+ // so the portal reads as one anchored frame instead of floating components.
+ const portalCrossbeam=R(10.22,.52,.52,steel,1.40,5.98,94.65);
+ portalCrossbeam.name='supplyPortalLowerCrossbeam';
+ for(const xx of [-3.55,6.35]){
+  const collar=R(.65,.72,.68,dark,xx,5.97,94.65);
+  collar.name='supplyPortalCrossbeamJoint';
+  const fastener=R(.37,.15,.08,brass,xx,5.99,94.27);
+  fastener.name='supplyPortalBeamRivetPlate';
+ }
+ const lowerBeamTrim=R(9.75,.085,.10,brass,1.40,5.75,94.32);
+ lowerBeamTrim.name='supplyPortalBeamGoldInlay';
+ // The marquee panel shares the crossbeam, so its lower edge is attached.
  const portalSignBack=R(10.08,1.48,.34,dark,1.40,6.94,94.55);
  portalSignBack.name='attachedSupplyPortalSign';
  const marquee=textLabel('THE SUPPLY PORTAL',7.12,.56,'#163939','#ffe394',43,'entrance');
