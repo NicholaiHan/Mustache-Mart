@@ -935,6 +935,7 @@ function buildShelves(){
  const maxForType=Math.ceil(AISLES/5)*2*BAYS*TIERS*SLOTS;
  meshes=Array.from({length:5},(_,i)=>{
    const m=add(new THREE.InstancedMesh(itemGeometry(i),new THREE.MeshStandardMaterial({map:productTexture(i),metalness:.05,roughness:.57}),maxForType));
+   m.name='shelfStockedProductsType'+i;
    m.count=0;m.frustumCulled=false;return m;
  });
  for(let i=s.floor*CELLS_PER_FLOOR;i<(s.floor+1)*CELLS_PER_FLOOR;i++){
