@@ -48,12 +48,12 @@ const assert=require('node:assert/strict');
    assert.equal(await page.locator('#saveNow').count(),1,'manual Save Now action is available');
    assert.equal(await page.locator('#liveSaveStatus').count(),1,'verified save status is shown');
   assert.equal(await page.locator('#saveImportFile').count(),1,'save file import is accessible from the introduction');
-  await page.waitForFunction(()=>document.querySelector('#buildChip')?.textContent.includes('2026.11.01.10'));
-  assert.match(await page.locator('#buildIntro').innerText(),/UPDATED EDITION.*2026\.11\.01\.10/);
+  await page.waitForFunction(()=>document.querySelector('#buildChip')?.textContent.includes('2026.11.01.11'));
+  assert.match(await page.locator('#buildIntro').innerText(),/UPDATED EDITION.*2026\.11\.01\.11/);
   assert.match(await page.locator('#devBanner').innerText(),/DEVELOPMENT MODE/);
   assert.equal(await page.locator('#devBanner').isVisible(),true);
   const build=await page.evaluate(async()=>await (await fetch('./build.json')).json());
-  assert.equal(build.version,'2026.11.01.10');
+  assert.equal(build.version,'2026.11.01.11');
   console.log('PASS: game displays correct edition and $1,000,000 developer mode banner');
 
   // Each floor must have exactly one actual framed painting with its own
@@ -106,6 +106,8 @@ const assert=require('node:assert/strict');
   await page.locator('#saveExport').click();
   const saveDownload=await downloadStarted;
   const saved=JSON.parse(fs.readFileSync(await saveDownload.path(),'utf8'));
+   assert.ok(Number.isFinite(saved.savedAt)&&saved.savedAt>0,'export includes verified save timestamp');
+   assert.match(saveDownload.suggestedFilename(),/stocked-.*\.json$/,'backup filename is unique and contains progress timestamp');
   assert.equal(saved.version,4,'exported save has compatible format');
   assert.ok(Array.isArray(saved.fill)&&saved.fill.length>10000,'export includes entire fifteen-floor progress');
   saved.money=100000123;
