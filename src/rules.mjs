@@ -27,7 +27,8 @@ export const UPGRADES=[
 {id:'palletCapacity',name:'Pallet Jack Capacity',detail:'Increase carrying from 1/20 aisle through 1/16, 1/8, 1/4, 1/2, up to ONE whole aisle. Expensive logistics investment.',base:10000,factor:5,max:5},
 {id:'itemClaw',name:'Automated Item Claw',detail:'One placeable claw picks from the nearest stocked inventory source and feeds a connected conveyor. Use K to deploy.',base:450,factor:1.35,max:40},
 {id:'robot',name:'Mustache Stocker Bot',detail:'Spawns immediately into the first unoccupied aisle on your working floor; if all aisles have bots, joins the nearest least-crowded aisle. Move robots from Mike’s management pad. Intact bots sell for 50%; crab wrecks for 25%.',base:250,factor:1.38,max:70},
-{id:'robotLift',name:'Motorized Robot Ladder',detail:'Required for robots to reach the TOPMOST shelf. Without the powered auto ladder, bots need a placed tall ladder for upper shelves and can never stock the top shelf.',base:850,factor:1,max:1},
+{id:'robotLift',name:'Motorized Robot Ladder',detail:'The ONLY upgrade that lets robots stock the top (fourth) shelf. Without it, robots must remain below the final shelf.',base:850,factor:1,max:1},
+{id:'crabKing',name:'King of the Crab',detail:'Complete seven floors, then tame the giant crab permanently. Press G near its shell to ride; steer with WASD. It stops swiping inventory and destroying robots on ALL floors.',base:2500000,factor:1,max:1,category:'skills',branch:'Crab Mastery'},
 {id:'robotSpeed',name:'Robot Espresso',detail:'Faster robot movement and stocking.',base:160,factor:1.52,max:12},
 {id:'autoPay',name:'Automatic Payroll Terminal',detail:'Deposit wages instantly without visiting the desk.',base:420,factor:1,max:1},
 {id:'soupTriple',name:'Canned Goods Supercontract',detail:'ALL canned goods pay 3× their normal cents. A $50 investment.',base:5000,factor:1,max:1,category:'economy'},
@@ -229,6 +230,7 @@ export function purchase(s,id){
  const level=s.levels[id],cost=price(u,level);if(level>=u.max||s.money<cost||!skillAvailable(s,u))return false;
  // Salvage the permanently destroyed crab victim first. This frees the slot.
  if(id==='robot'&&s.robots.some(r=>r.wrecked))return false;
+ if(id==='crabKing'&&!(s.crab.unlocked||completedFloors(s)>=CRAB_UNLOCK_FLOORS))return false;
  if(id==='cart'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
  if(id==='ladderPlus'&&!s.levels.ladder&&!s.levels.ladderUnit)return false;
  s.money-=cost;s.money+=Math.floor(cost*Math.min(.1,(s.levels.cashback||0)*.02));s.levels[id]++;if(id==='robotReliability'&&s.levels.robotReliability===4){
@@ -611,7 +613,7 @@ function crabRandom(s){
  s.crab.seed=(x>>>0)||0x8d129bb5;return s.crab.seed;
 }
 export function performCrabSwing(s,f,aisle=null,bay=null,developer=false){
- if(!crabEnabled(s,developer)||f<0||f>=FLOORS||floorStocked(s,f)>=itemsPerFloor)return null;
+ if(s.levels.crabKing||!crabEnabled(s,developer)||f<0||f>=FLOORS||floorStocked(s,f)>=itemsPerFloor)return null;
  const a=aisle===null?crabRandom(s)%AISLES:Math.max(0,Math.min(AISLES-1,Math.floor(aisle)));
  const b=bay===null?4+crabRandom(s)%(BAYS-9):Math.max(1,Math.min(BAYS-2,Math.floor(bay)));
  let fallen=0;const destroyed=[];
@@ -643,14 +645,32 @@ export function performCrabSwing(s,f,aisle=null,bay=null,developer=false){
  s.crab.recent.push(event);s.crab.recent=s.crab.recent.slice(-8);
  return event;
 }
+// All crab mounting/movement is pure gameplay state; the 3D model only follows.
+export const crabTamed=s=>s.levels.crabKing===1;
+export function moveTamedCrab(s,f,forward,side,dt,yaw=0){
+ if(!crabTamed(s)||!Number.isInteger(f)||f<0||f>=FLOORS||!Number.isFinite(dt)||dt<=0)return false;
+ const p=s.crab.patrol[f],length=Math.hypot(forward,side);
+ if(length<=0)return false;
+ const distance=Math.min(dt,.1)*6.3/length;
+ const dx=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*distance;
+ const dz=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*distance;
+ const x=Math.max(aisleX(0),Math.min(aisleX(AISLES-1),p.x+dx));
+ const z=Math.max(9.5,Math.min(90,p.z+dz));
+ if(x===p.x&&z===p.z)return false;
+ p.x=x;p.z=z;p.aisle=Math.max(0,Math.min(AISLES-1,Math.round((x-8)/10)));
+ p.targetAisle=p.aisle;p.targetZ=p.z;p.roamTimer=90;
+ return true;
+}
 export function advanceCrab(s,seconds,developer=false){
  if(!Number.isFinite(seconds)||seconds<=0)return [];
  if(!crabEnabled(s,developer))return [];
+ // Ownership stops raids globally, including every unloaded floor.
+ const tamed=!!s.levels.crabKing;
  const delta=Math.min(seconds,7200),events=[];
  for(let f=0;f<FLOORS;f++){
   if(floorStocked(s,f)>=itemsPerFloor)continue;
-  s.crab.elapsed[f]+=delta;
-  while(s.crab.elapsed[f]>=CRAB_ATTACK_SECONDS){
+  if(!tamed)s.crab.elapsed[f]+=delta;
+  while(!tamed&&s.crab.elapsed[f]>=CRAB_ATTACK_SECONDS){
    s.crab.elapsed[f]-=CRAB_ATTACK_SECONDS;
    const event=performCrabSwing(s,f,null,null,developer);if(event)events.push(event);
   }
@@ -705,7 +725,7 @@ function approach(r,x,z,dt,speed){
 export function robotCanReach(s,r,id){
  const {floor,aisle,bay,tier}=decode(id);
  if(tier<2)return true;
- if(tier===3)return !!s.levels.robotLift; // Top shelf strictly requires the AUTOMATIC robot ladder.
+ if(tier===3)return s.levels.robotLift===1; // No tall ladder, inventory or height bypasses the powered robot lift.
  if(s.levels.robotLift)return true;
  // Next-highest shelf requires a physically deployed EXTENDED tall ladder.
  return !!s.levels.ladderPlus&&s.ladders.some(l=>l.floor===floor&&l.aisle===aisle&&Math.abs(l.bay-bay)<=1);
@@ -807,7 +827,7 @@ export function botStep(s,r,dt){
  }
  if(r.target<0||s.fill[r.target]>=SLOTS||!robotCanReach(s,r,r.target)){
    r.target=robotTarget(s,r);
-   if(r.target<0){r.phase='supply';r.carry=0;return -1;}
+   if(r.target<0){r.phase='supply';r.carry=0;r.liftY=0;return -1;}
  }
  const {aisle,bay,tier}=decode(r.target);
  if(approach(r,aisleX(aisle),bayZ(bay),dt,speed)){
@@ -820,7 +840,7 @@ export function botStep(s,r,dt){
    r.acc-=1;
    // Last-moment rule guard: no top-shelf item can be placed unless the
    // robot actually owns the motorized lifting mechanism this instant.
-   if(!robotCanReach(s,r,r.target)){r.target=-1;return -1;}
+   if(!robotCanReach(s,r,r.target)||tier===3&&s.levels.robotLift!==1){r.target=-1;r.liftY=0;return -1;}
    if(place(s,r.target,true)){
      const done=r.target;r.carry--;
      s.cursor[r.floor]=(done-r.floor*CELLS_PER_FLOOR+1)%CELLS_PER_FLOOR;
