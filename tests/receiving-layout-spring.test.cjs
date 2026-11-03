@@ -38,7 +38,7 @@ test('Compact portal-side organized inventory: 30 crate accessibility, decoratio
  assert.match(env,/WAREHOUSE_STORAGE_LAYOUT\.decoration\.entries\(\)/);
  assert.match(env,/collectibleWarehouseCratePallet/);
  assert.match(env,/decorativeWarehousePallet/);
- assert.ok(crates.every(c=>c.x>4&&c.x<15),'usable crates are brought close to the fire-exit-side Supply Portal');
+ assert.ok(crates.every(c=>c.x>2&&c.x<8),'usable crates are brought close to the fire-exit-side Supply Portal');
  assert.ok(crates[1].x-crates[0].x>4,'stock crates have a full walking gap');
  assert.ok(layout.decoration.every(p=>p.x>crates.at(-1).x),'decoration is in the farthest right-hand row');
  assert.ok(layout.decoration.every(p=>p.z>crates[0].z),'decoration is behind the active stock');
@@ -56,7 +56,7 @@ test('Compact portal-side organized inventory: 30 crate accessibility, decoratio
   r.botStep(s,bot,.2);assert.equal(bot.carry,8,'robot loads from new stock position');
   const claw={floor:s.floor,x:crate.x,z:crate.z,aisle:0};
   assert.equal(r.nearestClawSource(s,claw)?.type,'crate');
-  assert.equal(collision.isBlocked(10.6,96.35,s.floor),false,'old stock partition no longer blocks the open loading area');
+  assert.equal(collision.isBlocked(25,96.35,s.floor),false,'old stockroom area no longer blocks the open loading area');
   assert.equal(collision.isBlocked(layout.divider.x,layout.divider.z,s.floor),true,'new partition collision matches the model');
   assert.equal(r.loadState(r.serialize(s)).pallet.load,s.pallet.load,'saved cargo survives layout-only change');
  });
