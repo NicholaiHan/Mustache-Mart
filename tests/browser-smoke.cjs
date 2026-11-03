@@ -431,7 +431,7 @@ const assert=require('node:assert/strict');
   const pos=await page.evaluate(()=>window.__martTest.move(12,0));
   assert.ok(pos.x<10.5,'rack collision prevents player clipping');
   assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(10,-11.48)),true);
-  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(7.1,96.4)),true);
+  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(9.4,95.95)),true);
   console.log('PASS: collision blocks store fixtures, long shelving and pallets');
 
   await page.evaluate(()=>window.__martTest.teleport(23,-9));
