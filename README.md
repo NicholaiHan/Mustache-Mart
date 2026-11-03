@@ -64,6 +64,16 @@ This build specifically addresses the earlier incorrect "completed" updates. The
 - **Regression caught and fixed:** moving the dock farther left put some existing item claws outside the allowed inventory radius. The claw pickup range was adjusted so the existing first-aisle conveyors still receive real goods.
 - Existing fifteen-floor browser saves retain their format. For reliable updates, download the **fresh main ZIP**, launch it from the newly extracted folder, use the same Chrome profile and same exact host/port, and confirm the intro shows **2026.11.02.2**. An old running server will continue showing the old code even after a new GitHub commit.
 
+## Latest: Build 2026.11.03.1 — Solid robot collisions and properly sized stock equipment
+
+- **Robots are actual moving obstacles to each other.** Each stocker has a 0.44m body radius. Full swept-path checks prevent moving into or *through* any other placed robot (including a broken/stationary one). Workers can sidestep around blockers; if an old save already contains multiple robots fused at one coordinate, each finds a nearby unoccupied position before normal solid movement begins.
+- **Unclogged dispatch and pickup.** Stocker berths use 1.02m transverse lane separation instead of 0.62m. Stocking deliveries and the original local save format are preserved.
+- **Inventory is proportional.** Receiving cartons, carton tape, labels, wooden pallet decks and pallet feet now inherit one container-level proportional transform instead of being independently stretched and separated by the wider-aisle update. This applies to working inventory stacks, decorative stock and floor drop pallets.
+- **Supply intake refitted.** The rear intake belts, rail supports, rollers and base are now built around one physically sized assembly centered at their existing location; the original stock/transfer rules still apply.
+- **Pallet jack completely remodeled.** Shorter 1.52m twin forks (formerly 2.16m), properly sized industrial wheels, a small hydraulic chassis, an ergonomic tiller/handle, and a realistic labeled carton on a compact wooden cargo deck. It is still driveable, sells/loads the same, and preserves old pallet cargo progress.
+- **Testing.** Added 90 new scenarios for solid blockers, old-save pileup recovery, dense 16-robot stocking with no overlaps, and correctly shaped inventory/jack assets. A separate 40-bot / 180-second stress test demonstrated zero overlaps and continuing stocking across representative aisles. All work is committed to GitHub main; locally downloaded Mac folders still require an update to see it.
+- **Notes.** A large cluster may still queue and be slower than uncongested traffic, because robots now stop for other solid workers instead of clipping through them. The new logic prioritizes collision safety and continued movement over maximum throughput.
+
 ## Guaranteed latest-version setup (copy/paste for Mac)
 
 **Do not use an old downloaded `mustache-mart.zip`, old Electron app, or previously extracted folder.** The obsolete small ZIP has been removed from GitHub. The complete game is always in the live `main` branch archive.
