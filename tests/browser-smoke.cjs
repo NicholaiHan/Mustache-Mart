@@ -48,12 +48,12 @@ const assert=require('node:assert/strict');
    assert.equal(await page.locator('#saveNow').count(),1,'manual Save Now action is available');
    assert.equal(await page.locator('#liveSaveStatus').count(),1,'verified save status is shown');
   assert.equal(await page.locator('#saveImportFile').count(),1,'save file import is accessible from the introduction');
-  await page.waitForFunction(()=>document.querySelector('#buildChip')?.textContent.includes('2026.11.02.1'));
-  assert.match(await page.locator('#buildIntro').innerText(),/UPDATED EDITION.*2026\.11\.02\.1/);
+  await page.waitForFunction(()=>document.querySelector('#buildChip')?.textContent.includes('2026.11.02.2'));
+  assert.match(await page.locator('#buildIntro').innerText(),/UPDATED EDITION.*2026\.11\.02\.2/);
   assert.match(await page.locator('#devBanner').innerText(),/DEVELOPMENT MODE/);
   assert.equal(await page.locator('#devBanner').isVisible(),true);
   const build=await page.evaluate(async()=>await (await fetch('./build.json')).json());
-  assert.equal(build.version,'2026.11.02.1');
+  assert.equal(build.version,'2026.11.02.2');
   // Inspect the live scene graph: static tests alone did not catch the
   // previously invisible or unrendered geometry updates.
   const visual=await page.evaluate(()=>window.__martTest.visualChecklist());
