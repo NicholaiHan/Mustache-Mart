@@ -29,6 +29,13 @@ const {createServer}=require('../server.cjs');
   await camera('portal-stock',4.2,87,Math.PI,.12);
   const details=await page.evaluate(()=>window.__martTest.visualChecklist());
   console.log('FOCUS SCENE CHECKLIST',JSON.stringify(details));
+  const links=details.portalConnections;
+  assert.ok(links,'real portal geometry inspection must be available');
+  for(const part of ['topLeft','topRight','lowerLeft','lowerRight','signLower','signTop','ledSign']){
+   assert.equal(links[part],true,'actual transformed Supply Portal geometry is DISCONNECTED at '+part);
+  }
+  assert.equal(links.dockX,-1.8,'pickup counter and Supply Portal center must travel together');
+  assert.ok(links.topSpan>links.postSpan,'full-width horizontal beam must be wider than the upright span');
   await page.evaluate(()=>window.__martTest.crabTest.spawn());
   const patrol=await page.evaluate(()=>window.__martTest.crabRideStatus().patrol);
   await camera('crab-front',patrol.x,patrol.z-12,Math.PI,.10);
