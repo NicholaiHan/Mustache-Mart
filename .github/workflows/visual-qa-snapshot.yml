@@ -1,0 +1,32 @@
+name: Export game source for local visual QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/visual-qa-snapshot.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export offline source for repeatable visual debugging
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-qa-source
+          path: |
+            src/
+            tests/
+            vendor/
+            index.html
+            build.json
+            server.cjs
+            package.json
+            package-lock.json
+            PLAY_LATEST_MAC.sh
+            main.js
+            README.md
+          if-no-files-found: error
+          retention-days: 1
