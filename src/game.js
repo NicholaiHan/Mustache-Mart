@@ -1531,7 +1531,34 @@ if(DEV_MODE){
     palletJack:measure(world.getObjectByName('fullWidthPalletJack')),
     jackFork:measure(world.getObjectByName('widePalletJackFork'))
    };
-   return {inventoryGeometry,portalConnections,portalGantryX:world.getObjectByName('fireExitSidePortalGantry')?.position.x,
+   // Measure the final rendered sign in world coordinates after widening.
+   // The border, text and LEDs must remain a single proportional unit.
+   const signAssembly=frame?.getObjectByName('proportionalPortalSignAssembly');
+   const signFace=signAssembly?.getObjectByName('attachedSupplyPortalSign');
+   const signLettering=signAssembly?.getObjectByName('proportionalPortalMarqueeText');
+   const signTrim=signAssembly?.getObjectByName('proportionalPortalMarqueeFrame');
+   const signLed=signAssembly?.getObjectByName('supplyPortalLedBackingAttached');
+   const nested=(outer,inner)=>{
+    const a=bound(outer),b=bound(inner);
+    if(!a||!b)return false;
+    // Depth differs intentionally because text is mounted in front.
+    return b.min.x>=a.min.x-.02&&b.max.x<=a.max.x+.02&&
+     b.min.y>=a.min.y-.02&&b.max.y<=a.max.y+.02;
+   };
+   const centered=(outer,inner)=>{
+    if(!outer||!inner)return false;
+    const a=outer.getWorldPosition(new THREE.Vector3()),b=inner.getWorldPosition(new THREE.Vector3());
+    return Math.abs(a.x-b.x)<.02&&Math.abs(a.y-b.y)<.02;
+   };
+   const portalSignGeometry={
+    panel:measure(signFace),lettering:measure(signLettering),
+    frame:measure(signTrim),lights:measure(signLed),
+    scaleX:signAssembly?.scale.x??null,
+    textCentered:centered(signFace,signLettering),
+    textFits:nested(signFace,signLettering),
+    frameFits:nested(signFace,signTrim)
+   };
+   return {inventoryGeometry,portalSignGeometry,portalConnections,portalGantryX:world.getObjectByName('fireExitSidePortalGantry')?.position.x,
     portalLedBacking:count('supplyPortalLedBackingAttached'),emblemMount:count('attachedSupplyPortalEmblemMount'),
     portalBeam:count('supplyPortalLowerCrossbeam'),portalJoints:count('supplyPortalCrossbeamJoint'),
     inventoryPallets:count('collectibleWarehouseCratePallet'),decorPallets:count('decorativeWarehousePallet'),
