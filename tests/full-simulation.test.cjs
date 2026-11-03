@@ -11,7 +11,7 @@ test('solid stations, high-bay racks, wall boundaries and pallets never permit w
  const c=collision;
  for(const [label,x,z] of [
   ['Mike counter',1.5,-9],['Mike robot behind front desk',1.5,-10.48],
-  ['Wall-attached payroll counter',10,-11.48],['Receiving desk',1.5,96],
+  ['Wall-attached payroll counter',10,-11.48],['Receiving desk',rules.DOCK.x,rules.DOCK.z],
   ['Rotated warehouse inventory partition',rules.WAREHOUSE_STORAGE_LAYOUT.divider.x,rules.WAREHOUSE_STORAGE_LAYOUT.divider.z],
   ['Visible inventory pallet',rules.WAREHOUSE_CRATE_SOURCES[0].x,rules.WAREHOUSE_CRATE_SOURCES[0].z],
   ['Structural pillar',101,26],['Shelf rack 1',4.6,31],
@@ -20,7 +20,7 @@ test('solid stations, high-bay racks, wall boundaries and pallets never permit w
  for(const [label,x,z] of [
   ['Mike reachable from the customer aisle',1.5,-4.1],
   ['Payroll reachable from the aisle',10,-8.38],
-  ['Receiving accessible in front',1.5,93.1],
+  ['Receiving accessible in front',rules.DOCK.x,93.1],
   ['Main aisle',8,35],['Aisle crosswalk',8,9],
   ['Fire-exit interaction on back-left wall',-6.5,85],['Grand opening interaction',46.5,-8.3]
  ])assert.equal(c.isBlocked(x,z),false,label);
