@@ -28,18 +28,31 @@ export function createNaturalCrab({getWorld,tamed=false}){
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dif.normalize());
   parent.add(mesh);return mesh;
  }
- // Angular, low-domed carapace: flatten the round sphere's crown and
- // widen the shoulder polygon. Vertex normals are recomputed for real
- // crabbier facets, rather than just painting a pattern onto a round ball.
- const shellGeo=new THREE.SphereGeometry(1,14,7);
- const shellPositions=shellGeo.attributes.position;
- for(let n=0;n<shellPositions.count;n++){
-  const x=shellPositions.getX(n),y=shellPositions.getY(n),z=shellPositions.getZ(n);
-  const flatTop=y>.20?.20+(y-.20)*.25:y;
-  shellPositions.setXYZ(n,x*(2.94-.14*Math.abs(z)),3.84+flatTop*.87,z*2.22);
+ // A genuinely polygonal crab shell with flat shoulders, a broad frontal
+ // apron, a low crown, and an angular tapered hind edge; no spherical oval.
+ const outline=[
+  [-2.05,-1.63],[-1.35,-2.03],[-.47,-2.20],[.47,-2.20],
+  [1.35,-2.03],[2.05,-1.63],[2.63,-.90],[2.78,-.08],
+  [2.45,1.07],[1.62,1.85],[.60,2.18],[-.60,2.18],
+  [-1.62,1.85],[-2.45,1.07],[-2.78,-.08],[-2.63,-.90]
+ ];
+ const facets=[];
+ const triangle=(a,b,c)=>facets.push(...a,...b,...c);
+ for(let n=0;n<outline.length;n++){
+  const [x,z]=outline[n],[nx,nz]=outline[(n+1)%outline.length];
+  const topA=[x,3.95-.045*Math.abs(z),z],topB=[nx,3.95-.045*Math.abs(nz),nz];
+  const edgeA=[x*.96,3.39,z*.975],edgeB=[nx*.96,3.39,nz*.975];
+  triangle([0,4.32,.02],topB,topA);
+  triangle(topA,topB,edgeB);triangle(topA,edgeB,edgeA);
+  triangle([0,3.17,.05],edgeA,edgeB);
  }
+ const shellGeo=new THREE.BufferGeometry();
+ shellGeo.setAttribute('position',new THREE.Float32BufferAttribute(facets,3));
  shellGeo.computeVertexNormals();
- const mainShell=new THREE.Mesh(shellGeo,shell);
+ const shellBodyMaterial=shell.clone();
+ shellBodyMaterial.side=THREE.DoubleSide;
+ shellBodyMaterial.flatShading=true;
+ const mainShell=new THREE.Mesh(shellGeo,shellBodyMaterial);
  mainShell.name='naturalCrabShell';root.add(mainShell);
  // Multiple low-profile, articulated-looking carapace scutes give the top
  // recognizable crab segmentation without spikes, spikes, or a metal body.
@@ -49,12 +62,12 @@ export function createNaturalCrab({getWorld,tamed=false}){
   const scute=new THREE.Mesh(new THREE.CylinderGeometry(.61,.68,.105,6,1),scuteMaterial);
   scute.name='crabAngularCarapaceScute';
   scute.scale.set(1.15,1,.82);
-  scute.position.set(x,4.19-.09*(Math.abs(x)/1.36),z);
+  scute.position.set(x,4.11-.07*(Math.abs(x)/1.36),z);
   scute.rotation.y=x*.11;root.add(scute);
  }
  for(const side of [-1,1])for(const z of [-.95,.05,1.02]){
   branch(root,'crabCarapaceSegmentationSeam',seamMaterial,
-   [side*.35,4.19,z],[side*2.25,3.91,z+.10],.031,.027);
+   [side*.35,4.20,z],[side*2.25,3.89,z+.10],.034,.030);
  }
  ellipsoid(root,'naturalCrabUnderside',underside,0,3.04,.09,2.45,.52,1.93);
  ellipsoid(root,'naturalCrabFrontRim',warm,0,3.54,-1.73,2.55,.25,.43);
