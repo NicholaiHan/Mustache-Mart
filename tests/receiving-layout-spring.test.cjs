@@ -38,7 +38,7 @@ test('Compact portal-side organized inventory: 30 crate accessibility, decoratio
  assert.match(env,/WAREHOUSE_STORAGE_LAYOUT\.decoration\.entries\(\)/);
  assert.match(env,/collectibleWarehouseCratePallet/);
  assert.match(env,/decorativeWarehousePallet/);
- assert.ok(crates.every(c=>c.x>2&&c.x<8),'usable crates are brought close to the fire-exit-side Supply Portal');
+ assert.ok(crates.every(c=>c.x>4&&c.x<10),'usable crates are brought close to the fire-exit-side Supply Portal');
  assert.ok(crates[1].x-crates[0].x>4,'stock crates have a full walking gap');
  assert.ok(layout.decoration.every(p=>p.x>crates.at(-1).x),'decoration is in the farthest right-hand row');
  assert.ok(layout.decoration.every(p=>p.z>crates[0].z),'decoration is behind the active stock');
