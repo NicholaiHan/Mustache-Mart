@@ -542,7 +542,10 @@ export function nearestClawSource(s,claw){
  // Adjacent stock only; distant aisles cannot magically supply a claw.
  const choices=[];
  const dockDistance=Math.hypot(claw.x-DOCK.x,claw.z-DOCK.z);
- if(claw.floor===s.floor&&dockDistance<=12)
+ // The dock shifted left by 3.3m with the portal; preserve the original
+ // first-aisle receiving claw's usable feed reach instead of silently
+ // breaking purchased conveyors in old games.
+ if(claw.floor===s.floor&&dockDistance<=14)
   choices.push({type:'dock',distance:dockDistance});
  for(const crate of WAREHOUSE_CRATE_SOURCES){
   const distance=Math.hypot(claw.x-crate.x,claw.z-crate.z);
