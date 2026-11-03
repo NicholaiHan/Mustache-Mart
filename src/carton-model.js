@@ -15,6 +15,9 @@ export function cartonMaterials(){
 }
 export function addPackedCarton({round,parent,x,y,z,materials,variant=0,scale=1}){
  const g=new THREE.Group();g.name='boxedInventoryCarton';g.position.set(x,y,z);g.scale.setScalar(scale);parent.add(g);
+ // Treat all six cardboard faces, tape and labels as ONE proportional object.
+ // The wide-store transform cannot stretch their offsets apart.
+ g.userData.keepProportion=true;g.userData.cartonDimensions={width:1.02,height:.67,depth:.94};
  const R=(w,h,d,material,px,py,pz)=>{
   const mesh=round(w,h,d,material,g);mesh.position.set(px,py,pz);return mesh;
  };
