@@ -20,11 +20,13 @@ export const DOCK={x:-1.8,z:96};
 // The player pickup counter remains separate and accessible. All stock sources,
 // collision boxes, robot routes and pallet loads read these same positions.
 export const WAREHOUSE_STORAGE_LAYOUT=Object.freeze({
- divider:Object.freeze({x:10.0,z:96.35}),
- shutter:Object.freeze({x:15.4,z:100.24}),
- decoration:Object.freeze([12.2,15.4,18.6].map(x=>Object.freeze({x,z:98.75})))
+ divider:Object.freeze({x:11.95,z:96.35}),
+ shutter:Object.freeze({x:17.7,z:100.24}),
+ decoration:Object.freeze([14.5,17.7,20.9].map(x=>Object.freeze({x,z:98.75})))
 });
-export const WAREHOUSE_CRATE_SOURCES=Object.freeze([{x:2.9,z:96.4},{x:7.1,z:96.4}].map((c,i)=>Object.freeze({...c,id:i+1})));
+export const WAREHOUSE_CRATE_SOURCES=Object.freeze([{x:5.1,z:95.95},{x:9.4,z:95.95}].map((c,i)=>Object.freeze({...c,id:i+1})));
+// Box pallets sit directly beside, not BEHIND, the portal's right-hand upright.
+// Front faces are near the portal, with a clear aisle-sized passage between stacks.
 // Source points are shared by 3D geometry, collisions, robots, claws and pallet jack.
 export function nearestWarehouseCrate(x,z,range=2.75){
  let closest=null,best=range;
