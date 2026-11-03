@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {polishedTileTexture,matteWallTexture,productTexture,cartonTexture} from './textures.js';
 import {addPackedCarton,addInventoryPallet,cartonMaterials} from './carton-model.js';
-import {AISLES,BAYS,TIERS,SLOTS,CELLS_PER_FLOOR,DOCK,WAREHOUSE_CRATE_SOURCES,WAREHOUSE_STORAGE_LAYOUT,aisleX,bayZ,decode,floorLabel} from './rules.mjs';
+import {AISLES,BAYS,TIERS,SLOTS,CELLS_PER_FLOOR,DOCK,WAREHOUSE_CRATE_SOURCES,WAREHOUSE_STORAGE_LAYOUT,MAP_WIDTH_MULTIPLIER,aisleX,bayZ,decode,floorLabel} from './rules.mjs';
 import {PAYROLL_LAYOUT as PAY} from './collision.mjs';
 // Architecture, walls, supermarket service counters, shelves, products.
 // The factory owns shelf rendering buffers so other systems never modify them directly.
@@ -662,24 +662,43 @@ function buildCreativeReceiving(){
  }
  const lowerBeamTrim=R(9.75,.085,.10,brass,1.40,5.75,94.32);
  lowerBeamTrim.name='supplyPortalBeamGoldInlay';
- // The marquee panel shares the crossbeam, so its lower edge is attached.
- // Both vertical columns and sign are connected within ONE transform group.
- const portalSignBack=R(10.08,1.48,.34,dark,1.40,6.94,94.55);
+ // Only structural spans remain wide to join the pillars. The *sign face*
+ // must not inherit the widened aisle X scale or it becomes a flattened
+ // 16m-wide, 1.5m-tall banner with a comically stretched inscription.
+ // Backing, gold frame, lettering, marquee bolts, bulbs and emblem live in
+ // ONE unit with inverse parent scale: the full scene then restores its
+ // natural dimensions without changing any beams or pickup coordinates.
+ const portalSignAssembly=new THREE.Group();
+ portalSignAssembly.name='proportionalPortalSignAssembly';
+ portalSignAssembly.position.x=1.40;
+ portalSignAssembly.scale.x=1/MAP_WIDTH_MULTIPLIER;
+ portalSignAssembly.userData.proportionFixed=true;
+ gantry.add(portalSignAssembly);
+ portalParent=portalSignAssembly;
+ const portalSignBack=R(10.08,1.48,.34,dark,0,6.94,94.55);
  portalSignBack.name='attachedSupplyPortalSign';
- const marquee=textLabel('THE SUPPLY PORTAL',7.12,.56,'#163939','#ffe394',43,'entrance');
- marquee.position.set(1.4,7.13,94.30);
- marquee.userData.proportionFixed=true; // text stays centered across the full attached sign
- gantry.add(marquee);
+ const goldSignFrame=R(9.72,1.25,.10,brass,0,6.94,94.31);
+ goldSignFrame.name='proportionalPortalMarqueeFrame';
+ // Realistic, centered text proportions: 8.3m x 0.98m on the 10m x 1.48m
+ // sign. Previously the 7.12m x 0.56m label was visibly too thin.
+ const marquee=textLabel('THE SUPPLY PORTAL',8.34,.98,'#163939','#ffe394',44,'entrance');
+ marquee.name='proportionalPortalMarqueeText';
+ marquee.position.set(0,6.94,94.18);
+ portalSignAssembly.add(marquee);
+ for(const x of [-4.47,4.47])for(const y of [6.53,7.35]){
+  const stud=R(.16,.16,.11,steel,x,y,94.18);
+  stud.name='proportionalSignFrameStud';
+ }
 
  // Keep the portal clean: no redundant DOCK 01 / SUPPLY ACTIVE sign.
  // The emblem uses a mounting plate anchored into the load-bearing beam,
  // so the decoration is never a pair of floating mustache wings.
- const emblemMount=R(3.15,.34,.28,dark,1.4,6.025,94.405);
+ const emblemMount=R(3.15,.34,.28,dark,0,6.025,94.405);
  emblemMount.name='attachedSupplyPortalEmblemMount';
  for(const sign of [-1,1]){
-  const wing=R(1.04,.19,.13,brass,1.4+sign*.60,6.01,94.29);
+  const wing=R(1.04,.19,.13,brass,sign*.60,6.01,94.29);
   wing.rotation.z=sign*.22;
-  const tip=R(.26,.16,.13,glow,1.4+sign*1.15,6.16,94.29);
+  const tip=R(.26,.16,.13,glow,sign*1.15,6.16,94.29);
   tip.rotation.z=-sign*.36;
  }
  portalParent=root;
@@ -695,17 +714,17 @@ function buildCreativeReceiving(){
   const bar=R(2.64,.042,.074,i%2?steel:brass,DOCK.x,.88,94.92+i*.28);
   bar.rotation.z=0;
  }
- portalParent=gantry;
+ portalParent=portalSignAssembly;
  // One shallow backing lip intersects the sign cassette AND the LED bulbs.
  // No air gap between lettering, illuminated rail, fasteners or crossbeam.
- const lightMount=R(8.30,.27,.34,dark,1.40,6.39,94.33);
+ const lightMount=R(8.30,.27,.34,dark,0,6.30,94.33);
  lightMount.name='supplyPortalLedBackingAttached';
  // LED trim and dots are physically attached to the forward sign, not the rear wall.
- const portalLedRail=R(8.0,.12,.10,steel,1.4,6.40,94.30);
+ const portalLedRail=R(8.0,.12,.10,steel,0,6.30,94.30);
  portalLedRail.name='attachedPortalLedRail';
- R(7.7,.045,.08,brass,1.4,6.33,94.23);
+ R(7.7,.045,.08,brass,0,6.23,94.23);
  for(let i=0;i<9;i++){
-  const dot=R(.28,.12,.07,i%2===0?mint:glow,-2.35+i*.94,6.42,94.20);
+  const dot=R(.28,.12,.07,i%2===0?mint:glow,-3.76+i*.94,6.30,94.20);
   dot.name='portalSignLightDot';
  }
 
