@@ -111,7 +111,7 @@ test('canned goods 3x contract costs exactly $50 and economy bonuses work for ro
 });
 test('rear receiving and connector order start behind the highest bay',()=>{
  const s=r.newState();s.money=500;
- assert.deepEqual(r.DOCK,{x:1.5,z:96});
+ assert.deepEqual(r.DOCK,{x:-1.8,z:96});
  assert.equal(r.bayZ(r.BAYS-1),89.85);
  assert.equal(r.buildBelt(s,0,0,0),true);
  assert.equal(r.buildBelt(s,0,0,1),true);
