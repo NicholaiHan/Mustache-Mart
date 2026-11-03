@@ -1,3 +1,4 @@
+import {walkRobotAround,rescueStackedRobot} from './robot-traffic.mjs';
 // Pure rules for Mustache Mart. No rendering, network, or OS dependencies.
 export const FLOORS=15, AISLES=10, BAYS=30, TIERS=4, SLOTS=4;
 export const CELLS_PER_FLOOR=AISLES*2*BAYS*TIERS, TOTAL_CELLS=FLOORS*CELLS_PER_FLOOR, TOTAL_ITEMS=TOTAL_CELLS*SLOTS;
@@ -399,7 +400,7 @@ export function moveRobotFromMike(s,id,floor,aisle){
  // placing the ninth and every later stocker at the same location.
  const berth=residents.length;
  const bay=Math.max(2,Math.min(BAYS-1,29-Math.floor(berth/3)));
- const offset=[0,-.62,.62][berth%3]; // first worker stays on historic aisle center
+ const offset=[0,-1.02,1.02][berth%3]; // distinct solid-sized launch berths
  bot.floor=floor;bot.homeAisle=aisle;bot.aisle=aisle;
  bot.x=aisleX(aisle)+offset;bot.z=bayZ(bay);bot.placed=true;
  bot.target=-1;bot.acc=0;bot.liftY=0;bot.source=null;
@@ -753,31 +754,11 @@ export const itemsPerFloor=CELLS_PER_FLOOR*SLOTS;
 // Robot lane routing. Transitions between aisles happen only in the open
 // rear crosswalk, away from high-bay shelves and rear warehouse pallets.
 export const REAR_CROSSWALK=92.35;
-// Soft crowd avoidance: no robot should be trapped by a stationary
-// neighbor, and an exact-position overlap is given a stable escape direction.
+// Compatibility entrypoint for previous crowd regressions. Unlike the
+// old soft repulsion this NEVER shoves a moving robot through another one:
+// it only repairs an already-fused position from a legacy save.
 export function separateStocker(s,r,dt){
- if(!r.placed||r.wrecked||r.broken||dt<=0)return 0;
- let pushX=0,pushZ=0,contacts=0;
- for(const other of s.robots){
-  if(other===r||!other.placed||other.wrecked||other.floor!==r.floor)continue;
-  let dx=r.x-other.x,dz=r.z-other.z;
-  const distance=Math.hypot(dx,dz);
-  if(distance>=.92)continue;
-  if(distance<.00001){
-   const angle=((r.id*13+other.id*7)%29)*Math.PI*2/29;
-   dx=Math.cos(angle);dz=Math.sin(angle);
-  }else{dx/=distance;dz/=distance;}
-  const weight=Math.max(.08,.92-distance);
-  pushX+=dx*weight;pushZ+=dz*weight;contacts++;
- }
- if(!contacts)return 0;
- const mag=Math.hypot(pushX,pushZ);
- if(mag<.00001)return 0;
- // Keep perturbations gentle: stockers can still reach shared dock spots.
- const shift=Math.min(.28,Math.max(.015,dt*2.6),mag);
- r.x=Math.max(-8.6,Math.min(101.4,r.x+pushX/mag*shift));
- r.z=Math.max(9.3,Math.min(99.0,r.z+pushZ/mag*shift));
- return contacts;
+ return rescueStackedRobot(s,r)?1:0;
 }
 function approach(s,r,x,z,dt,speed){
  let gx=x,gz=z;
@@ -787,15 +768,13 @@ function approach(s,r,x,z,dt,speed){
  }else if(crossing){
   gx=x;gz=REAR_CROSSWALK;
  }
- const dx=gx-r.x,dz=gz-r.z,dist=Math.hypot(dx,dz);
- if(dist>=.27){
-  const step=Math.min(dist,dt*speed);
-  r.x+=dx/dist*step;r.z+=dz/dist*step;
- }
- // Evaluate the delivery/stocking destination before yielding to a neighbor.
- const arrived=Math.hypot(x-r.x,z-r.z)<.31;
- separateStocker(s,r,dt);
- return arrived;
+ rescueStackedRobot(s,r);
+ walkRobotAround(s,r,gx,gz,dt,speed);
+ // Stock sources can be collected from just beyond one body diameter,
+ // keeping multiple workers from insisting on one identical center point.
+ // Shelf targets still require precise positioning and the usual lift rules.
+ const range=r.phase==='supply'?1.0:.31;
+ return Math.hypot(x-r.x,z-r.z)<range;
 }
 export function robotPlatformFor(s,id){
  const {floor,aisle,bay,tier}=decode(id);
