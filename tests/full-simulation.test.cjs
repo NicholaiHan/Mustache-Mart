@@ -45,7 +45,7 @@ test('swept movement cannot tunnel through long shelves or counters',()=>{
  assert.ok(rack.x<10.4,'player cannot enter the shelf rack');
  const front=c.moveWithCollisions(10,-8.38,0,-8);
  assert.ok(front.z>-10.1,'wall-mounted payroll counter must prevent crossing');
- const rear=c.moveWithCollisions(1.5,91,0,14);
+ const rear=c.moveWithCollisions(rules.DOCK.x,91,0,14);
  assert.ok(rear.z<94.3,'receiving counter must prevent crossing');
  const slide=c.moveWithCollisions(8,25,4,4);
  assert.ok(slide.z>25,'player should slide along the rack');
