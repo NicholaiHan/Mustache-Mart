@@ -15,8 +15,15 @@ test('portal sign: 30 alignment and safe save cases, lighting no longer placed o
  assert.match(env,/R\(8\.0,\.12,\.10,steel,0,6\.30,94\.30\)/);
  assert.doesNotMatch(env,/9\.70,99\.91|9\.93,99\.82|9\.67,99\.68/,'old wall-mounted LEDs removed');
  run30(i=>{
-  const pillarCenters=[-3.55,6.35],cassette={center:1.4,width:10.08,bottom:6.94-1.48/2,top:6.94+1.48/2};
-  assert.ok(pillarCenters[0]>=cassette.center-cassette.width/2&&pillarCenters[1]<=cassette.center+cassette.width/2);
+  const aisleWide=rules.MAP_WIDTH_MULTIPLIER;
+  const pillarCenters=[-3.55,6.35];
+  const cassette={center:1.4,width:10.08,bottom:6.94-1.48/2,top:6.94+1.48/2};
+  const structuralBeam={center:1.4,width:10.35*aisleWide};
+  const actualPanelRatio=cassette.width/1.48,letterRatio=8.34/.98;
+  assert.ok(cassette.width<structuralBeam.width,'sign is a centered panel, not a giant stretched 16m billboard');
+  assert.ok(structuralBeam.width>=Math.abs(pillarCenters[1]-pillarCenters[0])*aisleWide,
+   'the separate full-width beam connects to BOTH outer pillars');
+  assert.ok(actualPanelRatio<7.5&&letterRatio<9.5,'sign and text have balanced aspect ratios');
   assert.ok(Math.abs(cassette.top-(7.99-.62/2))<.01,'sign touches supporting beam');
   assert.ok(cassette.bottom<6.42&&cassette.top>7.13);
   const s=rules.newState();s.floor=i%rules.FLOORS;
