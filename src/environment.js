@@ -638,13 +638,16 @@ function buildCreativeReceiving(){
  // Arch is lifted above the walkable pickup point (existing stock counter).
  for(const xx of [-3.55,6.35]){
   // Load-bearing columns extend down to the actual tiled floor.
-  R(.36,8.03,.43,steel,xx,4.015,94.65);
+  const upright=R(.36,8.03,.43,steel,xx,4.015,94.65);
+  upright.name='portalStructuralUpright';
   R(.72,.16,.78,dark,xx,.085,94.65);
   R(.50,.13,.54,brass,xx,.21,94.65);
   R(.42,.16,.5,brass,xx,7.95,94.65);
  }
- R(10.35,.62,.63,steel,1.40,7.99,94.65);
- R(10.12,.11,.69,glow,1.40,8.37,94.65);
+ const topBeam=R(10.35,.62,.63,steel,1.40,7.99,94.65);
+ topBeam.name='portalStructuralTopBeam';
+ const topLight=R(10.12,.11,.69,glow,1.40,8.37,94.65);
+ topLight.name='portalStructuralTopLight';
  R(10.12,.12,.68,brass,1.40,7.64,94.65);
  // One structural crossbeam joins BOTH upright pillars beneath the sign.
  // Beam top 6.24 overlaps the sign's 6.20 lower edge and the two collars,
