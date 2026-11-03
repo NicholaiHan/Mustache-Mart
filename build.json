@@ -1,8 +1,12 @@
 {
-  "version": "2026.11.03.1",
-  "name": "Solid-Robot Collision, Correctly Proportioned Inventory and Compact Pallet Jack",
+  "version": "2026.11.03.2",
+  "name": "Proportionate Supply Portal Marquee, Solid Robots and Refitted Inventory",
   "build_date": "2026-11-03",
   "includes": [
+    "Redesigned THE SUPPLY PORTAL sign as a single proportion-locked marquee assembly, separate from the beams that must span the widened aisles",
+    "Sign background has correct 10.08x1.48 proportions with an inset 9.72x1.25 gold trim and centered 8.34x.98 readable lettering, instead of 16m-wide wafer-thin lettering",
+    "LEDs and decorative mustache share the same proportional parent group as the lettering; evenly spaced along the supported sign so no pieces stretch or float",
+    "Rendered-world sign checks verify lettering centered, gold border fits, background natural width, clear readable label height, and continued frame-to-pillar intersections",
     "Every stocker has a .44m solid body radius and swept-path collision checks against other robots, including immobile broken workers; no robot-to-robot phasing",
     "When a historic save already places several robots in exactly the same position, workers recover to nearby free spaces and thereafter respect physical non-overlap",
     "Robot lane navigation steers around solid body blockers and keeps source pickup interactions working rather than soft-pushing through one another",
