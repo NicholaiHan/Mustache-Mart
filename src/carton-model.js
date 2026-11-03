@@ -33,6 +33,10 @@ export function addPackedCarton({round,parent,x,y,z,materials,variant=0,scale=1}
 }
 export function addInventoryPallet({round,parent,materials,x=0,z=0,width=2.1,depth=1.82}){
  const g=new THREE.Group();g.name='boxedInventoryPallet';g.position.set(x,0,z);parent.add(g);
+ // Preserve the entire wooden deck, feet, and nested packed cartons together.
+ // Without this, widened aisles shrink each individual face but move boxes
+ // apart, leaving malformed gaps and stretched inventory pallets.
+ g.userData.keepProportion=true;g.userData.palletDimensions={width,depth};
  const deck=round(width,.16,depth,materials.wood,g);deck.position.y=.20;
  for(const xx of [-width*.38,0,width*.38]){
   const foot=round(.20,.21,depth*.86,materials.slat,g);
