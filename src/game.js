@@ -1516,7 +1516,22 @@ if(DEV_MODE){
     const p=new THREE.Vector3().setFromMatrixPosition(m);
     firstProduct={x:p.x,y:p.y,z:p.z};
    }
-   return {portalConnections,portalGantryX:world.getObjectByName('fireExitSidePortalGantry')?.position.x,
+   // These bounds are measured AFTER wide-world correction. Valid crate and
+   // machine silhouettes must have believable physical X/Z proportions.
+   const measure=(obj)=>{
+    if(!obj)return null;
+    const v=new THREE.Vector3();new THREE.Box3().setFromObject(obj).getSize(v);
+    return {width:+v.x.toFixed(3),height:+v.y.toFixed(3),depth:+v.z.toFixed(3)};
+   };
+   const workingCrate=world.getObjectByName('collectibleWarehouseCratePallet');
+   const inventoryGeometry={
+    workingPallet:measure(workingCrate),
+    packedCarton:measure(workingCrate?.getObjectByName('collectibleWarehouseCarton')),
+    receivingIntake:measure(world.getObjectByName('proportionalReceivingIntake')),
+    palletJack:measure(world.getObjectByName('fullWidthPalletJack')),
+    jackFork:measure(world.getObjectByName('widePalletJackFork'))
+   };
+   return {inventoryGeometry,portalConnections,portalGantryX:world.getObjectByName('fireExitSidePortalGantry')?.position.x,
     portalLedBacking:count('supplyPortalLedBackingAttached'),emblemMount:count('attachedSupplyPortalEmblemMount'),
     portalBeam:count('supplyPortalLowerCrossbeam'),portalJoints:count('supplyPortalCrossbeamJoint'),
     inventoryPallets:count('collectibleWarehouseCratePallet'),decorPallets:count('decorativeWarehousePallet'),
