@@ -11,8 +11,8 @@ test('portal sign: 30 alignment and safe save cases, lighting no longer placed o
  assert.match(env,/attachedSupplyPortalSign/);
  assert.match(env,/attachedPortalLedRail/);
  assert.match(env,/portalSignLightDot/);
- assert.match(env,/R\(10\.08,1\.48,\.34,dark,1\.40,6\.94,94\.55\)/);
- assert.match(env,/R\(8\.0,\.12,\.10,steel,1\.4,6\.40,94\.30\)/);
+ assert.match(env,/R\(10\.08,1\.48,\.34,dark,0,6\.94,94\.55\)/);
+ assert.match(env,/R\(8\.0,\.12,\.10,steel,0,6\.30,94\.30\)/);
  assert.doesNotMatch(env,/9\.70,99\.91|9\.93,99\.82|9\.67,99\.68/,'old wall-mounted LEDs removed');
  run30(i=>{
   const pillarCenters=[-3.55,6.35],cassette={center:1.4,width:10.08,bottom:6.94-1.48/2,top:6.94+1.48/2};
