@@ -1486,8 +1486,27 @@ if(DEV_MODE){
    totalStocked:s.stocked,savedAisleX:aisleX(9),
    crabWidthScale:crabModel?.scale.x??null,crabHeightScale:crabModel?.scale.y??null,crabDepthScale:crabModel?.scale.z??null,crabVisible:!!crabModel};},
   visualChecklist(){
-   // Inspect actual active scene objects, not only source code.
+   // Inspect the final rendered WORLD-space geometry after the store widener
+   // adjusted all standalone props. Dimension-only tests missed giant gaps.
    const count=name=>{let n=0;world.traverse(o=>{if(o.name===name)n++;});return n;};
+   const frame=world.getObjectByName('fireExitSidePortalGantry'),posts=[];
+   frame?.traverse(node=>{if(node.name==='portalStructuralUpright')posts.push(node);});
+   posts.sort((a,b)=>a.getWorldPosition(new THREE.Vector3()).x-b.getWorldPosition(new THREE.Vector3()).x);
+   const bound=node=>node?new THREE.Box3().setFromObject(node):null;
+   const top=bound(frame?.getObjectByName('portalStructuralTopBeam'));
+   const lower=bound(frame?.getObjectByName('supplyPortalLowerCrossbeam'));
+   const sign=bound(frame?.getObjectByName('attachedSupplyPortalSign'));
+   const led=bound(frame?.getObjectByName('supplyPortalLedBackingAttached'));
+   const p0=bound(posts[0]),p1=bound(posts[1]);
+   const joined=(a,b)=>!!a&&!!b&&a.intersectsBox(b);
+   const portalConnections={
+    topLeft:joined(top,p0),topRight:joined(top,p1),
+    lowerLeft:joined(lower,p0),lowerRight:joined(lower,p1),
+    signLower:joined(sign,lower),signTop:joined(sign,top),
+    ledSign:joined(led,sign),dockX:DOCK.x,
+    topSpan:top?Number((top.max.x-top.min.x).toFixed(3)):0,
+    postSpan:p0&&p1?Number((p1.getCenter(new THREE.Vector3()).x-p0.getCenter(new THREE.Vector3()).x).toFixed(3)):0
+   };
    const item=world.getObjectByName('shelfStockedProductsType0');
    let firstProduct=null;
    if(item?.count>0){
@@ -1495,7 +1514,7 @@ if(DEV_MODE){
     const p=new THREE.Vector3().setFromMatrixPosition(m);
     firstProduct={x:p.x,y:p.y,z:p.z};
    }
-   return {portalGantryX:world.getObjectByName('fireExitSidePortalGantry')?.position.x,
+   return {portalConnections,portalGantryX:world.getObjectByName('fireExitSidePortalGantry')?.position.x,
     portalLedBacking:count('supplyPortalLedBackingAttached'),emblemMount:count('attachedSupplyPortalEmblemMount'),
     portalBeam:count('supplyPortalLowerCrossbeam'),portalJoints:count('supplyPortalCrossbeamJoint'),
     inventoryPallets:count('collectibleWarehouseCratePallet'),decorPallets:count('decorativeWarehousePallet'),
