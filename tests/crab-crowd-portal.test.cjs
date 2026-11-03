@@ -90,12 +90,12 @@ test('Portal: 30 checks of moved left-wall-side gantry with physically joined si
 test('Stock boxes: 30 pickup, claw, pallet, robot and collision checks next to new portal',()=>{
  const layoutSource=source('rules.mjs'),env=source('environment.js');
  assert.match(env,/WAREHOUSE_STORAGE_LAYOUT\.decoration\.entries\(\)/);
- assert.match(layoutSource,/\{x:6\.8,z:96\.4\},\{x:12\.2,z:96\.4\}/);
+ assert.match(layoutSource,/\{x:2\.9,z:96\.4\},\{x:7\.1,z:96\.4\}/);
  run30(i=>{
   const s=r.newState();s.floor=i%r.FLOORS;
   const crates=r.WAREHOUSE_CRATE_SOURCES,box=crates[i%2];
-  assert.ok(box.x<14&&box.x>4,'boxes are close to left-side portal');
-  assert.ok(r.WAREHOUSE_STORAGE_LAYOUT.decoration.every(d=>d.x<26),'decorations are also staged near receiving');
+  assert.ok(box.x<8&&box.x>2,'boxes are close to left-side portal');
+  assert.ok(r.WAREHOUSE_STORAGE_LAYOUT.decoration.every(d=>d.x<20),'decorations are also staged near receiving');
   const front={x:box.x,z:box.z-2.2};
   assert.equal(collision.isBlocked(front.x,front.z,s.floor),false,'hand pickup approach is open');
   assert.equal(r.nearestWarehouseCrate(front.x,front.z)?.id,box.id);
