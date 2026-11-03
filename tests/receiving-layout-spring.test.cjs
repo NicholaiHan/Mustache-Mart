@@ -53,7 +53,8 @@ test('Compact portal-side organized inventory: 30 crate accessibility, decoratio
   assert.equal(r.loadPallet(s),r.palletCapacity(s),'pallet jack still loads from relocated pallet');
   const bot=r.hireRobot(s,250,true);bot.floor=s.floor;bot.x=crate.x;bot.z=crate.z-2.1;
   assert.equal(r.robotSource(s,bot).type,'crate');
-  r.botStep(s,bot,.2);assert.equal(bot.carry,8,'robot loads from new stock position');
+  for(let step=0;step<5&&!bot.carry;step++)r.botStep(s,bot,.2);
+  assert.equal(bot.carry,8,'robot reaches its staggered pickup lane and loads a full carton batch');
   const claw={floor:s.floor,x:crate.x,z:crate.z,aisle:0};
   assert.equal(r.nearestClawSource(s,claw)?.type,'crate');
   assert.equal(collision.isBlocked(25,96.35,s.floor),false,'old stockroom area no longer blocks the open loading area');
