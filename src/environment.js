@@ -615,8 +615,9 @@ function buildCreativeReceiving(){
  // illuminated gold piping and an oversized mustache emblem. All new pieces
  // are high-mounted or lie directly within pre-existing counter footprint.
  const root=new THREE.Group();root.name='receivingSupplyPortal';add(root);
- // Move the complete visible gantry toward the left FIRE EXIT wall, but keep
- // the existing loading counter, scanner and gameplay pickup trigger in place.
+ // The entire receiving bay has now moved to the left FIRE EXIT wall.
+ // This single gantry shares its true center with the real DOCK pickup counter,
+ // and each horizontal connection is protected from aisle-width normalization.
  const gantry=new THREE.Group();gantry.name='fireExitSidePortalGantry';
  gantry.position.x=-3.20;root.add(gantry);
  let portalParent=gantry;
@@ -625,7 +626,15 @@ function buildCreativeReceiving(){
  const brass=new THREE.MeshStandardMaterial({color:'#e5b947',metalness:.35,roughness:.28,emissive:'#69470b',emissiveIntensity:.16});
  const glow=new THREE.MeshBasicMaterial({color:'#f8eb9c'});
  const mint=new THREE.MeshBasicMaterial({color:'#a8ffdd'});
- const R=(w,h,d,material,x,y,z)=>{const mesh=round(w,h,d,material,portalParent);mesh.position.set(x,y,z);return mesh;};
+ const R=(w,h,d,material,x,y,z)=>{
+  const mesh=round(w,h,d,material,portalParent);mesh.position.set(x,y,z);
+  // CRITICAL: normalizing horizontal widths for small props used to shrink
+  // the 10-metre portal BEAMS to ~6m while pillars stayed 9.9m apart.
+  // This made the sign, bottom beam and LEDs visibly float between posts.
+  // Structural spans need their full native X width after world widening.
+  if(w>=2.6){mesh.userData.proportionFixed=true;mesh.userData.portalStructuralSpan=true;}
+  return mesh;
+ };
  // Arch is lifted above the walkable pickup point (existing stock counter).
  for(const xx of [-3.55,6.35]){
   // Load-bearing columns extend down to the actual tiled floor.
@@ -655,7 +664,9 @@ function buildCreativeReceiving(){
  const portalSignBack=R(10.08,1.48,.34,dark,1.40,6.94,94.55);
  portalSignBack.name='attachedSupplyPortalSign';
  const marquee=textLabel('THE SUPPLY PORTAL',7.12,.56,'#163939','#ffe394',43,'entrance');
- marquee.position.set(1.4,7.13,94.30);gantry.add(marquee);
+ marquee.position.set(1.4,7.13,94.30);
+ marquee.userData.proportionFixed=true; // text stays centered across the full attached sign
+ gantry.add(marquee);
 
  // Keep the portal clean: no redundant DOCK 01 / SUPPLY ACTIVE sign.
  // The emblem uses a mounting plate anchored into the load-bearing beam,
@@ -669,17 +680,16 @@ function buildCreativeReceiving(){
   tip.rotation.z=-sign*.36;
  }
  portalParent=root;
- // These pickup/chute parts remain aligned with the physical dock counter;
- // only the complete structural gantry shifts toward the fire exit wall.
+ // Counter-mounted electronics use the SAME left-wall dock center as the gantry.
  // Conveyor chute rails and sensor housings mounted on the pre-existing dock
  // counter. Color palette deliberately integrates with the industrial ceiling.
  for(const side of [-1,1]){
-  R(.085,.42,1.84,brass,1.5+side*1.32,1.42,95.70);
-  R(.13,.20,.24,steel,1.5+side*1.32,1.71,95.01);
-  R(.08,.07,.17,mint,1.5+side*1.32,1.84,95.01);
+  R(.085,.42,1.84,brass,DOCK.x+side*1.32,1.42,95.70);
+  R(.13,.20,.24,steel,DOCK.x+side*1.32,1.71,95.01);
+  R(.08,.07,.17,mint,DOCK.x+side*1.32,1.84,95.01);
  }
  for(let i=0;i<5;i++){
-  const bar=R(2.64,.042,.074,i%2?steel:brass,1.5,.88,94.92+i*.28);
+  const bar=R(2.64,.042,.074,i%2?steel:brass,DOCK.x,.88,94.92+i*.28);
   bar.rotation.z=0;
  }
  portalParent=gantry;
@@ -699,7 +709,7 @@ function buildCreativeReceiving(){
  // A floor-level receiving destination marker painted on the tiles.
  // It carries no solid collision and doesn't prevent the actual inventory E.
  const marker=textLabel('↓  PICKUP ZONE  ↓',5.4,.56,'#f4d472','#334f46',35,'interior');
- marker.rotation.x=-Math.PI/2;marker.position.set(1.5,.035,92.5);root.add(marker);
+ marker.rotation.x=-Math.PI/2;marker.position.set(DOCK.x,.035,92.5);root.add(marker);
  return root;
 }
 
@@ -828,9 +838,8 @@ function buildService(){
  const receivingRack=round(.65,4.25,5.0,'#86918e');
  receivingRack.name='rightSideInventoryDivider';
  receivingRack.position.set(WAREHOUSE_STORAGE_LAYOUT.divider.x,2.125,WAREHOUSE_STORAGE_LAYOUT.divider.z);
- // The former long rack wall is now perpendicular to the pickup counter:
- // an orderly stockroom is tucked into the far-right backroom away from the
- // service counter, with wide clear approach corridors between live pallets.
+ // Pallets are staged just beside the left-wall Supply Portal, with enough
+ // aisle clearance for the player, motorized carts and stocking robots.
  const storage=new THREE.Group();storage.name='receivingBackroomCartons';add(storage);
  const materials=cartonMaterials();
  // Collectible stock crates BESIDE the receiving desk use the original packed
@@ -857,11 +866,11 @@ function buildService(){
    addPackedCarton({round,parent:pallet,materials,x:side?.36:-.36,
     y:.61+level*.65,z:0,variant:column+side+level,scale:.69});
  }
- const dockTerminal=round(.85,1.1,.52,'#7a8b8c');dockTerminal.position.set(3.7,.59,95.8);
- const dockScreen=round(.64,.43,.08,new THREE.MeshBasicMaterial({color:'#accfbd'}));dockScreen.position.set(3.7,.95,95.49);
+ const dockTerminal=round(.85,1.1,.52,'#7a8b8c');dockTerminal.position.set(DOCK.x+2.2,.59,95.8);
+ const dockScreen=round(.64,.43,.08,new THREE.MeshBasicMaterial({color:'#accfbd'}));dockScreen.position.set(DOCK.x+2.2,.95,95.49);
  // Receiving workstation: hanging rack structure, scanners, pallet jack and boxes.
- const scanner=round(.15,.37,.26,'#32454b');scanner.position.set(4,.99,95.1);
- const scannerLight=round(.1,.052,.15,new THREE.MeshBasicMaterial({color:'#7fe6bb'}));scannerLight.position.set(4,1.2,95.02);
+ const scanner=round(.15,.37,.26,'#32454b');scanner.position.set(DOCK.x+2.5,.99,95.1);
+ const scannerLight=round(.1,.052,.15,new THREE.MeshBasicMaterial({color:'#7fe6bb'}));scannerLight.position.set(DOCK.x+2.5,1.2,95.02);
 
  const entranceSign=textLabel('CUSTOMER SERVICE   |   PAYROLL',8.2,.76,'#e5e5db','#475752',39,'interior');
  entranceSign.position.set(9,6.2,-12.24);add(entranceSign);
