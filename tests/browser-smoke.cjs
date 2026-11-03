@@ -217,9 +217,9 @@ const assert=require('node:assert/strict');
   console.log('PASS: developer crab spawn/removal, keyboard shortcuts and normal automatic behavior');
   console.log('PASS: cash coin offer only YES/NO; NO is permanent; waiting path removed');
   // Actual collision-safe loading position, not inside the receiving counter.
-  await page.evaluate(()=>{window.__martTest.teleport(1.5,93.1);window.__martTest.setLook(Math.PI,-.07);});
-  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(1.5,93.1)),false);
-  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(1.5,96)),true);
+  await page.evaluate(()=>{window.__martTest.teleport(-1.8,93.1);window.__martTest.setLook(Math.PI,-.07);});
+  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(-1.8,93.1)),false);
+  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(-1.8,96)),true);
   const art=path.join(__dirname,'..','test-artifacts');fs.mkdirSync(art,{recursive:true});
   await page.screenshot({path:path.join(art,'warehouse-receiving.png'),timeout:90000});
   await page.keyboard.press('e');
@@ -431,7 +431,7 @@ const assert=require('node:assert/strict');
   const pos=await page.evaluate(()=>window.__martTest.move(12,0));
   assert.ok(pos.x<10.5,'rack collision prevents player clipping');
   assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(10,-11.48)),true);
-  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(30,95)),true);
+  assert.equal(await page.evaluate(()=>window.__martTest.checkBlocked(7.1,96.4)),true);
   console.log('PASS: collision blocks store fixtures, long shelving and pallets');
 
   await page.evaluate(()=>window.__martTest.teleport(23,-9));
