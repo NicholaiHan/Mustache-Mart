@@ -168,33 +168,49 @@ function makeCart(){
 function makePalletJack(){
  const root=new THREE.Group();getWorld().add(root);root.userData.keepProportion=true;
  root.name='fullWidthPalletJack';
- const frame=equipmentMaterial('#e0a64d',.4,.44),steel=equipmentMaterial('#829193',.72,.32);
- const dark=equipmentMaterial('#273638',.11,.72),card=equipmentMaterial('#bca27a',.05,.85);
- // The older 0.16m forks / 1.24m body looked like a thin hand trolley.
- // Wider forks, rear power housing and handrail now scale as a real pallet jack.
+ // Compact genuine hand pallet jack: 1.52m forks in place of the elongated
+ // 2.16m blades, short hydraulic body, steer wheels and ergonomic tiller.
+ const yellow=equipmentMaterial('#e7b344',.30,.48);
+ const shadow=equipmentMaterial('#303b3b',.15,.78);
+ const steel=equipmentMaterial('#87999a',.63,.35);
+ const handleRubber=equipmentMaterial('#222c2c',.06,.88);
+ const materials=cartonMaterials();
  for(const side of [-1,1]){
-  const fork=round(.33,.18,2.16,frame,root);
-  fork.name='widePalletJackFork';fork.position.set(side*.67,.23,-.31);
-  const forkTip=round(.38,.11,.28,steel,root);forkTip.position.set(side*.67,.16,-1.42);
-  industrialWheel(root,side*.69,.17,-1.32,.19);
+  const fork=round(.245,.14,1.52,yellow,root);
+  fork.name='widePalletJackFork';fork.position.set(side*.47,.22,-.14);
+  const tip=round(.245,.09,.22,steel,root);
+  tip.name='palletJackRoundedForkTip';tip.position.set(side*.47,.17,-.91);
+  const heel=round(.27,.19,.36,yellow,root);
+  heel.position.set(side*.47,.28,.46);
+  industrialWheel(root,side*.48,.16,-.79,.15);
  }
- const crossBrace=round(1.77,.19,.31,steel,root);crossBrace.position.set(0,.30,.55);
- const housing=round(1.95,.43,1.05,frame,root);housing.position.set(0,.47,.65);
- housing.name='proportionalPalletJackRearHousing';
+ const crossBar=round(1.28,.19,.28,steel,root);crossBar.position.set(0,.32,.56);
+ const body=round(1.40,.45,.50,yellow,root);body.position.set(0,.43,.78);
+ body.name='proportionalPalletJackRearHousing';
+ const hydraulic=round(.29,.42,.30,shadow,root);hydraulic.position.set(0,.79,.80);
+ const hydraulicRam=round(.16,.43,.16,steel,root);hydraulicRam.position.set(0,1.07,.80);
  for(const side of [-1,1]){
-  industrialWheel(root,side*.84,.28,.63,.27);
-  const hub=round(.28,.32,.32,dark,root);hub.position.set(side*.85,.45,.64);
+  industrialWheel(root,side*.57,.27,.80,.24);
+  const bracket=round(.14,.28,.27,steel,root);bracket.position.set(side*.52,.48,.79);
+  const nut=round(.075,.075,.05,shadow,root);nut.position.set(side*.72,.51,.80);
  }
- const column=round(.20,1.43,.22,steel,root);column.position.set(0,1.29,1.03);
- const handle=round(1.22,.15,.16,dark,root);handle.position.set(0,2.02,1.03);
- handle.name='widePalletJackHandle';
+ const tiller=round(.145,.96,.145,steel,root);tiller.position.set(0,1.26,.98);
+ tiller.rotation.x=-.22;
+ const grip=round(.84,.115,.15,handleRubber,root);grip.position.set(0,1.76,1.07);
+ grip.name='widePalletJackHandle';
  for(const side of [-1,1]){
-  const handleUpright=round(.10,.42,.10,dark,root);handleUpright.position.set(side*.56,1.80,1.03);
+  const pad=round(.19,.14,.20,shadow,root);pad.position.set(side*.36,1.76,1.07);
  }
- const crate=round(1.46,.73,1.35,card,root);crate.position.set(0,.68,-.35);crate.name='palletCargo';
- const stripe=round(1.20,.05,.045,dark,crate);stripe.position.set(0,.33,-.68);
- const status=round(.32,.18,.06,new THREE.MeshBasicMaterial({color:'#b5e4bd'}),root);
- status.position.set(0,1.49,1.17);
+ const label=round(.58,.15,.045,shadow,root);label.position.set(0,.57,.515);
+ const badge=round(.32,.08,.051,steel,root);badge.position.set(0,.58,.483);
+ // One correctly sized shipping carton on a real mini-pallet. Keep the
+ // existing cargo scene name so game fill and save logic are unchanged.
+ const cargo=new THREE.Group();cargo.name='palletCargo';root.add(cargo);
+ cargo.position.set(0,.37,-.19);
+ const pallet=addInventoryPallet({round,parent:cargo,materials,width:1.15,depth:.96});
+ pallet.name='palletJackCargoDeck';
+ const box=addPackedCarton({round,parent:pallet,materials,x:0,y:.65,z:0,variant:2,scale:.86});
+ box.name='palletJackSizedCargoCarton';
  return root;
 }
 function makeClaws(){
