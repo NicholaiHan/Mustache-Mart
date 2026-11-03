@@ -823,11 +823,24 @@ export function robotTarget(s,r){
   if(candidate<0)return -1;
   a=candidate;r.aisle=a;r.homeAisle=a;
  }
+ // Reserve a different destination for each active stocker where possible.
+ // Otherwise a crowd of robots all selects the exact same nearest rack cell,
+ // converges onto identical coordinates and visibly vibrates without moving.
+ const claims=s.robots.filter(other=>other!==r&&other.placed&&!other.wrecked&&
+  other.floor===r.floor&&other.phase==='shelf'&&other.carry>0&&other.target>=0)
+  .map(other=>({id:other.target,...decode(other.target)}));
  let choice=-1,best=Infinity;
  for(let bay=0;bay<BAYS;bay++)for(let side=0;side<2;side++)for(let tier=0;tier<TIERS;tier++){
   const id=cellId(r.floor,a,side,bay,tier);
   if(s.fill[id]>=SLOTS||!robotCanReach(s,r,id))continue;
-  const distance=Math.abs(r.x-aisleX(a))*1.8+Math.abs(r.z-bayZ(bay))+tier*.12;
+  const crowdPenalty=claims.reduce((sum,c)=>{
+   if(c.floor!==r.floor||c.aisle!==a)return sum;
+   if(c.id===id)return sum+600; // don't stack on the same exact cell
+   if(c.bay===bay)return sum+12; // spread over several rack bays first
+   if(Math.abs(c.bay-bay)===1)return sum+2;
+   return sum;
+  },0);
+  const distance=Math.abs(r.x-aisleX(a))*1.8+Math.abs(r.z-bayZ(bay))+tier*.12+crowdPenalty;
   if(distance<best){best=distance;choice=id;}
  }
  // If inaccessible tall racks remain, wait for a ladder/lift upgrade instead
@@ -854,7 +867,14 @@ export function robotSource(s,r){
   const metric=p=>Math.abs(p.x-r.x)*1.3+Math.abs(p.z-r.z);
   return metric(u)-metric(v);
  });
- return candidates[0];
+ const chosen=candidates[0];
+ // Offsets make several robots queue side-by-side at the same actual crate
+ // or receiving dock. Keep them within pickup reach; don't invent inventory.
+ if(chosen?.type==='dock'||chosen?.type==='crate'){
+  const lane=((r.id-1)%5)-2,row=(Math.floor((r.id-1)/5)%3)-1;
+  return {...chosen,x:chosen.x+lane*.38,z:chosen.z+row*.28};
+ }
+ return chosen;
 }
 export const ROBOT_BREAKDOWN_RANGES=[[30,50],[50,100],[200,300],[500,1000],null];
 export function nextRobotBreakpoint(s,r){
