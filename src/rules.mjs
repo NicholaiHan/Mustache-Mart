@@ -12,17 +12,20 @@ export const MAP_WIDTH_MULTIPLIER=1.60, MAP_WIDTH_CENTER=46.5;
 export const toWideX=x=>MAP_WIDTH_CENTER+(x-MAP_WIDTH_CENTER)*MAP_WIDTH_MULTIPLIER;
 export const fromWideX=x=>MAP_WIDTH_CENTER+(x-MAP_WIDTH_CENTER)/MAP_WIDTH_MULTIPLIER;
 export const aisleX=a=>8+a*10, bayZ=b=>13+b*2.65;
-export const DOCK={x:1.5,z:96};
+// The entire Supply Portal and its real pickup counter share one location.
+// Align it with the left-wall gantry so the roof, counter and floor sign never drift apart.
+export const DOCK={x:-1.8,z:96};
 // Visible, inexhaustible boxed-pallet inventory shared by every floor and supply mechanism.
 // Shared compact receiving layout just to the RIGHT of the left-wall portal.
 // The player pickup counter remains separate and accessible. All stock sources,
 // collision boxes, robot routes and pallet loads read these same positions.
 export const WAREHOUSE_STORAGE_LAYOUT=Object.freeze({
- divider:Object.freeze({x:16.1,z:96.35}),
- shutter:Object.freeze({x:21.6,z:100.24}),
- decoration:Object.freeze([18.4,21.6,24.8].map(x=>Object.freeze({x,z:98.75})))
+ divider:Object.freeze({x:10.0,z:96.35}),
+ shutter:Object.freeze({x:15.4,z:100.24}),
+ decoration:Object.freeze([12.2,15.4,18.6].map(x=>Object.freeze({x,z:98.75})))
 });
-export const WAREHOUSE_CRATE_SOURCES=Object.freeze([{x:6.8,z:96.4},{x:12.2,z:96.4}].map((c,i)=>Object.freeze({...c,id:i+1})));
+export const WAREHOUSE_CRATE_SOURCES=Object.freeze([{x:2.9,z:96.4},{x:7.1,z:96.4}].map((c,i)=>Object.freeze({...c,id:i+1})));
+// Source points are shared by 3D geometry, collisions, robots, claws and pallet jack.
 export function nearestWarehouseCrate(x,z,range=2.75){
  let closest=null,best=range;
  for(const crate of WAREHOUSE_CRATE_SOURCES){const d=Math.hypot(x-crate.x,z-crate.z);if(d<best){closest=crate;best=d;}}
