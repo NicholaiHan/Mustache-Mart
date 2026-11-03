@@ -15,7 +15,8 @@ test('Supply Portal: 30 joined pillar, lower crossbeam and complete sign alignme
  const env=source('environment.js');
  for(const name of ['supplyPortalLowerCrossbeam','supplyPortalCrossbeamJoint','supplyPortalBeamGoldInlay','attachedSupplyPortalSign','attachedPortalLedRail'])assert.match(env,new RegExp(name));
  assert.match(env,/R\(10\.22,\.52,\.52,steel,1\.40,5\.98,94\.65\)/);
- assert.match(env,/R\(10\.08,1\.48,\.34,dark,1\.40,6\.94,94\.55\)/);
+ assert.match(env,/R\(10\.08,1\.48,\.34,dark,0,6\.94,94\.55\)/);
+ assert.match(env,/proportionalPortalSignAssembly/);
  batch(i=>{
   const beam={x:1.4,y:5.98,w:10.22,h:.52};
   const sign={y:6.94,h:1.48};
