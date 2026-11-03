@@ -69,7 +69,8 @@ test('Portal: 30 checks of moved left-wall-side gantry with physically joined si
   'attachedSupplyPortalSign','attachedSupplyPortalEmblemMount','supplyPortalLedBackingAttached'])assert.ok(env.includes(part),part);
  assert.match(env,/gantry\.position\.x=-3\.20/);
  assert.match(env,/portalParent=gantry/);
- assert.match(env,/gantry\.add\(marquee\)/);
+ assert.match(env,/portalSignAssembly\.add\(marquee\)/);
+ assert.match(env,/portalSignAssembly\.scale\.x=1\/MAP_WIDTH_MULTIPLIER/);
  run30(i=>{
   const shift=-3.2,left=-3.55+shift,right=6.35+shift,signCenter=1.4+shift;
   assert.ok(left<-6&&left>-9.73,'new portal upright is near the fire exit but inside wall');
