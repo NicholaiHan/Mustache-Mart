@@ -1,8 +1,15 @@
 {
-  "version": "2026.11.02.1",
-  "name": "Faceted Detailed Crab, Anti-Stacking Robots and Fire-Exit-Side Connected Supply Portal",
+  "version": "2026.11.02.2",
+  "name": "Connected Portal Corrected in 3D, Faceted Crab, Decongested Robot Routing and Nearby Supplies",
   "build_date": "2026-11-02",
   "includes": [
+    "Fixed actual screen-visible floating Supply Portal beams: large horizontal spans no longer shrink independently of the spaced uprights under store width normalization",
+    "Moved real receiving counter, scanner, chute, floor pickup sign, collision and sourcing together under the now-leftward portal canopy",
+    "Working product crates are staged immediately beside the portal's right support, with matching decorated pallets behind and accessible approach lanes",
+    "Replaced round crab sphere with manually triangulated faceted polygon carapace, strong front shoulder outline and attached shell scutes",
+    "Robots reserve independent available shelf targets, use staggered shared pickup points and separate when overcrowded rather than vibrating on the same cell",
+    "Preserved first-aisle automatic claw stock access after leftward receiving dock relocation",
+    "Added direct camera screenshots and world-space bounds assertions, verified 202 static regressions on the completed source",
     "Crab carapace is more angular with flat-shaded faceted shell, low armored scutes, dark segmented seams and reinforced eight-part joint detail; no decorative spikes",
     "70 robot units can be assigned to the same aisle without identical spawn berths, and moving bots apply near-field separation while still processing shelf/dock arrival",
     "Entire physically connected portal gantry moves 3.2 metres toward the left FIRE EXIT, while the original service counter and usable pickup zone remain in place",
