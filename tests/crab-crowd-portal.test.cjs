@@ -113,7 +113,9 @@ test('Stock boxes: 30 pickup, claw, pallet, robot and collision checks next to n
 
 test('Crab: 30 anatomical and geometry checks preserve spike-free angular shell and asymmetry',()=>{
  const crab=source('natural-crab.js');
- assert.match(crab,/shellGeo=new THREE\.SphereGeometry\(1,14,7\)/);
+ assert.match(crab,/shellGeo=new THREE\.BufferGeometry\(\)/);
+ assert.match(crab,/const outline=\[/);
+ assert.match(crab,/triangle\(\[0,4\.32,\.02\],topB,topA\)/);
  assert.match(crab,/flatShading:true/);
  assert.match(crab,/crabAngularCarapaceScute/);
  assert.match(crab,/crabCarapaceSegmentationSeam/);
