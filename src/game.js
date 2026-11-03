@@ -1558,6 +1558,29 @@ if(DEV_MODE){
    status(){return {unlocked:s.crab.unlocked,devOverride:s.crab.devOverride,elapsed:s.crab.elapsed.slice(),attacks:s.crab.attacks.slice(),recent:s.crab.recent.slice(),wrecked:s.robots.filter(r=>r.wrecked).map(r=>r.id),piles:s.stockPiles.filter(p=>p.crabDebris).map(p=>({...p})),visible:!!crabModel,wreckModels:world.children.filter(x=>x.name==='crabDestroyedStocker').length};},
    stockTarget(f,a,b,count=2){let inserted=0;for(let bb=b-1;bb<=b+1;bb++)for(let side=0;side<2;side++)for(let tier=0;tier<TIERS;tier++){const id=cellId(f,a,side,bb,tier);const n=Math.max(0,Math.min(SLOTS,count));inserted+=n-s.fill[id];s.fill[id]=n;}s.stocked+=inserted;buildWorld();return inserted;},
    spawnBot(f,a,bay,paid=400){const bot={id:s.robotNextId++,floor:f,aisle:a,homeAisle:a,x:aisleX(a),z:bayZ(bay),placed:true,paid,phase:'supply',target:-1,carry:0,acc:0,liftY:0,source:null,broken:false,wrecked:false,stockedSinceService:0,breakdowns:0,breakAt:0,repairProgress:0};s.robots.push(bot);s.levels.robot=s.robots.length;buildWorld();return bot.id;},
+   crowdPreview(n=16,ticks=420){
+    // QA-only: put workers at the same exact coordinate and step real
+    // movement/stocking to verify they disperse and make useful progress.
+    const count=Math.min(40,Math.max(2,n|0)),steps=Math.min(1000,Math.max(1,ticks|0));
+    s.levels.robotReliability=4;
+    const ids=[];
+    for(let i=0;i<count;i++){
+     const bot=hireRobot(s,250,true);if(!bot)break;
+     assignRobot(s,bot.id,s.floor,0,17);
+     bot.x=aisleX(0);bot.z=bayZ(17);
+     ids.push(bot.id);
+    }
+    const initial=s.stocked;let arrivals=0;
+    for(let t=0;t<steps;t++)for(const id of ids){
+     const bot=s.robots.find(b=>b.id===id);if(bot&&botStep(s,bot,.1)>=0)arrivals++;
+    }
+    buildWorld();
+    const bots=s.robots.filter(bot=>ids.includes(bot.id));
+    return {count:bots.length,distinct:new Set(bots.map(b=>b.x.toFixed(2)+','+b.z.toFixed(2))).size,
+     stocked:s.stocked-initial,arrivals,
+     positions:bots.map(b=>({id:b.id,x:b.x,z:b.z,phase:b.phase,carry:b.carry})),
+     allFinite:bots.every(b=>Number.isFinite(b.x)&&Number.isFinite(b.z))};
+   },
    robot(id){const r=s.robots.find(r=>r.id===id);return r?{...r}:null;},
    scrap(id){const money=sellRobot(s,id);buildWorld();return money;}
   },
