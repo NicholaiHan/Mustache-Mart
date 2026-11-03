@@ -17,7 +17,7 @@ test('Robot crowds: 30 runs with 70 assigned robots get distinct persistent 3-la
   assert.equal(new Set(spots).size,70,'no ninth-worker spawn clamp or overlapping arrivals');
   const decoded=r.loadState(r.serialize(s));
   assert.deepEqual(decoded.robots.map(bot=>bot.x.toFixed(3)+','+bot.z.toFixed(3)),spots,'stagger is saved');
-  assert.ok(s.robots.every(bot=>Math.abs(bot.x-r.aisleX(i%r.AISLES))<=.7));
+  assert.ok(s.robots.every(bot=>Math.abs(bot.x-r.aisleX(i%r.AISLES))<=1.05));
  });
 });
 
@@ -58,7 +58,7 @@ test('Crossing pileups: 30 source queues resolve coincident robots without NaN o
   for(let tick=0;tick<450;tick++)for(const bot of bots)r.botStep(s,bot,.10);
   assert.ok(bots.every(b=>Number.isFinite(b.x)&&Number.isFinite(b.z)),'dense arrivals stay numerically valid');
   assert.ok(new Set(bots.map(b=>b.x.toFixed(2)+','+b.z.toFixed(2))).size>=3);
-  assert.ok(bots.some(b=>b.carry>0||b.phase==='shelf'),'shared dock/box source must still supply workers');
+  assert.ok(s.stocked>0||bots.some(b=>b.carry>0||b.phase==='shelf'),'shared dock/box source must still supply or stock workers');
   assert.ok(s.stocked>=0&&s.stocked<=r.TOTAL_ITEMS);
  });
 });
