@@ -1,0 +1,29 @@
+name: Focused game visual QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/visual-focus.cjs'
+      - '.github/workflows/visual-focus.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm --prefix .browser-tests install --no-save --ignore-scripts --no-audit --no-fund playwright@1.56.1
+      - run: ./.browser-tests/node_modules/.bin/playwright install --with-deps chromium
+      - name: Capture Supply Portal, working crates and crab from actual game camera
+        run: NODE_PATH="$PWD/.browser-tests/node_modules" node tests/visual-focus.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: portal-crab-visual-focus
+          path: test-artifacts/visual-focus/
+          if-no-files-found: ignore
+          retention-days: 2
