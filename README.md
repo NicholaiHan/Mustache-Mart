@@ -74,6 +74,15 @@ This build specifically addresses the earlier incorrect "completed" updates. The
 - **Testing.** Added 90 new scenarios for solid blockers, old-save pileup recovery, dense 16-robot stocking with no overlaps, and correctly shaped inventory/jack assets. A separate 40-bot / 180-second stress test demonstrated zero overlaps and continuing stocking across representative aisles. All work is committed to GitHub main; locally downloaded Mac folders still require an update to see it.
 - **Notes.** A large cluster may still queue and be slower than uncongested traffic, because robots now stop for other solid workers instead of clipping through them. The new logic prioritizes collision safety and continued movement over maximum throughput.
 
+## Latest build 2026.11.03.2 — The Supply Portal sign now stays proportional
+
+- The previous banner had inherited the 60% wider aisle world-X scale, making the sign around 16 metres wide while still only 1.48 metres tall, with notably squashed lettering.
+- The sign backing, gold inset border, text, light rails, individual light dots and ornamental mustache now use **one inverse-width, proportion-locked 3D group**. The **structural beams and upright columns stay wide and physically connected**, while the sign itself remains normal-sized.
+- The sign backing is approximately 10.08 × 1.48 game metres in the finished scene. A 9.72 × 1.25 gold border frames centered, legible 8.34 × 0.98 lettering. Nine LED bulbs are evenly spaced under the text, rather than stretched over a widened sign.
+- Sign geometry, text centering, border containment and real 3D width are now checked by graphical-browser regression tests and Supply Portal screenshot captures.
+- No stock counts, robot routing logic, progress saves, or pickup collision locations were changed in this sign-only update. Continue to use the same browser profile and URL if updating your Mac.
+- The latest intro build number is **2026.11.03.2**. Download the latest `main` branch source to update; merely restarting the old extracted folder cannot load new changes.
+
 ## Guaranteed latest-version setup (copy/paste for Mac)
 
 **Do not use an old downloaded `mustache-mart.zip`, old Electron app, or previously extracted folder.** The obsolete small ZIP has been removed from GitHub. The complete game is always in the live `main` branch archive.
