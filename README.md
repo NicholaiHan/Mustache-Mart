@@ -52,6 +52,18 @@ A first-person supermarket stocking and automation prototype with **15 huge floo
 - **Testing:** six additional 30-simulation sets (180 scenarios) cover dense robot crowding, full robot dispatch, portal geometry, close-by stock access, leg and shell details, and save/stock-count preservation.
 - **Important:** for this newest request the backroom was deliberately moved **back near the Supply Portal**, overriding the previous far-right-corner staging request. The browser-local save format stays version 4, and users should continue to use the same browser and exact URL to retain progress.
 
+## Latest: Build 2026.11.02.2 — Visible geometry and robot movement corrections
+
+This build specifically addresses the earlier incorrect "completed" updates. The previous portal beams **looked disconnected even when code dimensions overlapped**, because the 60%-wide-store proportion pass shrank horizontal beam geometry but not upright separation. **Large structural spans now opt out of that shrink**, which has been verified using actual in-game screenshots and post-transform bounding-box checks.
+
+- **Portal and sign:** top beam, lower beam, two uprights, marquee backing, LED trim and emblem now physically join in the rendered world, not just in source coordinates.
+- **Whole receiving operation moves together:** Supply Portal gantry and actual dock center now both sit near the left FIRE EXIT wall. The pickup counter, scanner, chute rails, floor marker, physical collisions and robot/delivery origin all use the same dock position.
+- **Stock crates right beside the structure:** working pallets sit just to the right of the portal's right column; decorative crates align behind them, rather than hiding inside the pillar or crowding the center aisle.
+- **Crab body:** replaced the compressed round sphere with an explicitly triangulated 16-edge faceted carapace (64 surface triangles), broad angular shoulders, a shallow crown, visible armor scutes and detailed segment seams. Previous spike removal, asymmetric claws and leg joints remain intact.
+- **Crowded robots:** active workers avoid reserving the same stock cell, select spread-out shelf bays, line up at staggered source positions and gently separate if they still overlap. The rule no longer depends on a limited number of spawn locations.
+- **Regression caught and fixed:** moving the dock farther left put some existing item claws outside the allowed inventory radius. The claw pickup range was adjusted so the existing first-aisle conveyors still receive real goods.
+- Existing fifteen-floor browser saves retain their format. For reliable updates, download the **fresh main ZIP**, launch it from the newly extracted folder, use the same Chrome profile and same exact host/port, and confirm the intro shows **2026.11.02.2**. An old running server will continue showing the old code even after a new GitHub commit.
+
 ## Guaranteed latest-version setup (copy/paste for Mac)
 
 **Do not use an old downloaded `mustache-mart.zip`, old Electron app, or previously extracted folder.** The obsolete small ZIP has been removed from GitHub. The complete game is always in the live `main` branch archive.
