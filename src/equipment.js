@@ -108,29 +108,30 @@ function makeReceivingSystem(){
  // 98-metre overhead crossbar, dark floating bar, or ten unused empty chutes.
  // The K-installed item claws supply the actual B-built conveyors.
  const root=new THREE.Group();getWorld().add(root);
+ root.name='proportionalReceivingIntake';root.position.x=5.6;root.userData.keepProportion=true;
  const steel=equipmentMaterial('#8e9a9a',.63,.34);
  const dark=equipmentMaterial('#3a4a4d',.3,.5);
  const yellow=equipmentMaterial('#d6ab66',.22,.45);
  const concrete=equipmentMaterial('#aab3ac',.02,.94);
- const floor=round(4.2,.085,2.8,concrete,root);floor.position.set(5.4,.04,96.2);
- const backStop=round(4.2,.12,.13,yellow,root);backStop.position.set(5.4,.17,97.55);
- const intake=round(2.7,.2,1.35,dark,root);intake.position.set(5.6,.63,95.2);
+ const floor=round(4.2,.085,2.8,concrete,root);floor.position.set(-.2,.04,96.2);
+ const backStop=round(4.2,.12,.13,yellow,root);backStop.position.set(-.2,.17,97.55);
+ const intake=round(2.7,.2,1.35,dark,root);intake.position.set(0,.63,95.2);
  for(const side of [-1,1]){
-  const rail=round(.09,.25,1.5,steel,root);rail.position.set(5.6+side*1.37,.76,95.2);
+  const rail=round(.09,.25,1.5,steel,root);rail.position.set(side*1.37,.76,95.2);
   for(const z of [94.63,95.76]){
-   const leg=round(.13,.55,.16,steel,root);leg.position.set(5.6+side*1.1,.32,z);
-   const foot=round(.25,.04,.25,dark,root);foot.position.set(5.6+side*1.1,.045,z);
+   const leg=round(.13,.55,.16,steel,root);leg.position.set(side*1.1,.32,z);
+   const foot=round(.25,.04,.25,dark,root);foot.position.set(side*1.1,.045,z);
   }
  }
  for(let k=0;k<6;k++){
   const roller=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,2.47,12),steel);
-  roller.rotation.z=Math.PI/2;roller.position.set(5.6,.76,94.62+k*.23);root.add(roller);
+  roller.rotation.z=Math.PI/2;roller.position.set(0,.76,94.62+k*.23);root.add(roller);
  }
- const bumper=round(2.7,.09,.12,yellow,root);bumper.position.set(5.6,.66,94.51);
- const sign=round(2.2,.34,.08,dark,root);sign.position.set(5.6,2.35,96.32);
+ const bumper=round(2.7,.09,.12,yellow,root);bumper.position.set(0,.66,94.51);
+ const sign=round(2.2,.34,.08,dark,root);sign.position.set(0,2.35,96.32);
  const digits=round(.5,.09,.03,new THREE.MeshBasicMaterial({color:'#8ce3bd'}),root);
- digits.position.set(5.6,2.35,96.27);
- const post=round(.12,2,.13,steel,root);post.position.set(5.6,1.35,96.43);
+ digits.position.set(0,2.35,96.27);
+ const post=round(.12,2,.13,steel,root);post.position.set(0,1.35,96.43);
  // No cartons are placed on this intake until an actual item claw picks them
  // from receiving stock and sends them onto a paid, connected belt.
  return root;
