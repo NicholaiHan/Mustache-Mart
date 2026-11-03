@@ -1,6 +1,6 @@
 // Pure, deterministic first-person collision model (world units are metres).
 // Player radius is shared by player movement and automated collision regression tests.
-import {AISLES,BAYS,aisleX,bayZ,WAREHOUSE_CRATE_SOURCES,WAREHOUSE_STORAGE_LAYOUT} from './rules.mjs';
+import {AISLES,BAYS,DOCK,aisleX,bayZ,WAREHOUSE_CRATE_SOURCES,WAREHOUSE_STORAGE_LAYOUT} from './rules.mjs';
 export const PLAYER_RADIUS=.34;
 // One shared layout contract for the payroll window, its physical solid,
 // the renderer, and the E interaction. Back faces deliberately intersect the
@@ -26,8 +26,8 @@ const boxes=[
  {name:'Payroll wall-mounted facade',x:PAYROLL_LAYOUT.x,z:PAYROLL_LAYOUT.fasciaZ,hx:2.85,hz:PAYROLL_LAYOUT.fasciaDepth/2},
  {name:'Elevator housing',x:23,z:-11.4,hx:2.75,hz:.47},
  // Receiving desk, terminal, racking and pallets are solid.
- {name:'Receiving loading counter',x:1.5,z:96,hx:2.35,hz:1.47},
- {name:'Receiving terminal',x:3.7,z:95.8,hx:.5,hz:.4},
+ {name:'Receiving loading counter',x:DOCK.x,z:DOCK.z,hx:2.35,hz:1.47},
+ {name:'Receiving terminal',x:DOCK.x+2.2,z:95.8,hx:.5,hz:.4},
  {name:'Receiving rotated warehouse divider',x:WAREHOUSE_STORAGE_LAYOUT.divider.x,z:WAREHOUSE_STORAGE_LAYOUT.divider.z,hx:.38,hz:2.55},
  {name:'Receiving shutter',x:WAREHOUSE_STORAGE_LAYOUT.shutter.x,z:WAREHOUSE_STORAGE_LAYOUT.shutter.z,hx:5.6,hz:.24}
 ];
