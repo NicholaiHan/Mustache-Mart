@@ -95,9 +95,9 @@ test('30 new inventory type checks: distinct metal cans, necked bottles and squa
 test('30 pallet jack proportions: wider body, realistic fork/wheel width and short length',()=>{
  const equip=source('equipment.js');
  repeat30(()=>{
-  assert.match(equip,/round\(\.33,\.17,1\.51,yellow,root\)/);
-  assert.match(equip,/round\(1\.90,\.49,\.67,yellow,root\)/);
-  assert.match(equip,/industrialWheel\(root,side\*\.74,\.27,\.81,\.27\)/);
+  assert.match(equip,/new THREE\.ExtrudeGeometry\(profile/);
+  assert.match(equip,/proportionalPalletJackRearHousing/);
+  assert.match(equip,/industrialWheel\(root,side\*\.67,\.265,\.97,\.245\)/);
   assert.match(equip,/palletJackCargoDeck/);
   assert.match(equip,/palletJackSizedCargoCarton/);
  });
