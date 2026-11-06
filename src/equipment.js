@@ -167,55 +167,83 @@ function makeCart(){
  return root;
 }
 function makePalletJack(){
- const root=new THREE.Group();getWorld().add(root);
- root.userData.keepProportion=true;root.name='fullWidthPalletJack';
- // Hand pallet jack with true working width and shorter, believable forks.
- // Everything shares one proportional parent after the wide-aisle transform.
- const yellow=equipmentMaterial('#e7b344',.29,.47);
- const shadow=equipmentMaterial('#303b3b',.16,.78);
- const steel=equipmentMaterial('#87999a',.64,.35);
- const handleRubber=equipmentMaterial('#222c2c',.06,.86);
+ // Entire old pallet jack model removed. New hand-powered warehouse jack
+ // constructed around two real fork profiles and a central hydraulic pump.
+ const root=new THREE.Group();root.name='fullWidthPalletJack';
+ root.userData.keepProportion=true;getWorld().add(root);
+ const chassis=equipmentMaterial('#cf9c2e',.31,.45);
+ const bright=equipmentMaterial('#f0bd43',.32,.40);
+ const metal=equipmentMaterial('#9faeb0',.66,.32);
+ const rubber=equipmentMaterial('#242b2e',.08,.88);
+ const grease=equipmentMaterial('#404c4d',.24,.55);
  const materials=cartonMaterials();
+ const part=(w,h,d,mat,x,y,z,name)=>{
+  const m=round(w,h,d,mat,root);m.position.set(x,y,z);
+  if(name)m.name=name;return m;
+ };
+ // Two extruded steel forks: a long flat load platform, upward neck, and
+ // tapered tips. Each is thick enough to visibly carry a full wood pallet.
+ // Y is vertical; the profile is drawn from the side and extruded to width.
+ const profile=new THREE.Shape();
+ profile.moveTo(-.79,.10);profile.lineTo(-.75,.19);
+ profile.lineTo(.48,.19);profile.lineTo(.58,.31);profile.lineTo(.76,.36);
+ profile.lineTo(.76,.12);profile.lineTo(-.72,.10);profile.closePath();
+ const forkGeometry=new THREE.ExtrudeGeometry(profile,{
+  depth:.35,steps:1,bevelEnabled:true,bevelThickness:.025,
+  bevelSize:.025,bevelSegments:2,curveSegments:3
+ });
+ // The extrusion depth becomes the fork's physical X thickness.
  for(const side of [-1,1]){
-  const fork=round(.33,.17,1.51,yellow,root);
-  fork.name='widePalletJackFork';fork.position.set(side*.64,.22,-.12);
-  const tip=round(.35,.105,.25,steel,root);
-  tip.name='palletJackRoundedForkTip';tip.position.set(side*.64,.18,-.90);
-  const heel=round(.37,.22,.38,yellow,root);
-  heel.name='palletJackForkHeel';heel.position.set(side*.64,.31,.48);
-  // Load-bearing tandem rollers are tucked under each fork.
-  industrialWheel(root,side*.64,.16,-.78,.16);
-  const axleCover=round(.28,.07,.20,shadow,root);
-  axleCover.position.set(side*.64,.12,-.75);
+  const fork=new THREE.Group();fork.name='widePalletJackFork';
+  fork.position.x=side*.54;root.add(fork);
+  const runner=new THREE.Mesh(forkGeometry,bright);
+  runner.name='realPalletJackTaperedFork';
+  runner.rotation.y=Math.PI/2;runner.position.set(-.18,0,-.11);
+  fork.add(runner);
+  const steelEdge=round(.34,.062,1.21,metal,fork);
+  steelEdge.position.set(0,.21,-.03);
+  const heel=round(.39,.24,.37,chassis,fork);
+  heel.position.set(0,.28,.58);
+  const wheelHousing=round(.36,.12,.35,rubber,fork);
+  wheelHousing.position.set(0,.10,-.57);
+  industrialWheel(fork,0,.16,-.59,.145);
  }
- const crossBar=round(1.72,.19,.32,steel,root);crossBar.position.set(0,.34,.56);
- const body=round(1.90,.49,.67,yellow,root);body.position.set(0,.46,.76);
- body.name='proportionalPalletJackRearHousing';
- const sideGuard=round(1.57,.12,.48,steel,root);sideGuard.position.set(0,.74,.77);
- const hydraulic=round(.35,.47,.34,shadow,root);hydraulic.position.set(0,.84,.83);
- const hydraulicRam=round(.18,.49,.17,steel,root);hydraulicRam.position.set(0,1.18,.83);
+ // One sturdy rear yoke joins both forks, with reinforced side shoulders.
+ part(1.60,.25,.35,chassis,0,.36,.63,'palletJackCrossYoke');
+ part(1.63,.45,.55,bright,0,.48,.88,'proportionalPalletJackRearHousing');
  for(const side of [-1,1]){
-  industrialWheel(root,side*.74,.27,.81,.27);
-  const bracket=round(.17,.30,.32,steel,root);bracket.position.set(side*.71,.50,.81);
-  const bolt=round(.09,.09,.07,shadow,root);bolt.position.set(side*.88,.52,.82);
-  const rearBumper=round(.15,.24,.29,shadow,root);rearBumper.position.set(side*.84,.31,1.03);
+  part(.24,.40,.45,chassis,side*.72,.44,.83,'palletJackFrameCheek');
+  industrialWheel(root,side*.67,.265,.97,.245);
+  part(.12,.12,.06,metal,side*.83,.51,.93,'palletJackAxleBolt');
  }
- // The pull handle has a real pivot, angled stem and thick ergonomic grip.
- const pivot=round(.46,.26,.30,steel,root);pivot.position.set(0,.90,1.03);
- const tiller=round(.19,.87,.18,steel,root);tiller.position.set(0,1.35,1.14);
- tiller.rotation.x=-.25;
- const grip=round(1.01,.15,.19,handleRubber,root);grip.position.set(0,1.77,1.22);
- grip.name='widePalletJackHandle';
+ // Visible hydraulic cylinder, piston and pump handle bearing.
+ const pumpBase=new THREE.Mesh(new THREE.CylinderGeometry(.26,.30,.33,18),grease);
+ pumpBase.name='hydraulicPumpCylinder';pumpBase.position.set(0,.82,.88);root.add(pumpBase);
+ const pumpRam=new THREE.Mesh(new THREE.CylinderGeometry(.145,.17,.46,18),metal);
+ pumpRam.position.set(0,1.15,.88);root.add(pumpRam);
+ part(.50,.22,.36,chassis,0,.90,1.04,'palletJackPivotHousing');
+ // Tilting mechanical steering tiller; dark ergonomic T-grip at adult waist.
+ const tiller=new THREE.Group();tiller.name='palletJackArticulatedTiller';
+ tiller.position.set(0,.94,1.05);tiller.rotation.x=.22;root.add(tiller);
+ const stem=new THREE.Mesh(new THREE.CylinderGeometry(.095,.13,.99,12),metal);
+ stem.position.y=.49;stem.name='palletJackTillerSteelStem';tiller.add(stem);
+ const handGrip=round(1.02,.15,.19,rubber,tiller);
+ handGrip.position.y=1.01;handGrip.name='widePalletJackHandle';
  for(const side of [-1,1]){
-  const pad=round(.22,.16,.23,shadow,root);pad.position.set(side*.42,1.77,1.22);
+  const cushion=round(.24,.18,.23,grease,tiller);
+  cushion.position.set(side*.42,1.01,0);
  }
- const label=round(.62,.17,.055,shadow,root);label.position.set(0,.60,.44);
- const badge=round(.39,.085,.057,steel,root);badge.position.set(0,.61,.41);
- const cargo=new THREE.Group();cargo.name='palletCargo';root.add(cargo);
- cargo.position.set(0,.37,-.16);
- const pallet=addInventoryPallet({round,parent:cargo,materials,width:1.48,depth:1.05});
- pallet.name='palletJackCargoDeck';
- const box=addPackedCarton({round,parent:pallet,materials,x:0,y:.66,z:0,variant:2,scale:.96});
+ const handLever=round(.32,.045,.13,metal,tiller);
+ handLever.position.set(.17,.91,-.14);
+ part(.60,.15,.06,grease,0,.68,.585,'palletJackManufacturerPlate');
+ part(.39,.07,.065,metal,0,.69,.555,'palletJackSpecificationBadge');
+ // Cargo stays a single proportional box-and-wood-deck assembly, and the
+ // original palletCargo identifier remains usable by animations and saves.
+ const cargo=new THREE.Group();cargo.name='palletCargo';
+ cargo.position.set(0,.43,-.13);root.add(cargo);
+ const deck=addInventoryPallet({round,parent:cargo,materials,width:1.35,depth:1.09});
+ deck.name='palletJackCargoDeck';
+ const box=addPackedCarton({round,parent:deck,materials,x:0,y:.68,z:0,variant:2,scale:.91});
  box.name='palletJackSizedCargoCarton';
  return root;
 }
