@@ -6,6 +6,7 @@ import {createEquipment} from './equipment.js';
 import {createDoors} from './doors.js';
 import {createCheckout} from './checkout.js';
 import {restoreObjectProportions} from './visual-proportions.js';
+import {normalizeRobotSpawns} from './robot-traffic.mjs';
 import {renderElevatorDirectory} from './elevator-ui.js';
 import {ladderHeight,canStockFromHeight} from './ladder.mjs';
 import {moveWithCollisions,isBlocked,blockedEquipment,PAYROLL_LAYOUT as PAY} from './collision.mjs';
@@ -165,6 +166,8 @@ const {makeBelt,makeReceivingSystem,makeCart,makeLadder,makePalletJack,makeClaws
 const doors=createDoors({getWorld:()=>world,getFloor:()=>s.floor,round,cube,textLabel});
 const checkout=createCheckout({getWorld:()=>world,getFloor:()=>s.floor,round,textLabel});
 function buildWorld(){
+ // Saved overlapping robot placements are repaired before meshes spawn.
+ normalizeRobotSpawns(s,s.floor);
  clearWorld(world);
  world=new THREE.Group();world.scale.x=MAP_WIDTH_MULTIPLIER;world.position.x=MAP_WIDTH_CENTER*(1-MAP_WIDTH_MULTIPLIER);scene.add(world);
  currentFloor=s.floor;flyingCartons=[];incomingCartonCounts=new Map();beltCrates=[];feederCrates=[];clawVisual=null;cartMesh=null;cartMeshes=[];ladderMesh=null;palletMesh=null;placedClawMeshes=[];pileMeshes=[];robotModels=new Map();crabModel=null;robotGhost=null;
