@@ -782,7 +782,7 @@ function approach(s,r,x,z,dt,speed){
  // Stock sources can be collected from just beyond one body diameter,
  // keeping multiple workers from insisting on one identical center point.
  // Shelf targets still require precise positioning and the usual lift rules.
- const range=r.phase==='supply'?1.0:.31;
+ const range=r.phase==='supply'?1.35:.31;
  return Math.hypot(x-r.x,z-r.z)<range;
 }
 export function robotPlatformFor(s,id){
@@ -857,7 +857,17 @@ export function robotSource(s,r){
   }
  }
  candidates.sort((u,v)=>{
-  const metric=p=>Math.abs(p.x-r.x)*1.3+Math.abs(p.z-r.z);
+  // Prefer a nearby free station over the one every other worker is trying
+  // to enter. This prevents the old spawn-time traffic jam at a single crate.
+  const metric=p=>{
+   const pressure=s.robots.reduce((sum,other)=>{
+    if(other===r||other.floor!==r.floor||!other.placed||other.wrecked||other.broken||other.phase!=='supply')return sum;
+    if(other.source?.type===p.type&&other.source?.crateId===p.crateId)return sum+4;
+    if(Math.hypot(other.x-p.x,other.z-p.z)<1.7)return sum+1.5;
+    return sum;
+   },0);
+   return Math.abs(p.x-r.x)*1.3+Math.abs(p.z-r.z)+pressure;
+  };
   return metric(u)-metric(v);
  });
  const chosen=candidates[0];
