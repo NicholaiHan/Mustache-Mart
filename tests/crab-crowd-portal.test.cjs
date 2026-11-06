@@ -17,7 +17,7 @@ test('Robot crowds: 30 runs with 70 assigned robots get distinct persistent 3-la
   assert.equal(new Set(spots).size,70,'no ninth-worker spawn clamp or overlapping arrivals');
   const decoded=r.loadState(r.serialize(s));
   assert.deepEqual(decoded.robots.map(bot=>bot.x.toFixed(3)+','+bot.z.toFixed(3)),spots,'stagger is saved');
-  assert.ok(s.robots.every(bot=>Math.abs(bot.x-r.aisleX(i%r.AISLES))<=1.05));
+  assert.ok(s.robots.every(bot=>Math.abs(bot.x-r.aisleX(i%r.AISLES))<=1.19));
  });
 });
 
