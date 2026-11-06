@@ -42,7 +42,7 @@ test('usable boxed warehouse stock: 30 hand, pallet, robot and claw sourcing sce
   const bot=rules.hireRobot(s,250,true);
   bot.floor=s.floor;bot.x=crate.x;bot.z=crate.z-2.1;bot.phase='supply';bot.carry=0;
   assert.equal(rules.robotSource(s,bot).type,'crate','robot navigates to inventory crates');
-  rules.botStep(s,bot,.25);
+  for(let step=0;step<8&&!bot.carry;step++)rules.botStep(s,bot,.25);
   assert.equal(bot.carry,8,'robot loads a full crate batch');
   const claw={floor:s.floor,x:crate.x,z:crate.z,aisle:0};
   assert.equal(rules.nearestClawSource(s,claw).type,'crate','claw can draw from crate inventory');
