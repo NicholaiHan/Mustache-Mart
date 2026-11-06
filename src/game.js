@@ -1588,8 +1588,12 @@ if(DEV_MODE){
    };
    const productShapes=Array.from({length:5},(_,i)=>{
     const geometry=world.getObjectByName('shelfStockedProductsType'+i)?.geometry;
+    const cap=world.getObjectByName('shelfProductDetail'+i+'Cap');
+    const seal=world.getObjectByName('shelfProductDetail'+i+'Seal');
     return {kind:geometry?.userData?.productShape??null,
-     geometryType:geometry?.type??null};
+     geometryType:geometry?.type??null,
+     capGeometry:cap?.geometry?.type??null,
+     sealGeometry:seal?.geometry?.type??null};
    });
    return {portraitGoldFrame,customerServiceGeometry,productShapes,inventoryGeometry,portalSignGeometry,portalConnections,portalGantryX:world.getObjectByName('fireExitSidePortalGantry')?.position.x,
     portalLedBacking:count('supplyPortalLedBackingAttached'),emblemMount:count('attachedSupplyPortalEmblemMount'),
