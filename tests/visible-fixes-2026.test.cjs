@@ -6,8 +6,8 @@ for(let i=0;i<30;i++){
   const crab=src('natural-crab.js');
   for(const forbidden of ['naturalCrabDorsalSpine','naturalCrabEdgeSpine','naturalCrabPincerSpike','naturalCrabMandibleTusk','new THREE.ConeGeometry'])
    assert.equal(crab.includes(forbidden),false,'unwanted crab spike '+forbidden);
-  assert.match(crab,/arm\.scale\.set\(1\.30,1\.18,1\.26\)/);
-  assert.match(crab,/arm\.scale\.set\(\.91,\.92,\.94\)/);
+  assert.match(crab,/arm\.scale\.set\(1\.18,1\.14,1\.16\)/);
+  assert.match(crab,/arm\.scale\.set\(1\.04,1\.08,1\.08\)/);
   assert.match(crab,/legPropodus/);assert.match(crab,/legAnkle/);
   assert.match(crab,/legPropodus/);
   assert.match(crab,/for\(const side of \[-1,1\]\)for\(let i=0;i<4;i\+\+\)/);
