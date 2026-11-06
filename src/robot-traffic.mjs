@@ -2,6 +2,8 @@
 // No renderer or storage dependency: existing saves retain the same schema.
 export const ROBOT_RADIUS=.44;
 export const ROBOT_CLEARANCE=ROBOT_RADIUS*2+.045;
+// 10 inches of AIR between the .925m-wide robots, not centers 10 inches apart.
+export const ROBOT_ENTRY_CLEARANCE=ROBOT_CLEARANCE+.254;
 const MIN_X=-8.8,MAX_X=101.9,MIN_Z=9.15,MAX_Z=99.2;
 const AISLE_START=8,AISLE_STEP=10;
 const aisleBand=x=>Math.round((x-AISLE_START)/AISLE_STEP);
@@ -64,21 +66,21 @@ export function normalizeRobotSpawns(s,floor=null){
   const occupied=[];
   for(const bot of bots){
    const currentFree=robotWalkable(bot.x,bot.z)&&occupied.every(p=>
-    Math.hypot(p.x-bot.x,p.z-bot.z)>=ROBOT_CLEARANCE);
+    Math.hypot(p.x-bot.x,p.z-bot.z)>=ROBOT_ENTRY_CLEARANCE-1e-6);
    if(currentFree){occupied.push({x:bot.x,z:bot.z});continue;}
    const center=AISLE_START+Math.max(0,Math.min(9,bot.aisle??0))*AISLE_STEP;
    const originZ=Math.min(89.5,Math.max(13,Number.isFinite(bot.z)?bot.z:76));
    const sites=[];
    // Prefer a nearby position rather than relocating the robot far away.
    for(let bay=0;bay<73;bay++){
-    const z=13+bay*1.05;
-    for(const offset of [0,-1.15,1.15]){
+    const z=13+bay*1.28;
+    for(const offset of [0,-1.28,1.28]){
      const x=center+offset;
      if(robotWalkable(x,z))sites.push({x,z,distance:Math.hypot(x-bot.x,z-originZ)});
     }
    }
    sites.sort((a,b)=>a.distance-b.distance);
-   const spot=sites.find(p=>occupied.every(other=>Math.hypot(other.x-p.x,other.z-p.z)>=ROBOT_CLEARANCE));
+   const spot=sites.find(p=>occupied.every(other=>Math.hypot(other.x-p.x,other.z-p.z)>=ROBOT_ENTRY_CLEARANCE-1e-6));
    if(spot){bot.x=spot.x;bot.z=spot.z;fixed++;}
    // If a floor is fully saturated, keep it valid and let the next tick
    // resolve it; no item counts, money or robot jobs are reset.
