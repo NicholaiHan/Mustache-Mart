@@ -48,6 +48,13 @@ const {createServer}=require('../server.cjs');
    ['can','water-bottle-with-neck','wine-bottle-with-neck','cereal-box','can']);
   assert.deepEqual(details.productShapes?.map(p=>p.geometryType),
    ['CylinderGeometry','LatheGeometry','LatheGeometry','BoxGeometry','CylinderGeometry']);
+  assert.deepEqual(details.productShapes?.map(p=>p.capGeometry),
+   ['CylinderGeometry','CylinderGeometry','CylinderGeometry','BoxGeometry','CylinderGeometry'],
+   'real cans, bottles and cartons each need an appropriate visible finishing cap');
+  assert.deepEqual(details.productShapes?.map(p=>p.sealGeometry),
+   ['TorusGeometry','TorusGeometry','TorusGeometry','BoxGeometry','TorusGeometry'],
+   'can end rims, bottle neck rings and cereal folds must render');
+  console.log('FOCUS PACKAGE DETAILS',JSON.stringify(details.productShapes));
   const sign=details.portalSignGeometry;
   assert.ok(sign?.panel&&sign?.lettering&&sign?.frame&&sign?.lights,
    'real sign face, lettering, frame and LED backing must render together');
@@ -66,6 +73,8 @@ const {createServer}=require('../server.cjs');
   assert.ok(inv.workingPallet.width>2&&inv.workingPallet.width<2.45,'working pallet must preserve original physical width');
   assert.ok(inv.receivingIntake.width>3.9&&inv.receivingIntake.width<4.55,'intake rails and rollers must stay proportional');
   assert.ok(inv.palletJack.depth<2.5,'shorter pallet jack must not have the old overlong silhouette');
+  assert.ok(inv.palletJack.width>1.65&&inv.palletJack.width<2.05,'new hand jack must be wide and naturally proportioned');
+  assert.ok(inv.palletJack.depth/inv.palletJack.width<1.45,'jack cannot look skinny or excessively long');
   assert.ok(inv.jackFork.depth<1.9,'jack forks must be compact');
   const links=details.portalConnections;
   assert.ok(links,'real portal geometry inspection must be available');
