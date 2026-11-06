@@ -118,11 +118,11 @@ test('Crab: 30 anatomical and geometry checks preserve spike-free angular shell 
  assert.match(crab,/const outline=\[/);
  assert.match(crab,/triangle\(\[0,4\.32,\.02\],topB,topA\)/);
  assert.match(crab,/flatShading:true/);
- assert.match(crab,/crabAngularCarapaceScute/);
+ assert.doesNotMatch(crab,/crabAngularCarapaceScute/);
  assert.match(crab,/crabCarapaceSegmentationSeam/);
  assert.match(crab,/crabLegElbowJointCollar/);
  assert.match(crab,/crabLegAnkleJointCollar/);
- assert.match(crab,/arm\.scale\.set\(1\.30,1\.18,1\.26\)/);
+ assert.match(crab,/arm\.scale\.set\(1\.18,1\.14,1\.16\)/);
  assert.doesNotMatch(crab,/naturalCrabDorsalSpine|naturalCrabEdgeSpine|new THREE\.ConeGeometry/);
  run30(i=>{
   const s=r.newState();s.floor=i%r.FLOORS;s.money=200+i;
