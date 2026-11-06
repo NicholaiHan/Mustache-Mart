@@ -60,8 +60,8 @@ test('30 proportion checks: crates, pallet decks and compact jack remain physica
  assert.match(proportion,/if\(object\.userData\?\.keepProportion\)/);
  for(let i=0;i<30;i++){
   assert.match(equip,/root\.userData\.keepProportion=true/);
-  assert.match(equip,/round\(\.33,\.17,1\.51,yellow,root\)/);
-  assert.match(equip,/round\(1\.90,\.49,\.67,yellow,root\)/);
+  assert.match(equip,/new THREE\.ExtrudeGeometry\(profile/);
+  assert.match(equip,/hydraulicPumpCylinder/);
   assert.match(equip,/palletJackCargoDeck/);
   assert.match(equip,/palletJackSizedCargoCarton/);
   assert.doesNotMatch(equip,/round\(\.33,\.18,2\.16,frame,root\)/);
