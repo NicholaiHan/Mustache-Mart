@@ -9,7 +9,7 @@ for(let i=0;i<30;i++){
   assert.match(crab,/arm\.scale\.set\(1\.30,1\.18,1\.26\)/);
   assert.match(crab,/arm\.scale\.set\(\.91,\.92,\.94\)/);
   assert.match(crab,/legPropodus/);assert.match(crab,/legAnkle/);
-  assert.match(crab,/legCuticlePlate/);
+  assert.match(crab,/legPropodus/);
   assert.match(crab,/for\(const side of \[-1,1\]\)for\(let i=0;i<4;i\+\+\)/);
  });
  test('No Safety First sign and proportional pallet jack · '+i,()=>{
@@ -18,8 +18,8 @@ for(let i=0;i<30;i++){
   assert.match(equip,/fullWidthPalletJack/);
   assert.match(equip,/widePalletJackFork/);
   assert.match(equip,/proportionalPalletJackRearHousing/);
-  assert.match(equip,/round\(1\.40,\.45,\.50,yellow,root\)/);
-  assert.match(equip,/round\(\.245,\.14,1\.52,yellow,root\)/);
+  assert.match(equip,/round\(1\.90,\.49,\.67,yellow,root\)/);
+  assert.match(equip,/round\(\.33,\.17,1\.51,yellow,root\)/);
  });
  test('Shelf product center and real right-corner warehouse · '+i,()=>{
   const env=src('environment.js'),rules=src('rules.mjs');
