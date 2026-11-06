@@ -8,14 +8,31 @@ import {PAYROLL_LAYOUT as PAY} from './collision.mjs';
 export function createEnvironment({s,scene,add,cube,round,roundedGeo,textLabel,toon,dummy,color,goods,pastel,FLOOR_W,FLOOR_D,CEILING_Y,RACK_HEIGHT,TIER_Y,makeMike}){
 let meshes=[],mikeModel=null;
 function itemGeometry(type){
- const shapes=[
- [[0,0],[.13,0],[.15,.03],[.15,.38],[.13,.4],[0,.4]],
- [[0,0],[.12,0],[.12,.28],[.07,.34],[.07,.42],[.09,.45],[0,.45]],
- [[0,0],[.13,0],[.13,.26],[.05,.33],[.05,.48],[.07,.52],[0,.52]],
- [[0,0],[.13,0],[.17,.07],[.14,.43],[.1,.47],[0,.47]],
- [[0,0],[.13,0],[.13,.43],[.11,.45],[0,.45]]
+ // Product silhouettes match the product, not a repeated oval Lathe blob.
+ // Each geometry rests on Y=0 so the existing shelf placement is unchanged.
+ if(type===0||type===4){
+  // Soup and soda cans have straight sides, flat metal ends and a real rim.
+  const height=type===0?.40:.44;
+  const can=new THREE.CylinderGeometry(type===0?.18:.16,type===0?.18:.16,height,20,1,false);
+  can.translate(0,height/2,0);can.userData={productShape:'can'};
+  return can;
+ }
+ if(type===3){
+  // A cereal product is a crisp rectangular carton, not a curved bottle.
+  const carton=new THREE.BoxGeometry(.37,.55,.23);
+  carton.translate(0,.275,0);carton.userData={productShape:'cereal-box'};
+  return carton;
+ }
+ const points=type===1?[
+  [0,0],[.155,0],[.158,.035],[.158,.315],[.138,.375],
+  [.076,.415],[.076,.50],[.084,.52],[.084,.545],[0,.545]
+ ]:[
+  [0,0],[.165,0],[.165,.045],[.16,.34],[.13,.405],
+  [.062,.46],[.062,.61],[.075,.625],[.075,.65],[0,.65]
  ];
- return new THREE.LatheGeometry(shapes[type].map(([r,y])=>new THREE.Vector2(r,y)),16);
+ const bottle=new THREE.LatheGeometry(points.map(([radius,y])=>new THREE.Vector2(radius,y)),22);
+ bottle.userData={productShape:type===1?'water-bottle-with-neck':'wine-bottle-with-neck'};
+ return bottle;
 }
 function contactShadow(x,z,w,d,opacity=.18){
  const c=document.createElement('canvas');c.width=c.height=128;
