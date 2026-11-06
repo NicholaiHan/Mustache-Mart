@@ -1,4 +1,4 @@
-import {walkRobotAround,rescueStackedRobot} from './robot-traffic.mjs';
+import {walkRobotAround,rescueStackedRobot,normalizeRobotSpawns} from './robot-traffic.mjs';
 // Pure rules for Mustache Mart. No rendering, network, or OS dependencies.
 export const FLOORS=15, AISLES=10, BAYS=30, TIERS=4, SLOTS=4;
 export const CELLS_PER_FLOOR=AISLES*2*BAYS*TIERS, TOTAL_CELLS=FLOORS*CELLS_PER_FLOOR, TOTAL_ITEMS=TOTAL_CELLS*SLOTS;
@@ -198,6 +198,9 @@ export function loadState(text){
   }
  }
  }catch(_){return newState();}
+ // Fix older saves that already contain robot pileups BEFORE the game renders.
+ // Preserve every worker's assignment, carry, cash, progress and upgrades.
+ normalizeRobotSpawns(s);
  return s;
 }
 export function serialize(s){return JSON.stringify({version:4,money:s.money,pending:s.pending,floor:s.floor,fill:Array.from(s.fill),levels:s.levels,belts:s.belts,beltReceipts:s.beltReceipts,beltStock:s.beltStock,beltItems:s.beltItems,beltFlowTimer:s.beltFlowTimer,beltTimers:s.beltTimers,beltDirection:s.beltDirection,freeBelts:s.freeBelts,freeBeltNextId:s.freeBeltNextId,claws:s.claws,clawInventory:s.clawInventory,clawNextId:s.clawNextId,stockPiles:s.stockPiles,pallet:{...s.pallet,driving:false},ladderInventory:s.ladderInventory,ladders:s.ladders,ladderNextId:s.ladderNextId,robots:s.robots,robotNextId:s.robotNextId,cart:s.cart,platforms:s.platforms,platformNextId:s.platformNextId,activePlatformId:s.cart?.id,cursor:s.cursor,crab:s.crab,coinOffers:s.coinOffers});}
