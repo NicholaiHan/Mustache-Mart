@@ -1,4 +1,4 @@
-# QA snapshot updated for November 2026 physical collision, crab and proportional prop fixes
+# QA snapshot updated for FIFO warehouse queues, rebuilt pallet jack and detailed merchandise
 name: Export game source for local visual QA
 on:
   push:
