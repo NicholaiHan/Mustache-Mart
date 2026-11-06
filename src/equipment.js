@@ -167,50 +167,55 @@ function makeCart(){
  return root;
 }
 function makePalletJack(){
- const root=new THREE.Group();getWorld().add(root);root.userData.keepProportion=true;
- root.name='fullWidthPalletJack';
- // Compact genuine hand pallet jack: 1.52m forks in place of the elongated
- // 2.16m blades, short hydraulic body, steer wheels and ergonomic tiller.
- const yellow=equipmentMaterial('#e7b344',.30,.48);
- const shadow=equipmentMaterial('#303b3b',.15,.78);
- const steel=equipmentMaterial('#87999a',.63,.35);
- const handleRubber=equipmentMaterial('#222c2c',.06,.88);
+ const root=new THREE.Group();getWorld().add(root);
+ root.userData.keepProportion=true;root.name='fullWidthPalletJack';
+ // Hand pallet jack with true working width and shorter, believable forks.
+ // Everything shares one proportional parent after the wide-aisle transform.
+ const yellow=equipmentMaterial('#e7b344',.29,.47);
+ const shadow=equipmentMaterial('#303b3b',.16,.78);
+ const steel=equipmentMaterial('#87999a',.64,.35);
+ const handleRubber=equipmentMaterial('#222c2c',.06,.86);
  const materials=cartonMaterials();
  for(const side of [-1,1]){
-  const fork=round(.245,.14,1.52,yellow,root);
-  fork.name='widePalletJackFork';fork.position.set(side*.47,.22,-.14);
-  const tip=round(.245,.09,.22,steel,root);
-  tip.name='palletJackRoundedForkTip';tip.position.set(side*.47,.17,-.91);
-  const heel=round(.27,.19,.36,yellow,root);
-  heel.position.set(side*.47,.28,.46);
-  industrialWheel(root,side*.48,.16,-.79,.15);
+  const fork=round(.33,.17,1.51,yellow,root);
+  fork.name='widePalletJackFork';fork.position.set(side*.64,.22,-.12);
+  const tip=round(.35,.105,.25,steel,root);
+  tip.name='palletJackRoundedForkTip';tip.position.set(side*.64,.18,-.90);
+  const heel=round(.37,.22,.38,yellow,root);
+  heel.name='palletJackForkHeel';heel.position.set(side*.64,.31,.48);
+  // Load-bearing tandem rollers are tucked under each fork.
+  industrialWheel(root,side*.64,.16,-.78,.16);
+  const axleCover=round(.28,.07,.20,shadow,root);
+  axleCover.position.set(side*.64,.12,-.75);
  }
- const crossBar=round(1.28,.19,.28,steel,root);crossBar.position.set(0,.32,.56);
- const body=round(1.40,.45,.50,yellow,root);body.position.set(0,.43,.78);
+ const crossBar=round(1.72,.19,.32,steel,root);crossBar.position.set(0,.34,.56);
+ const body=round(1.90,.49,.67,yellow,root);body.position.set(0,.46,.76);
  body.name='proportionalPalletJackRearHousing';
- const hydraulic=round(.29,.42,.30,shadow,root);hydraulic.position.set(0,.79,.80);
- const hydraulicRam=round(.16,.43,.16,steel,root);hydraulicRam.position.set(0,1.07,.80);
+ const sideGuard=round(1.57,.12,.48,steel,root);sideGuard.position.set(0,.74,.77);
+ const hydraulic=round(.35,.47,.34,shadow,root);hydraulic.position.set(0,.84,.83);
+ const hydraulicRam=round(.18,.49,.17,steel,root);hydraulicRam.position.set(0,1.18,.83);
  for(const side of [-1,1]){
-  industrialWheel(root,side*.57,.27,.80,.24);
-  const bracket=round(.14,.28,.27,steel,root);bracket.position.set(side*.52,.48,.79);
-  const nut=round(.075,.075,.05,shadow,root);nut.position.set(side*.72,.51,.80);
+  industrialWheel(root,side*.74,.27,.81,.27);
+  const bracket=round(.17,.30,.32,steel,root);bracket.position.set(side*.71,.50,.81);
+  const bolt=round(.09,.09,.07,shadow,root);bolt.position.set(side*.88,.52,.82);
+  const rearBumper=round(.15,.24,.29,shadow,root);rearBumper.position.set(side*.84,.31,1.03);
  }
- const tiller=round(.145,.96,.145,steel,root);tiller.position.set(0,1.26,.98);
- tiller.rotation.x=-.22;
- const grip=round(.84,.115,.15,handleRubber,root);grip.position.set(0,1.76,1.07);
+ // The pull handle has a real pivot, angled stem and thick ergonomic grip.
+ const pivot=round(.46,.26,.30,steel,root);pivot.position.set(0,.90,1.03);
+ const tiller=round(.19,.87,.18,steel,root);tiller.position.set(0,1.35,1.14);
+ tiller.rotation.x=-.25;
+ const grip=round(1.01,.15,.19,handleRubber,root);grip.position.set(0,1.77,1.22);
  grip.name='widePalletJackHandle';
  for(const side of [-1,1]){
-  const pad=round(.19,.14,.20,shadow,root);pad.position.set(side*.36,1.76,1.07);
+  const pad=round(.22,.16,.23,shadow,root);pad.position.set(side*.42,1.77,1.22);
  }
- const label=round(.58,.15,.045,shadow,root);label.position.set(0,.57,.515);
- const badge=round(.32,.08,.051,steel,root);badge.position.set(0,.58,.483);
- // One correctly sized shipping carton on a real mini-pallet. Keep the
- // existing cargo scene name so game fill and save logic are unchanged.
+ const label=round(.62,.17,.055,shadow,root);label.position.set(0,.60,.44);
+ const badge=round(.39,.085,.057,steel,root);badge.position.set(0,.61,.41);
  const cargo=new THREE.Group();cargo.name='palletCargo';root.add(cargo);
- cargo.position.set(0,.37,-.19);
- const pallet=addInventoryPallet({round,parent:cargo,materials,width:1.15,depth:.96});
+ cargo.position.set(0,.37,-.16);
+ const pallet=addInventoryPallet({round,parent:cargo,materials,width:1.48,depth:1.05});
  pallet.name='palletJackCargoDeck';
- const box=addPackedCarton({round,parent:pallet,materials,x:0,y:.65,z:0,variant:2,scale:.86});
+ const box=addPackedCarton({round,parent:pallet,materials,x:0,y:.66,z:0,variant:2,scale:.96});
  box.name='palletJackSizedCargoCarton';
  return root;
 }
