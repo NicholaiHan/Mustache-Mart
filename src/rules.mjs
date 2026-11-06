@@ -1,4 +1,4 @@
-import {walkRobotAround,rescueStackedRobot,normalizeRobotSpawns} from './robot-traffic.mjs';
+import {walkRobotAround,rescueStackedRobot,normalizeRobotSpawns,robotBlocker} from './robot-traffic.mjs';
 import {ROBOT_SPAWN_PITCH,ACTIVE_QUEUE_SLOTS,queueRank,queueWaitingPoint,pickupAvailable,reservePickup,releasePickup,canCollectPickup} from './robot-pickup-queue.mjs';
 // Pure rules for Mustache Mart. No rendering, network, or OS dependencies.
 export const FLOORS=15, AISLES=10, BAYS=30, TIERS=4, SLOTS=4;
@@ -907,6 +907,9 @@ export function repairRobot(s,id,elapsed=0){
 }
 export function botStep(s,r,dt){
  if(!r.placed||dt<=0||r.broken||r.wrecked)return -1;
+ // Even a legacy save or a developer-spawned pileup must be separated as
+ // ONE group before the first individual robot moves or queues for stock.
+ if(robotBlocker(s,r,r.x,r.z))normalizeRobotSpawns(s,r.floor);
  if(!r.breakAt)r.breakAt=nextRobotBreakpoint(s,r);
  if(r.phase==='supply')r.liftY=Math.max(0,(r.liftY||0)-dt*5);
  if(incomplete(s,r.floor,0)<0){
