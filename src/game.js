@@ -1561,7 +1561,37 @@ if(DEV_MODE){
     textFits:nested(signFace,signLettering),
     frameFits:nested(signFace,signTrim)
    };
-   return {inventoryGeometry,portalSignGeometry,portalConnections,portalGantryX:world.getObjectByName('fireExitSidePortalGantry')?.position.x,
+   // Check REAL post-widening world coordinates, not source-only guesses.
+   const portrait=world.getObjectByName('employeeOfMonthPortrait');
+   const goldVerticals=portrait?.children.filter(o=>o.name==='connectedPortraitGoldVertical')||[];
+   const goldHorizontals=portrait?.children.filter(o=>o.name==='connectedPortraitGoldHorizontal')||[];
+   const connected=(left,right)=>!!left&&!!right&&bound(left).intersectsBox(bound(right));
+   const portraitGoldFrame={
+    bars:goldVerticals.length+goldHorizontals.length,
+    allCornersTouch:goldVerticals.length===2&&goldHorizontals.length===2&&
+     goldVerticals.every(v=>goldHorizontals.every(h=>connected(v,h))),
+    proportions:measure(portrait)
+   };
+   const queue=world.getObjectByName('connectedCustomerServiceQueue');
+   const poles=queue?.children.filter(o=>o.name==='customerServiceLinePole')||[];
+   const line=queue?.getObjectByName('customerServiceConnectedLine');
+   const kiosk=world.getObjectByName('proportionalCustomerServiceKiosk');
+   const housing=kiosk?.getObjectByName('customerServiceCenteredSignHousing');
+   const label=kiosk?.getObjectByName('customerServiceCenteredSign');
+   const aligned=!!housing&&!!label&&
+    Math.abs(housing.getWorldPosition(new THREE.Vector3()).x-
+    label.getWorldPosition(new THREE.Vector3()).x)<.025;
+   const customerServiceGeometry={
+    lineAttached:poles.length===2&&poles.every(p=>connected(line,p)),
+    poles:poles.length,rope:measure(line),signAligned:aligned,
+    housing:measure(housing),label:measure(label)
+   };
+   const productShapes=Array.from({length:5},(_,i)=>{
+    const geometry=world.getObjectByName('shelfStockedProductsType'+i)?.geometry;
+    return {kind:geometry?.userData?.productShape??null,
+     geometryType:geometry?.type??null};
+   });
+   return {portraitGoldFrame,customerServiceGeometry,productShapes,inventoryGeometry,portalSignGeometry,portalConnections,portalGantryX:world.getObjectByName('fireExitSidePortalGantry')?.position.x,
     portalLedBacking:count('supplyPortalLedBackingAttached'),emblemMount:count('attachedSupplyPortalEmblemMount'),
     portalBeam:count('supplyPortalLowerCrossbeam'),portalJoints:count('supplyPortalCrossbeamJoint'),
     inventoryPallets:count('collectibleWarehouseCratePallet'),decorPallets:count('decorativeWarehousePallet'),
