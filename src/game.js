@@ -180,7 +180,7 @@ function buildWorld(){
   // Keep the crab's previous compact physical silhouette even as the
   // aisles expand to 16m visually. Only cosmetic geometry changes.
   // A broader intimidating animal, with the rest of the store still proportional.
-  crabModel.scale.set(.52/MAP_WIDTH_MULTIPLIER,.72,.72);
+  crabModel.scale.set(.77/MAP_WIDTH_MULTIPLIER,.77,.77);
  }
  for(const platform of platformsOnFloor(s)){
   const model=makeCart();if(model){cartMeshes.push({platform,model});if(platform===s.cart)cartMesh=model;}
