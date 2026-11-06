@@ -83,6 +83,18 @@ This build specifically addresses the earlier incorrect "completed" updates. The
 - No stock counts, robot routing logic, progress saves, or pickup collision locations were changed in this sign-only update. Continue to use the same browser profile and URL if updating your Mac.
 - The latest intro build number is **2026.11.03.2**. Download the latest `main` branch source to update; merely restarting the old extracted folder cannot load new changes.
 
+## Current Build 2026.11.06.1 — Seven player-requested fixes
+
+- **Crab body:** Remove random circles, raised bumps, floating shell scutes, freckles, edge beads and ornamental pincer dots; retain natural faceted carapace and subtle anatomical seams. More muscular legs, thicker claws and proportionally balanced 0.77 visual sizing on every axis.
+- **Continuous patrol:** On arrival at a destination the crab immediately selects a different aisle and walks toward it, rather than standing still while the old roaming timer counts down. The 20-minute raid clock and King of the Crab control remain unaffected.
+- **Portrait:** The entire Employee of the Month gold frame and its four overlapping gold border bars form one rigid proportion-locked assembly; gold corners stay joined through wider-map scaling, with all 15 floor portraits retained.
+- **Customer service:** Both queue posts and connecting rail share one rigid proportional model. Mike's kiosk and overhead customer-service sign now share a center axis; wide-map transforms no longer pull the sign off the desk or detach the rail.
+- **Spawned robots:** Historic saved robots that overlap get distinct physical aisle berths immediately on load and again before rendering any floor. They retain inventory, assignment, floor, carry and money. Stock pickup also avoids highly congested sources and uses a realistic reachable collection area rather than one exact point.
+- **Pallet jack:** Wider 1.9m rear chassis, stout .33m forks, .27m steering wheels, thicker hydraulic tiller, robust body and proportional cargo, with compact fork length retained.
+- **Inventory shapes:** 5 meaningful silhouettes: soup and soda cans as flat-ended cylinders; water and wine bottles as cylindrical bodies with narrower necks; cereal products as rectangular cartons. Position and rewards on shelves are unchanged.
+- **Testing:** 211 JavaScript regression tests locally passed, including six new 30-simulation suites for 40-worker legacy spawn rescue, uninterrupted crab movement, anatomy, portrait/customer-service structures, product categories, and pallet jack dimensions. GitHub graphical/browser test results should be checked separately.
+- **Mac updates:** Download a new `main` ZIP and launch it from the fresh extracted folder; check the game's build chip for `2026.11.06.1`. Reuse your existing Chrome profile and `http://127.0.0.1:8000` to access the same saved progress. Older extracted folders do not update themselves.
+
 ## Guaranteed latest-version setup (copy/paste for Mac)
 
 **Do not use an old downloaded `mustache-mart.zip`, old Electron app, or previously extracted folder.** The obsolete small ZIP has been removed from GitHub. The complete game is always in the live `main` branch archive.
