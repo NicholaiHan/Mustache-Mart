@@ -50,6 +50,43 @@ export function rescueStackedRobot(s,bot){
  }
  return false;
 }
+
+// Repair frozen robot clusters before their very first rendered game frame.
+// Legacy browser saves can contain dozens of identical robot coordinates;
+// a normal physics step cannot disperse the entire pile without a visibly
+// frozen initial state. Reserve collision-free three-lane bays per aisle.
+export function normalizeRobotSpawns(s,floor=null){
+ let fixed=0;
+ const floors=floor===null?[...new Set(s.robots.map(b=>b.floor))]:[floor];
+ for(const f of floors){
+  const bots=s.robots.filter(b=>b.placed&&b.floor===f)
+   .sort((a,b)=>a.id-b.id);
+  const occupied=[];
+  for(const bot of bots){
+   const currentFree=robotWalkable(bot.x,bot.z)&&occupied.every(p=>
+    Math.hypot(p.x-bot.x,p.z-bot.z)>=ROBOT_CLEARANCE);
+   if(currentFree){occupied.push({x:bot.x,z:bot.z});continue;}
+   const center=AISLE_START+Math.max(0,Math.min(9,bot.aisle??0))*AISLE_STEP;
+   const originZ=Math.min(89.5,Math.max(13,Number.isFinite(bot.z)?bot.z:76));
+   const sites=[];
+   // Prefer a nearby position rather than relocating the robot far away.
+   for(let bay=0;bay<73;bay++){
+    const z=13+bay*1.05;
+    for(const offset of [0,-1.15,1.15]){
+     const x=center+offset;
+     if(robotWalkable(x,z))sites.push({x,z,distance:Math.hypot(x-bot.x,z-originZ)});
+    }
+   }
+   sites.sort((a,b)=>a.distance-b.distance);
+   const spot=sites.find(p=>occupied.every(other=>Math.hypot(other.x-p.x,other.z-p.z)>=ROBOT_CLEARANCE));
+   if(spot){bot.x=spot.x;bot.z=spot.z;fixed++;}
+   // If a floor is fully saturated, keep it valid and let the next tick
+   // resolve it; no item counts, money or robot jobs are reset.
+   occupied.push({x:bot.x,z:bot.z});
+  }
+ }
+ return fixed;
+}
 function moveAngle(s,bot,step,angle){
  const x=bot.x+Math.cos(angle)*step,z=bot.z+Math.sin(angle)*step;
  if(!robotPathClear(s,bot,x,z))return false;
