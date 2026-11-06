@@ -31,8 +31,23 @@ const {createServer}=require('../server.cjs');
   await camera('portal-crates-close',6.5,92.4,Math.PI,.12);
   await camera('proper-inventory-stacks',8.5,90.2,Math.PI,.16);
   await camera('compact-pallet-jack',2.3,88.5,Math.PI,.09);
+  await camera('customer-service-kiosk',1.5,-.3,0,.18);
+  await camera('connected-service-queue',10,-3.9,0,.04);
+  await camera('connected-gold-portrait',31,-4.0,0,.23);
   const details=await page.evaluate(()=>window.__martTest.visualChecklist());
   console.log('FOCUS SCENE CHECKLIST',JSON.stringify(details));
+  console.log('FOCUS NEW GEOMETRY',JSON.stringify({
+   frame:details.portraitGoldFrame,service:details.customerServiceGeometry,
+   productShapes:details.productShapes
+  }));
+  assert.equal(details.portraitGoldFrame?.bars,4,'all four gold portrait rails exist');
+  assert.equal(details.portraitGoldFrame?.allCornersTouch,true,'gold frame must connect at every corner after aisle widening');
+  assert.equal(details.customerServiceGeometry?.lineAttached,true,'customer queue line joins both posts');
+  assert.equal(details.customerServiceGeometry?.signAligned,true,'customer service sign is centered on its housing');
+  assert.deepEqual(details.productShapes?.map(p=>p.kind),
+   ['can','water-bottle-with-neck','wine-bottle-with-neck','cereal-box','can']);
+  assert.deepEqual(details.productShapes?.map(p=>p.geometryType),
+   ['CylinderGeometry','LatheGeometry','LatheGeometry','BoxGeometry','CylinderGeometry']);
   const sign=details.portalSignGeometry;
   assert.ok(sign?.panel&&sign?.lettering&&sign?.frame&&sign?.lights,
    'real sign face, lettering, frame and LED backing must render together');
@@ -59,6 +74,8 @@ const {createServer}=require('../server.cjs');
   }
   assert.equal(links.dockX,-1.8,'pickup counter and Supply Portal center must travel together');
   assert.ok(links.topSpan>links.postSpan,'full-width horizontal beam must be wider than the upright span');
+  await page.evaluate(()=>window.__martTest.crabTest.stockTarget(0,0,6,2));
+  await camera('shelf-product-shapes',8,28,Math.PI/2,.05);
   await page.evaluate(()=>window.__martTest.crabTest.spawn());
   const patrol=await page.evaluate(()=>window.__martTest.crabRideStatus().patrol);
   await camera('crab-front',patrol.x,patrol.z-12,Math.PI,.10);
