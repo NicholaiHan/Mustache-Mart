@@ -1,4 +1,4 @@
-# One-time verified source snapshot after portal and robot rework
+# QA snapshot updated for November 2026 physical collision, crab and proportional prop fixes
 name: Export game source for local visual QA
 on:
   push:
