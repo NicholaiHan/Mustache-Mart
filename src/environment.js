@@ -187,8 +187,7 @@ function buildEmployeeOfMonthPortrait(){
  group.name='employeeOfMonthPortrait';
  // Keep EVERY rail, corner, photo and plaque in one proportional frame.
  // Independent mesh scaling created visible corner gaps in wide aisles.
- group.userData.keepProportion=true;
- group.userData={floor,subject:'Mustache Mike',job:MIKE_PORTRAIT_JOBS[floor][0]};
+ group.userData={floor,subject:'Mustache Mike',job:MIKE_PORTRAIT_JOBS[floor][0],keepProportion:true};
  // Occupies the front wall just to the right of the elevator frame.
  group.position.set(31,0,-12.19);add(group);
  // Gilded 24K-yellow frame, not dark bronze. Metallic-only materials
