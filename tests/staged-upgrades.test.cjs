@@ -771,7 +771,7 @@ test('wider store stage: 30 reversible X geometry and legacy aisle coordinates p
  assert.match(game,/world\.scale\.x=MAP_WIDTH_MULTIPLIER/);
  assert.match(game,/camera\.position\.set\(toWideX\(V\.x\)/);
  assert.match(game,/fromWideX\(point\.x\)/);
- assert.ok(game.includes('crabModel.scale.set(.52/MAP_WIDTH_MULTIPLIER,.72,.72)'));
+ assert.ok(game.includes('crabModel.scale.set(.77/MAP_WIDTH_MULTIPLIER,.77,.77)'));
 
  simulate(i=>{
   const x=r.aisleX(i%r.AISLES),left=r.aisleX(0),right=r.aisleX(9);
@@ -787,7 +787,7 @@ test('wider store stage: 30 reversible X geometry and legacy aisle coordinates p
 });
 test('crab lane stage: 30 large moving crab patrols remain inside broadened aisles',()=>{
  const game=source('game.js'),characters=source('characters.js');
- assert.ok(game.includes('crabModel.scale.set(.52/MAP_WIDTH_MULTIPLIER,.72,.72)'));
+ assert.ok(game.includes('crabModel.scale.set(.77/MAP_WIDTH_MULTIPLIER,.77,.77)'));
 
  assert.match(game,/crabModel\.position\.set\(\(p\.x\?\?aisleX\(p\.aisle\)\)/);
  assert.match(source('natural-crab.js'),/megaRobotCrab/);
@@ -807,7 +807,7 @@ test('crab lane stage: 30 large moving crab patrols remain inside broadened aisl
 });
 test('smaller crab: 30 cosmetic shrink checks preserve 15-floor raids and save state',()=>{
  const game=source('game.js');
- assert.ok(game.includes('crabModel.scale.set(.52/MAP_WIDTH_MULTIPLIER,.72,.72)'),'crab remains naturally proportioned');
+ assert.ok(game.includes('crabModel.scale.set(.77/MAP_WIDTH_MULTIPLIER,.77,.77)'),'crab remains naturally proportioned');
  simulate(i=>{
   const state=r.newState();state.money=7300+i;state.floor=i%r.FLOORS;
   const savedBefore=r.serialize(state);
@@ -850,11 +850,11 @@ test('wide aisle upgrade: 30 preserved legacy saves at 16 meter visual separatio
 test('detailed crab upgrade: 30 organic motion, one-time raids and existing save safety',()=>{
  const code=source('natural-crab.js'),game=source('game.js');
  for(const name of ['naturalCrabShell','naturalCrabUnderside','naturalCrabWalkingLeg',
-  'livingCrabClaw','carapaceRidgeBump','livingEye','crabEyeStalk','pincerTooth','legDactylus']){
+  'livingCrabClaw','crabCarapaceSegmentationSeam','livingEye','crabEyeStalk','pincerTooth','legDactylus']){
   assert.ok(code.includes(name),'missing natural anatomy '+name);
  }
  assert.doesNotMatch(code,/crabHydraulicCylinder|crabArmorRivets|crabAnimatedWarningBeacon/);
- assert.ok(game.includes('crabModel.scale.set(.52/MAP_WIDTH_MULTIPLIER,.72,.72)'));
+ assert.ok(game.includes('crabModel.scale.set(.77/MAP_WIDTH_MULTIPLIER,.77,.77)'));
  simulate(i=>{
   const state=r.newState();state.money=10000+i*7;
   const floor=i%r.FLOORS;state.floor=floor;
