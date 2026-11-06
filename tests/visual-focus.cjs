@@ -9,9 +9,11 @@ const {createServer}=require('../server.cjs');
   const origin='http://127.0.0.1:'+server.address().port;
   browser=await chromium.launch({headless:true,args:['--enable-webgl','--use-angle=swiftshader']});
   const page=await browser.newPage({viewport:{width:1440,height:900}});
-  const errs=[];page.on('pageerror',e=>errs.push(e.message));
+  const errs=[];page.on('pageerror',e=>{errs.push(e.message);console.error('BROWSER PAGE ERROR',e.message)});
+  page.on('console',m=>{if(m.type()==='error')console.error('BROWSER CONSOLE ERROR',m.text());});
   await page.goto(origin+'/#rich',{waitUntil:'load'});
-  await page.waitForFunction(()=>document.querySelector('#loading')?.hidden&&window.__martTest,undefined,{timeout:45000});
+  try{await page.waitForFunction(()=>document.querySelector('#loading')?.hidden&&window.__martTest,undefined,{timeout:45000});}
+  catch(error){console.error('BROWSER INIT FAILURE',errs,await page.title());throw error;}
   const version=await page.locator('#buildChip').textContent();
   console.log('FOCUS BUILD',version);
   await page.locator('#play').click();
