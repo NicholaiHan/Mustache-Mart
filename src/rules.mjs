@@ -1,4 +1,5 @@
 import {walkRobotAround,rescueStackedRobot,normalizeRobotSpawns} from './robot-traffic.mjs';
+import {ROBOT_SPAWN_PITCH,ACTIVE_QUEUE_SLOTS,queueRank,queueWaitingPoint,pickupAvailable,reservePickup,releasePickup,canCollectPickup} from './robot-pickup-queue.mjs';
 // Pure rules for Mustache Mart. No rendering, network, or OS dependencies.
 export const FLOORS=15, AISLES=10, BAYS=30, TIERS=4, SLOTS=4;
 export const CELLS_PER_FLOOR=AISLES*2*BAYS*TIERS, TOTAL_CELLS=FLOORS*CELLS_PER_FLOOR, TOTAL_ITEMS=TOTAL_CELLS*SLOTS;
@@ -74,7 +75,7 @@ export const UPGRADES=[
 export function cellId(f,a,side,bay,tier){return ((((f*AISLES+a)*2+side)*BAYS+bay)*TIERS+tier);}
 export function decode(id){const tier=id%TIERS;id=Math.floor(id/TIERS);const bay=id%BAYS;id=Math.floor(id/BAYS);const side=id%2;id=Math.floor(id/2);return {floor:Math.floor(id/AISLES),aisle:id%AISLES,side,bay,tier};}
 const limit=(v,max)=>Number.isFinite(Number(v))?Math.max(0,Math.min(max,Math.floor(Number(v)))):0;
-export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),freeBelts:[],freeBeltNextId:1,claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,cart:{id:0,floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},platforms:[],platformNextId:1,cursor:Array(FLOORS).fill(0),crab:{unlocked:false,devOverride:'auto',elapsed:Array(FLOORS).fill(0),attacks:Array(FLOORS).fill(0),seed:0x8d129bb5,patrol:Array.from({length:FLOORS},(_,i)=>({aisle:i%AISLES,x:aisleX(i%AISLES),z:15,targetAisle:(i+2)%AISLES,targetZ:46,roamTimer:45})),recent:[]},coinOffers:{cash:{unlocked:false,seen:false,played:false,declined:false,result:null},floor3:{unlocked:false,seen:false,played:false,declined:false,result:null}}};}
+export function newState(){return {version:4,money:0,pending:0,floor:0,stocked:0,fill:new Uint8Array(TOTAL_CELLS),levels:Object.fromEntries(UPGRADES.map(u=>[u.id,0])),belts:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltReceipts:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>[])),beltStock:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltItems:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),beltFlowTimer:0,beltTimers:Array.from({length:FLOORS},()=>Array(AISLES).fill(0)),beltDirection:Array.from({length:FLOORS},()=>Array.from({length:AISLES},()=>Array(BAYS).fill(0))),freeBelts:[],freeBeltNextId:1,claws:[],clawInventory:[],clawNextId:1,stockPiles:[],pallet:{floor:0,x:DOCK.x+4,z:DOCK.z-3,load:0,yaw:0,driving:false},ladderInventory:[],ladders:[],ladderNextId:1,robots:[],robotNextId:1,robotQueueNextTicket:1,cart:{id:0,floor:0,aisle:0,z:13,acc:0,liftHeight:0,mounted:false},platforms:[],platformNextId:1,cursor:Array(FLOORS).fill(0),crab:{unlocked:false,devOverride:'auto',elapsed:Array(FLOORS).fill(0),attacks:Array(FLOORS).fill(0),seed:0x8d129bb5,patrol:Array.from({length:FLOORS},(_,i)=>({aisle:i%AISLES,x:aisleX(i%AISLES),z:15,targetAisle:(i+2)%AISLES,targetZ:46,roamTimer:45})),recent:[]},coinOffers:{cash:{unlocked:false,seen:false,played:false,declined:false,result:null},floor3:{unlocked:false,seen:false,played:false,declined:false,result:null}}};}
 export function loadState(text){
  const s=newState();if(!text)return s;
  try{
@@ -149,9 +150,12 @@ export function loadState(text){
  stockedSinceService:limit(r.stockedSinceService,1000000),
  breakdowns:limit(r.breakdowns,100000),broken:!!r.broken||!!r.wrecked,wrecked:!!r.wrecked,
  breakAt:Math.max(0,Number(r.breakAt)||0),repairProgress:0,
- acc:0,liftY:0,source:null
+ acc:0,liftY:0,source:!old&&r.phase==='supply'&&r.source&&Number.isFinite(r.source.queueTicket)&&r.source.queueKey?{
+   ...r.source,queueTicket:Math.max(1,Math.floor(r.source.queueTicket)),queueKey:String(r.source.queueKey)}:null,
+  pickupWait:Math.max(0,Math.min(.65,Number(r.pickupWait)||0))
  }));
  s.robotNextId=Math.max(limit(d.robotNextId,1000000)||1,...s.robots.map(r=>r.id+1));
+ s.robotQueueNextTicket=Math.max(limit(d.robotQueueNextTicket,1000000000)||1,...s.robots.map(r=>(r.source?.queueTicket||0)+1));
  while(s.robots.length<s.levels.robot)hireRobot(s,250,true);
  s.levels.robot=s.robots.length;
  const normalizePlatform=(c,id)=>({id:limit(c?.id,1000000)||id,
@@ -203,7 +207,7 @@ export function loadState(text){
  normalizeRobotSpawns(s);
  return s;
 }
-export function serialize(s){return JSON.stringify({version:4,money:s.money,pending:s.pending,floor:s.floor,fill:Array.from(s.fill),levels:s.levels,belts:s.belts,beltReceipts:s.beltReceipts,beltStock:s.beltStock,beltItems:s.beltItems,beltFlowTimer:s.beltFlowTimer,beltTimers:s.beltTimers,beltDirection:s.beltDirection,freeBelts:s.freeBelts,freeBeltNextId:s.freeBeltNextId,claws:s.claws,clawInventory:s.clawInventory,clawNextId:s.clawNextId,stockPiles:s.stockPiles,pallet:{...s.pallet,driving:false},ladderInventory:s.ladderInventory,ladders:s.ladders,ladderNextId:s.ladderNextId,robots:s.robots,robotNextId:s.robotNextId,cart:s.cart,platforms:s.platforms,platformNextId:s.platformNextId,activePlatformId:s.cart?.id,cursor:s.cursor,crab:s.crab,coinOffers:s.coinOffers});}
+export function serialize(s){return JSON.stringify({version:4,money:s.money,pending:s.pending,floor:s.floor,fill:Array.from(s.fill),levels:s.levels,belts:s.belts,beltReceipts:s.beltReceipts,beltStock:s.beltStock,beltItems:s.beltItems,beltFlowTimer:s.beltFlowTimer,beltTimers:s.beltTimers,beltDirection:s.beltDirection,freeBelts:s.freeBelts,freeBeltNextId:s.freeBeltNextId,claws:s.claws,clawInventory:s.clawInventory,clawNextId:s.clawNextId,stockPiles:s.stockPiles,pallet:{...s.pallet,driving:false},ladderInventory:s.ladderInventory,ladders:s.ladders,ladderNextId:s.ladderNextId,robots:s.robots,robotNextId:s.robotNextId,robotQueueNextTicket:s.robotQueueNextTicket,cart:s.cart,platforms:s.platforms,platformNextId:s.platformNextId,activePlatformId:s.cart?.id,cursor:s.cursor,crab:s.crab,coinOffers:s.coinOffers});}
 // Two fair-coin, once-per-save events. All money values are cents.
 // The $3,000 milestone is remembered after the first time it is reached,
 // even if equipment spending temporarily reduces the current balance.
@@ -374,7 +378,7 @@ export function incomplete(s,f,start=0){
 export function nextRobotFloor(s){for(let f=0;f<FLOORS;f++)if(incomplete(s,f,s.cursor[f])>=0)return f;return -1;}
 export function hireRobot(s,paid=250,placed=false){
  const f=nextRobotFloor(s);if(f<0)return null;
- const r={id:s.robotNextId++,floor:f,aisle:0,homeAisle:0,stockedSinceService:0,breakdowns:0,breakAt:0,broken:false,wrecked:false,repairProgress:0,x:DOCK.x,z:REAR_CROSSWALK,placed,paid,phase:'supply',target:-1,carry:0,acc:0,liftY:0,source:null};
+ const r={id:s.robotNextId++,floor:f,aisle:0,homeAisle:0,stockedSinceService:0,breakdowns:0,breakAt:0,broken:false,wrecked:false,repairProgress:0,x:DOCK.x,z:REAR_CROSSWALK,placed,paid,phase:'supply',target:-1,carry:0,acc:0,liftY:0,source:null,pickupWait:0};
  s.robots.push(r);return r;
 }
 // Automatic stocking robot dispatch on purchase, analogous to an installed
@@ -403,10 +407,10 @@ export function moveRobotFromMike(s,id,floor,aisle){
  // placing the ninth and every later stocker at the same location.
  const berth=residents.length;
  const bay=Math.max(2,Math.min(BAYS-1,29-Math.floor(berth/3)));
- const offset=[0,-1.02,1.02][berth%3]; // distinct solid-sized launch berths
+ const offset=[0,-ROBOT_SPAWN_PITCH,ROBOT_SPAWN_PITCH][berth%3]; // 10 inches clear between collision bodies
  bot.floor=floor;bot.homeAisle=aisle;bot.aisle=aisle;
  bot.x=aisleX(aisle)+offset;bot.z=bayZ(bay);bot.placed=true;
- bot.target=-1;bot.acc=0;bot.liftY=0;bot.source=null;
+ bot.target=-1;bot.acc=0;bot.liftY=0;releasePickup(bot);
  bot.phase=bot.carry>0?'shelf':'supply';
  return true;
 }
@@ -870,14 +874,8 @@ export function robotSource(s,r){
   };
   return metric(u)-metric(v);
  });
- const chosen=candidates[0];
- // Offsets make several robots queue side-by-side at the same actual crate
- // or receiving dock. Keep them within pickup reach; don't invent inventory.
- if(chosen?.type==='dock'||chosen?.type==='crate'){
-  const lane=((r.id-1)%5)-2,row=(Math.floor((r.id-1)/5)%3)-1;
-  return {...chosen,x:chosen.x+lane*.38,z:chosen.z+row*.28};
- }
- return chosen;
+ // Physical queue positions replace the old jittering ID-offset sources.
+ return candidates[0];
 }
 export const ROBOT_BREAKDOWN_RANGES=[[30,50],[50,100],[200,300],[500,1000],null];
 export function nextRobotBreakpoint(s,r){
@@ -918,14 +916,35 @@ export function botStep(s,r,dt){
  }
  const speed=3.4+s.levels.robotSpeed*.38+(s.levels.warehouseFocus||0)*.15;
  if(r.phase==='supply'){
-  // A new source is chosen on every supply run (belt vs dock).
-  const source=robotSource(s,r);r.source=source;
-  if(approach(s,r,source.x,source.z,dt,speed)){
-    if(source.type==='belt'&&!takeBelt(s,r.floor,source.aisle,source.segment))return -1;
-    if(source.type==='freeBelt'&&!takeFreeBelt(s,source.id))return -1;
-    if(source.type==='pile'&&!takePile(s,source.index,1))return -1;
-    r.carry=source.type==='dock'||source.type==='crate'?8:1;r.phase='shelf';r.target=-1;r.source=null;
+  // A committed FIFO ticket survives every movement frame and save/reload.
+  // Robots cannot repeatedly reselect the same dock and fuse into a pile.
+  if(!r.source?.queueKey||!pickupAvailable(s,r.source,r.floor)){
+   releasePickup(r);
+   reservePickup(s,r,robotSource(s,r));
   }
+  const source=r.source;
+  if(!source)return -1;
+  const rank=queueRank(s,r);
+  if(rank<0)return -1;
+  if(rank>=ACTIVE_QUEUE_SLOTS){
+   // Full station: overflow stays on the worker's aisle until a position
+   // opens up; there is never a swarm approaching a single inventory pile.
+   return -1;
+  }
+  const target=queueWaitingPoint(r,rank);
+  const reached=approach(s,r,target.x,target.z,dt,speed);
+  if(rank!==0||!reached||!canCollectPickup(s,r,dt))return -1;
+  if(source.type==='belt'&&!takeBelt(s,r.floor,source.aisle,source.segment)){
+   releasePickup(r);return -1;
+  }
+  if(source.type==='freeBelt'&&!takeFreeBelt(s,source.id)){
+   releasePickup(r);return -1;
+  }
+  if(source.type==='pile'&&!takePile(s,source.index,1)){
+   releasePickup(r);return -1;
+  }
+  r.carry=source.type==='dock'||source.type==='crate'?8:1;
+  r.phase='shelf';r.target=-1;releasePickup(r);
   return -1;
  }
  if(r.target<0||s.fill[r.target]>=SLOTS||!robotCanReach(s,r,r.target)){
