@@ -54,43 +54,18 @@ export function createNaturalCrab({getWorld,tamed=false}){
  shellBodyMaterial.flatShading=true;
  const mainShell=new THREE.Mesh(shellGeo,shellBodyMaterial);
  mainShell.name='naturalCrabShell';root.add(mainShell);
- // Multiple low-profile, articulated-looking carapace scutes give the top
- // recognizable crab segmentation without spikes, spikes, or a metal body.
- const scuteMaterial=new THREE.MeshStandardMaterial({color:'#b75f46',roughness:.86,metalness:0,flatShading:true});
- const seamMaterial=new THREE.MeshStandardMaterial({color:'#6b322a',roughness:.89,metalness:0});
- for(const z of [-1.05,-.12,.82])for(const x of [-1.36,0,1.36]){
-  const scute=new THREE.Mesh(new THREE.CylinderGeometry(.61,.68,.105,6,1),scuteMaterial);
-  scute.name='crabAngularCarapaceScute';
-  scute.scale.set(1.15,1,.82);
-  scute.position.set(x,4.11-.07*(Math.abs(x)/1.36),z);
-  scute.rotation.y=x*.11;root.add(scute);
- }
- for(const side of [-1,1])for(const z of [-.95,.05,1.02]){
+ // Subtle continuous seam lines trace the natural armored carapace. The
+ // shell itself carries the color and texture: NO round plates or beads.
+ const seamMaterial=new THREE.MeshStandardMaterial({color:'#7d3a30',roughness:.92,metalness:0});
+ for(const side of [-1,1])for(const z of [-.82,.48]){
   branch(root,'crabCarapaceSegmentationSeam',seamMaterial,
-   [side*.35,4.20,z],[side*2.25,3.89,z+.10],.034,.030);
+   [side*.25,4.195,z],[side*2.16,3.89,z+.12],.021,.025);
  }
- ellipsoid(root,'naturalCrabUnderside',underside,0,3.04,.09,2.45,.52,1.93);
- ellipsoid(root,'naturalCrabFrontRim',warm,0,3.54,-1.73,2.55,.25,.43);
- for(let i=0;i<7;i++){
-  const t=(i-3)/3;
-  const patch=ellipsoid(root,'naturalCarapaceMottle',i%2?rusty:warm,
-    t*2.1,4.20-.12*t*t,-.1+(i%3)*.44,.31,.08,.46);
-  patch.rotation.y=.15*t;
- }
+ ellipsoid(root,'naturalCrabUnderside',underside,0,3.02,.09,2.53,.56,2.09);
+ ellipsoid(root,'naturalCrabFrontRim',warm,0,3.53,-1.81,2.62,.19,.34);
+ // Carapace rim is a continuous smooth chitin edge, not rows of balls.
+ // The polygon body already gives natural mottled highlights.
  for(const side of [-1,1]){
-  // Serrated shell edge, natural dark pigment and clustered rough bumps.
-  for(let i=0;i<7;i++){
-   const z=-1.53+i*.48;
-   const bump=ellipsoid(root,'carapaceRidgeBump',i%3===0?pale:rusty,
-    side*(2.51-.20*Math.abs((i-3)/4)),3.65,z,.19,.13,.22);
-   bump.rotation.z=side*.2;
-  }
-  for(let i=0;i<18;i++){
-   const angle=i*2.399+side;
-   ellipsoid(root,'naturalShellFreckle',i%4===0?pale:rusty,
-    side*(.3+Math.abs(Math.cos(angle))*2),4.28-.1*Math.abs(Math.cos(angle)),
-    Math.sin(angle)*1.47,.055+(i%3)*.018,.035,.08);
-  }
   // Two eyes on organic stalks and wet-looking black pupils.
   const eye=new THREE.Group();eye.name='crabEyeStalk';root.add(eye);
   eye.position.set(side*1.43,3.65,-1.48);
@@ -110,27 +85,21 @@ export function createNaturalCrab({getWorld,tamed=false}){
  for(const side of [-1,1])for(let i=0;i<4;i++){
   const z=-1.25+i*.86,hip=new THREE.Group();
   hip.name='naturalCrabWalkingLeg';hip.position.set(side*2.22,3.22,z);root.add(hip);
-  ellipsoid(hip,'legCoxa',rusty,side*.13,0,0,.38,.27,.34);
-  // True bent crab legs, with raised shoulder, wide elbow and thin walking tip.
+  ellipsoid(hip,'legCoxa',rusty,side*.13,0,0,.47,.35,.42);
+  // Thick muscular crab legs with articulated joints and a tapered walking tip.
   const merusEnd=[side*1.11,.56,(i-1.5)*.19];
   const elbow=[side*2.13,.23,(i-1.5)*.36];
   const ankle=[side*2.60,-1.76,(i-1.5)*.43];
   const foot=[side*2.69,-3.04,(i-1.5)*.45];
-  branch(hip,'legMerus',warm,[side*.12,0,0],merusEnd,.34,.28);
-  ellipsoid(hip,'legJoint',joints,...merusEnd,.30,.26,.29);
-  branch(hip,'legCarpus',shell,merusEnd,elbow,.27,.20);
-  ellipsoid(hip,'legKnee',rusty,...elbow,.26,.23,.23);
-  ellipsoid(hip,'crabLegElbowJointCollar',pale,...elbow,.23,.09,.21);
-  branch(hip,'legPropodus',warm,elbow,ankle,.17,.095);
-  ellipsoid(hip,'legAnkle',joints,...ankle,.125,.16,.14);
-  ellipsoid(hip,'crabLegAnkleJointCollar',rusty,...ankle,.16,.095,.16);
-  branch(hip,'legDactylus',pale,ankle,foot,.087,.017);
-  for(let rib=0;rib<3;rib++){
-   const t=(rib+1)/4;
-   const plate=ellipsoid(hip,'legCuticlePlate',rusty,
-    side*(.12+(1.11-.12)*t),.56*t,(i-1.5)*.19*t,.18,.075,.20);
-   plate.rotation.z=side*.22;
-  }
+  branch(hip,'legMerus',warm,[side*.12,0,0],merusEnd,.45,.35);
+  ellipsoid(hip,'legJoint',joints,...merusEnd,.32,.30,.32);
+  branch(hip,'legCarpus',shell,merusEnd,elbow,.38,.29);
+  ellipsoid(hip,'legKnee',rusty,...elbow,.29,.28,.29);
+  ellipsoid(hip,'crabLegElbowJointCollar',rusty,...elbow,.26,.14,.24);
+  branch(hip,'legPropodus',warm,elbow,ankle,.30,.19);
+  ellipsoid(hip,'legAnkle',joints,...ankle,.20,.20,.19);
+  ellipsoid(hip,'crabLegAnkleJointCollar',rusty,...ankle,.20,.12,.18);
+  branch(hip,'legDactylus',pale,ankle,foot,.175,.045);
    legs.push({joint:hip,index:i,side});
  }
  const jaws=[];
@@ -138,79 +107,35 @@ export function createNaturalCrab({getWorld,tamed=false}){
   const arm=new THREE.Group();arm.name='livingCrabClaw';root.add(arm);
   arm.position.set(side*1.94,3.05,-1.39);
   // A large crusher on the right, a narrow cutter on the left.
-  if(side===1){arm.scale.set(1.30,1.18,1.26);arm.userData.crusherClaw=true;}
-  else{arm.scale.set(.91,.92,.94);arm.userData.cutterClaw=true;}
-  ellipsoid(arm,'clawShoulder',rusty,side*.13,0,0,.46,.42,.45);
-  branch(arm,'clawArm',warm,[side*.11,0,0],[side*1.24,-.15,-.72],.41,.32);
-  ellipsoid(arm,'clawPalm',shell,side*1.45,-.15,-.95,.91,.52,.71);
+  if(side===1){arm.scale.set(1.18,1.14,1.16);arm.userData.crusherClaw=true;}
+  else{arm.scale.set(1.04,1.08,1.08);arm.userData.cutterClaw=true;}
+  ellipsoid(arm,'clawShoulder',rusty,side*.13,0,0,.59,.50,.52);
+  branch(arm,'clawArm',warm,[side*.11,0,0],[side*1.24,-.15,-.72],.55,.43);
+  ellipsoid(arm,'clawPalm',shell,side*1.45,-.15,-.95,1.08,.69,.89);
   // Two independently curving cuticle fingers taper toward pointed ends.
   for(const sign of [-1,1]){
    const grip=new THREE.Group();grip.name='crabOrganicPincerFinger';
    grip.position.set(side*1.93,-.15+sign*.25,-1.34);arm.add(grip);
    const b=[side*.33,sign*.28,-.40],c=[side*.48,sign*.21,-.98];
-   branch(grip,'curvingClawFinger',sign===1?shell:pale,[0,0,0],b,.27,.18);
-   branch(grip,'taperedClawTip',sign===1?shell:pale,b,c,.18,.015);
+   branch(grip,'curvingClawFinger',sign===1?shell:pale,[0,0,0],b,.34,.25);
+   branch(grip,'taperedClawTip',sign===1?shell:pale,b,c,.25,.055);
    for(let n=0;n<3;n++){
     ellipsoid(grip,'pincerTooth',underside,
      side*(.14+n*.11),sign*(.24-n*.013),-.31-n*.18,.08,.055,.095);
    }
   }
-  for(let i=0;i<5;i++){
-   const wart=ellipsoid(arm,'clawTextureNodule',i%2?warm:rusty,
-    side*(1.10+i*.15),.32,-.85+i*.13,.1,.065,.12);
-   wart.rotation.y=side*.23;
-  }
   jaws.push(arm);
  }
- // Menacing but biological: a tough asymmetrical cuticle, raised central
- // Smooth, rounded carapace ridges replace ALL sharp dorsal/edge spikes.
- const bone=new THREE.MeshStandardMaterial({color:'#ecbf90',roughness:.9,metalness:0});
+ // Natural cuticle markings belong to the continuous carapace material.
+ // No round shell nodules, rings, spots, oval gill decals or pincer beads.
+ // Tough, attached mandibles and defined brow remain anatomical, not trim.
  const blackShell=new THREE.MeshStandardMaterial({color:'#53231e',roughness:.94,metalness:0});
- const amber=new THREE.MeshStandardMaterial({color:'#a26331',roughness:.71,metalness:0});
- for(const side of [-1,1])for(let i=0;i<10;i++){
-  const t=i/9,z=-1.68+t*3.32,x=side*(.8+Math.sin(t*Math.PI)*.7);
-  const ridge=ellipsoid(root,'naturalCrabRoundedShellRidge',i%3===0?amber:rusty,
-   x,4.28-.07*Math.abs(z),z,.17,.047,.26);
-  ridge.rotation.y=side*.23;
-  const scar=ellipsoid(root,'naturalCrabShellScar',blackShell,
-   x+side*.18,4.22-.13*Math.abs(z),z,.13,.025,.06);
-  scar.rotation.y=side*.30;
- }
- for(const side of [-1,1])for(let i=0;i<9;i++){
-  const z=-1.67+i*.42;
-  const rim=ellipsoid(root,'naturalCrabRoundedEdge',i%3===0?bone:rusty,
-   side*(2.68-.10*Math.abs(i-4)),3.72,z,.24,.095,.23);
-  rim.rotation.z=side*.12;
- }
- // Segmented abdominal membrane, weathered under-shell and curved gill slits.
- for(let i=0;i<8;i++){
-  const z=-1.49+i*.42;
-  ellipsoid(root,'naturalCrabAbdominalSegment',i%2?underside:pale,0,2.85,z,
-   1.76,.09,.17);
-  for(const side of [-1,1]){
-   const slit=ellipsoid(root,'naturalCrabGillSlit',blackShell,
-    side*1.95,3.10,z,.10,.042,.15);
-   slit.rotation.y=side*.25;
-  }
- }
- // Rounded pincer grips and low knuckles replace claw spikes and tusks.
- for(const arm of jaws){
-  const side=arm.position.x<0?-1:1;
-  for(let k=0;k<10;k++){
-   const z=-.25-k*.18;
-   ellipsoid(arm,'naturalCrabPincerNodule',k%3===0?bone:rusty,
-    side*(.81+.11*(k%3)),.10+((k%4)*.08),z,.14,.10,.18);
-  }
-  for(let k=0;k<5;k++){
-   ellipsoid(arm,'naturalCrabPincerGrippingPad',bone,
-    side*(1.2+k*.19),.48,-.79+k*.10,.13,.055,.15);
-  }
- }
  for(const side of [-1,1]){
-  ellipsoid(root,'naturalCrabMandiblePlate',bone,side*.76,3.04,-2.04,.23,.32,.12);
+  branch(root,'naturalCrabMandiblePlate',underside,[side*.63,3.06,-1.98],
+   [side*.75,2.83,-2.23],.17,.085);
   const brow=ellipsoid(root,'naturalCrabHeavyBrow',blackShell,
-   side*1.45,4.28,-1.80,.47,.25,.21);
-  brow.rotation.z=-side*.19;
+   side*1.45,4.19,-1.80,.43,.14,.20);
+  brow.rotation.z=-side*.14;
  }
  // A tamed crab gets a simple leather riding pad and rope grip, never
  // robotic armor or an engine. Saddle is cosmetic; purchasing controls AI.
