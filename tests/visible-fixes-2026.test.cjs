@@ -18,8 +18,8 @@ for(let i=0;i<30;i++){
   assert.match(equip,/fullWidthPalletJack/);
   assert.match(equip,/widePalletJackFork/);
   assert.match(equip,/proportionalPalletJackRearHousing/);
-  assert.match(equip,/round\(1\.90,\.49,\.67,yellow,root\)/);
-  assert.match(equip,/round\(\.33,\.17,1\.51,yellow,root\)/);
+  assert.match(equip,/palletJackCrossYoke/);
+  assert.match(equip,/realPalletJackTaperedFork/);
  });
  test('Shelf product center and real right-corner warehouse · '+i,()=>{
   const env=src('environment.js'),rules=src('rules.mjs');
