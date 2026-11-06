@@ -14,6 +14,7 @@ const PUBLIC_FILES = new Map([
   ['/src/game.js', ['src/game.js', 'text/javascript; charset=utf-8']],
   ['/src/rules.mjs', ['src/rules.mjs', 'text/javascript; charset=utf-8']],
   ['/src/robot-traffic.mjs', ['src/robot-traffic.mjs', 'text/javascript; charset=utf-8']],
+  ['/src/robot-pickup-queue.mjs', ['src/robot-pickup-queue.mjs', 'text/javascript; charset=utf-8']],
   ['/src/save-rescue.mjs', ['src/save-rescue.mjs', 'text/javascript; charset=utf-8']],
   ['/src/rendering.js', ['src/rendering.js', 'text/javascript; charset=utf-8']],
   ['/src/environment.js', ['src/environment.js', 'text/javascript; charset=utf-8']],
