@@ -725,12 +725,18 @@ export function advanceCrab(s,seconds,developer=false,riddenFloor=-1){
   // The animal walks freely across the front crosswalk and down each
   // aisle, even when a belt occupies its path. Shelves/conveyors never
   // constrain this creature; raid timing and product rules remain independent.
-  const p=s.crab.patrol[f],step=delta*1.45;
+  const p=s.crab.patrol[f],step=delta*1.20;
   p.roamTimer=Math.max(0,(p.roamTimer??45)-delta);
-  if(p.roamTimer<=0&&Math.abs(p.x-aisleX(p.targetAisle))<.18&&Math.abs(p.z-p.targetZ)<.18){
-   p.targetAisle=crabRandom(s)%AISLES;
+  const arrived=Math.abs(p.x-aisleX(p.targetAisle))<.18&&Math.abs(p.z-p.targetZ)<.18;
+  // Never wait motionless for the old 35-100s random timer once a patrol
+  // destination is reached. Immediately choose another waypoint instead.
+  if(arrived||p.roamTimer<=0){
+   const oldAisle=p.targetAisle;
+   let next=crabRandom(s)%AISLES;
+   if(next===oldAisle)next=(next+1+crabRandom(s)%(AISLES-1))%AISLES;
+   p.targetAisle=next;
    p.targetZ=14+crabRandom(s)%75;
-   p.roamTimer=35+crabRandom(s)%65;
+   p.roamTimer=65+crabRandom(s)%55;
   }
   const targetX=aisleX(p.targetAisle);
   const approachingDifferentAisle=Math.abs(p.x-targetX)>.18;
