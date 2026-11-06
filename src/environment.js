@@ -6,7 +6,7 @@ import {PAYROLL_LAYOUT as PAY} from './collision.mjs';
 // Architecture, walls, supermarket service counters, shelves, products.
 // The factory owns shelf rendering buffers so other systems never modify them directly.
 export function createEnvironment({s,scene,add,cube,round,roundedGeo,textLabel,toon,dummy,color,goods,pastel,FLOOR_W,FLOOR_D,CEILING_Y,RACK_HEIGHT,TIER_Y,makeMike}){
-let meshes=[],mikeModel=null;
+let meshes=[],productAccents=[],mikeModel=null;
 function itemGeometry(type){
  // Product silhouettes match the product, not a repeated oval Lathe blob.
  // Each geometry rests on Y=0 so the existing shelf placement is unchanged.
@@ -33,6 +33,32 @@ function itemGeometry(type){
  const bottle=new THREE.LatheGeometry(points.map(([radius,y])=>new THREE.Vector2(radius,y)),22);
  bottle.userData={productShape:type===1?'water-bottle-with-neck':'wine-bottle-with-neck'};
  return bottle;
+}
+// Detailed packaging finishes share the main product's instance positions.
+// Only 10 extra instanced draws for thousands of cans, bottles and cartons.
+function productAccentGeometry(type,secondary=false){
+ if(type===0||type===4){
+  const radius=type===0?.18:.16,height=type===0?.40:.44;
+  if(secondary){
+   const ring=new THREE.TorusGeometry(radius-.015,.012,6,24);
+   ring.rotateX(Math.PI/2);ring.translate(0,.019,0);
+   return ring;
+  }
+  const lid=new THREE.CylinderGeometry(radius-.018,radius-.018,.017,24);
+  lid.translate(0,height+.002,0);return lid;
+ }
+ if(type===3){
+  const fold=new THREE.BoxGeometry(.36,.025,.23);
+  fold.translate(0,secondary?.018:.55,0);return fold;
+ }
+ const water=type===1,top=water?.545:.65;
+ if(secondary){
+  const collar=new THREE.TorusGeometry(water?.08:.07,.012,7,22);
+  collar.rotateX(Math.PI/2);collar.translate(0,top-.07,0);
+  return collar;
+ }
+ const lid=new THREE.CylinderGeometry(water?.087:.075,water?.087:.075,water?.055:.075,22);
+ lid.translate(0,top+.018,0);return lid;
 }
 function contactShadow(x,z,w,d,opacity=.18){
  const c=document.createElement('canvas');c.width=c.height=128;
@@ -1013,10 +1039,27 @@ function buildShelves(){
  }
  const maxForType=Math.ceil(AISLES/5)*2*BAYS*TIERS*SLOTS;
  meshes=Array.from({length:5},(_,i)=>{
-   const m=add(new THREE.InstancedMesh(itemGeometry(i),new THREE.MeshStandardMaterial({map:productTexture(i),metalness:.05,roughness:.57}),maxForType));
+   const metallic=i===0||i===4;
+   const mat=new THREE.MeshStandardMaterial({
+    map:productTexture(i),metalness:metallic?.22:.045,
+    roughness:metallic?.41:.66
+   });
+   const m=add(new THREE.InstancedMesh(itemGeometry(i),mat,maxForType));
    m.name='shelfStockedProductsType'+i;
    m.count=0;m.frustumCulled=false;return m;
  });
+ productAccents=Array.from({length:5},(_,i)=>
+  [false,true].map(secondary=>{
+   const metallic=i===0||i===4;
+   const finish=new THREE.MeshStandardMaterial({
+    color:i===1?'#dceef1':i===2?'#bc9c70':metallic?'#d9dcdc':'#d3b68d',
+    metalness:metallic?.65:.14,roughness:metallic?.26:.51
+   });
+   const cap=add(new THREE.InstancedMesh(productAccentGeometry(i,secondary),finish,maxForType));
+   cap.name='shelfProductDetail'+i+(secondary?'Seal':'Cap');
+   cap.count=0;cap.frustumCulled=false;return cap;
+  })
+ );
  for(let i=s.floor*CELLS_PER_FLOOR;i<(s.floor+1)*CELLS_PER_FLOOR;i++){
    for(let k=0;k<s.fill[i];k++)drawProduct(i,k);
  }
@@ -1030,6 +1073,10 @@ function drawProduct(id,slot){
  dummy.position.set(aisleX(aisle)+sg*3.4,TIER_Y[tier]+.015,bayZ(bay)+(slot-1.5)*.53);
  dummy.rotation.set(0,(slot+id)*1.14%6.28,0);dummy.scale.set(1,1,1);dummy.updateMatrix();
  m.setMatrixAt(idx,dummy.matrix);
+ for(const extra of productAccents[aisle%5]||[]){
+  extra.setMatrixAt(idx,dummy.matrix);extra.count=m.count;
+  extra.instanceMatrix.needsUpdate=true;
+ }
  const palettes=[['#9f5948','#b56b51','#b47d54'],['#72909c','#91a5aa','#b6c8c8'],['#805654','#5e745d','#68617a'],['#bd9f6d','#b59e75','#9d866b'],['#8b9c86','#a26d60','#79919b']];
  m.setColorAt(idx,color.set(['#ffffff','#e5eeeb','#d7e4e0'][slot%3]));
  m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;
